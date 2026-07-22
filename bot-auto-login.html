@@ -1,0 +1,1011 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>社交聊天机器人 · 自动登录配置</title>
+  <style>
+:root {
+  --bg: #f0f2f5;
+  --card: #ffffff;
+  --line: #e8e8e8;
+  --border: #d9d9d9;
+  --text: #262626;
+  --text-2: #595959;
+  --muted: #8c8c8c;
+  --primary: #722ed1;
+  --primary-hover: #9254de;
+  --success: #52c41a;
+  --success-hover: #73d13d;
+  --danger: #ff4d4f;
+  --danger-hover: #ff7875;
+  --header: #1e2d5a;
+  --sidebar-w: 220px;
+  --header-h: 48px;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  font-size: 14px;
+}
+
+.app { display: flex; flex-direction: column; min-height: 100vh; }
+
+.top-header {
+  height: var(--header-h);
+  background: var(--header);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 32px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+.logo {
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.logo-mark {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ffd666, #fa8c16);
+  display: inline-block;
+}
+.top-nav { display: flex; gap: 4px; flex: 1; }
+.top-nav a {
+  color: rgba(255,255,255,.85);
+  text-decoration: none;
+  padding: 6px 14px;
+  border-radius: 4px;
+  font-size: 14px;
+}
+.top-nav a:hover { background: rgba(255,255,255,.1); color: #fff; }
+.top-nav a.active { background: rgba(255,255,255,.15); color: #fff; }
+
+.body-row { display: flex; flex: 1; min-height: calc(100vh - var(--header-h)); }
+
+.sidebar {
+  width: var(--sidebar-w);
+  background: #fff;
+  border-right: 1px solid var(--line);
+  padding: 12px 0;
+  flex-shrink: 0;
+}
+.side-group {
+  padding: 8px 16px 4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.side-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  color: var(--text-2);
+  cursor: pointer;
+  font-size: 14px;
+  border-left: 3px solid transparent;
+}
+.side-item:hover { background: #f5f5f5; }
+.side-item.active {
+  background: #f9f0ff;
+  color: var(--primary);
+  border-left-color: var(--primary);
+  font-weight: 500;
+}
+.side-item .ico { width: 16px; text-align: center; opacity: .85; }
+.side-sub {
+  padding: 8px 20px 8px 42px;
+  color: var(--text-2);
+  font-size: 13px;
+  cursor: pointer;
+}
+.side-sub:hover { color: var(--primary); }
+.side-sub.active { color: var(--primary); font-weight: 500; }
+
+.main {
+  flex: 1;
+  min-width: 0;
+  padding: 16px 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.page-tabs { display: flex; gap: 0; align-items: flex-end; }
+.page-tab {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-bottom: none;
+  padding: 8px 16px;
+  border-radius: 4px 4px 0 0;
+  color: var(--text-2);
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 4px;
+}
+.page-tab.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+.page-tab .x { opacity: .7; cursor: pointer; font-size: 12px; }
+
+.card {
+  background: var(--card);
+  border-radius: 4px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.03);
+  padding: 16px 20px 20px;
+}
+
+.breadcrumb {
+  color: var(--muted);
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+.breadcrumb .cur { color: var(--text); }
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  align-items: flex-end;
+  margin-bottom: 16px;
+}
+.filter-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 160px;
+}
+.filter-item label { font-size: 13px; color: var(--text-2); }
+.filter-actions { display: flex; gap: 8px; align-items: center; }
+
+input[type="text"],
+input[type="url"],
+select {
+  height: 32px;
+  padding: 4px 11px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 14px;
+  color: var(--text);
+  background: #fff;
+  outline: none;
+  width: 100%;
+  font-family: inherit;
+  transition: border-color .2s, box-shadow .2s;
+}
+input::placeholder { color: #bfbfbf; }
+input:hover, select:hover { border-color: var(--primary-hover); }
+input:focus, select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(114, 46, 209, .15);
+}
+select { cursor: pointer; appearance: auto; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  padding: 0 16px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text);
+  font-size: 14px;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: all .15s;
+  user-select: none;
+}
+.btn:hover { border-color: var(--primary); color: var(--primary); }
+.btn.primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+.btn.primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); color: #fff; }
+.btn.success {
+  background: var(--success);
+  border-color: var(--success);
+  color: #fff;
+}
+.btn.success:hover { background: var(--success-hover); border-color: var(--success-hover); color: #fff; }
+.btn.danger {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+.btn.danger:hover { background: var(--danger-hover); border-color: var(--danger-hover); color: #fff; }
+.btn.sm { height: 28px; padding: 0 12px; font-size: 13px; }
+.btn:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+.btn:disabled:hover { border-color: var(--border); color: var(--text); }
+
+.tbl-wrap { overflow-x: auto; }
+table.tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.tbl th, .tbl td {
+  padding: 12px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+.tbl th {
+  background: #fafafa;
+  color: var(--text-2);
+  font-weight: 600;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.tbl tbody tr:hover { background: #fafafa; }
+.tbl .col-actions { white-space: nowrap; width: 1%; }
+.tbl .col-actions .btn { margin-right: 6px; }
+.tbl .col-actions .btn:last-child { margin-right: 0; }
+
+.tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 2px;
+  font-size: 12px;
+  line-height: 20px;
+  font-weight: 500;
+}
+.tag.success {
+  color: var(--success);
+  background: #f6ffed;
+  border: 1px solid #b7eb8f;
+}
+.platform-icons {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+.platform-dot {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: #fff;
+  font-weight: 700;
+}
+.platform-dot.tg { background: #229ED9; }
+.platform-dot.wa { background: #25D366; }
+.platform-dot.vb { background: #7360F2; }
+.platform-dot.ms { background: #0084FF; }
+
+.empty {
+  text-align: center;
+  padding: 40px 16px;
+  color: var(--muted);
+}
+
+.pagination {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.pg-btn {
+  min-width: 28px; height: 28px;
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-2);
+}
+.pg-btn.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+.pg-btn:disabled { opacity: .45; cursor: not-allowed; }
+
+.field-error {
+  font-size: 12px;
+  color: var(--danger);
+  line-height: 1.4;
+  margin-top: 4px;
+}
+.field-hint {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.4;
+  margin-top: 4px;
+}
+.cell-edit input,
+.cell-edit select {
+  height: 32px;
+}
+.cell-edit.has-error input,
+.cell-edit.has-error select {
+  border-color: var(--danger);
+}
+.cell-edit.has-error input:focus,
+.cell-edit.has-error select:focus {
+  box-shadow: 0 0 0 2px rgba(255, 77, 79, .15);
+}
+.al-row-editing { background: #faf5ff !important; }
+.al-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.al-toolbar .sub {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* Modal */
+.mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+.modal {
+  width: 860px;
+  max-width: 100%;
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 6px 16px rgba(0,0,0,.12), 0 3px 6px -4px rgba(0,0,0,.12), 0 9px 28px 8px rgba(0,0,0,.05);
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 32px);
+}
+.modal-hd {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--line);
+  font-weight: 600;
+  font-size: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+.modal-hd .x {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1;
+  padding: 4px;
+}
+.modal-hd .x:hover { color: var(--text); }
+.modal-bd {
+  padding: 16px 20px 20px;
+  overflow: auto;
+}
+.modal-ft {
+  padding: 12px 20px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  background: #fafafa;
+  border-radius: 0 0 4px 4px;
+  flex-shrink: 0;
+}
+
+#toast-root {
+  position: fixed;
+  top: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+.toast {
+  background: #fff;
+  border-radius: 4px;
+  padding: 10px 16px;
+  box-shadow: 0 6px 16px rgba(0,0,0,.12);
+  color: var(--text);
+  font-size: 14px;
+  border-left: 3px solid var(--primary);
+  animation: toast-in .2s ease;
+}
+.toast.ok { border-left-color: var(--success); }
+.toast.err { border-left-color: var(--danger); }
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 900px) {
+  .sidebar { display: none; }
+  .filters .filter-item { min-width: calc(50% - 8px); flex: 1; }
+  .tbl .col-actions .btn { margin-bottom: 4px; }
+}
+@media (max-width: 560px) {
+  .filters .filter-item { min-width: 100%; }
+  .modal { width: 100%; }
+}
+  </style>
+</head>
+<body>
+<div class="app">
+  <header class="top-header">
+    <div class="logo"><span class="logo-mark"></span>digiplus</div>
+    <nav class="top-nav">
+      <a href="javascript:;" class="active">运营中心</a>
+      <a href="javascript:;">玩家</a>
+      <a href="javascript:;">设置</a>
+    </nav>
+  </header>
+
+  <div class="body-row">
+    <aside class="sidebar">
+      <div class="side-group">导航</div>
+      <div class="side-item active"><span class="ico">🤖</span>机器人</div>
+      <div class="side-sub active">社交聊天机器人</div>
+      <div class="side-sub">对话流程</div>
+      <div class="side-sub">用户管理</div>
+    </aside>
+
+    <main class="main">
+      <div class="page-tabs" id="page-tabs"></div>
+      <div class="card" id="content"></div>
+    </main>
+  </div>
+</div>
+
+<div id="modal-root"></div>
+<div id="toast-root"></div>
+
+<script>
+/* =========================================================
+ *  MOCK DATA
+ * ========================================================= */
+const MOCK = {
+  bots: [
+    {
+      id: 'bot_1',
+      botName: 'BingoPlus_Official',
+      botToken: '7283****:AAH****CmKpq',
+      botUsername: '@BingoPlusBot',
+      platforms: ['tg', 'wa', 'vb', 'ms'],
+      status: 'SUCCESS',
+      createTime: '2026-05-12 10:24:18',
+      autoLoginPages: [
+        { id: 'al_1', autoLoginUrl: 'https://example.com/order', pageType: 'H5', palCode: 'TG_ORDER' },
+        { id: 'al_2', autoLoginUrl: 'https://example.com/mini/wallet', pageType: 'Mini App', palCode: 'TG_WALLET' }
+      ]
+    },
+    {
+      id: 'bot_2',
+      botName: 'Rewards_Support',
+      botToken: '6691****:AAG****QwxRt',
+      botUsername: '@RewardsSupportBot',
+      platforms: ['tg', 'ms'],
+      status: 'SUCCESS',
+      createTime: '2026-06-03 15:41:02',
+      autoLoginPages: [
+        { id: 'al_3', autoLoginUrl: 'https://rewards.example.com/claim', pageType: 'H5', palCode: 'RW_CLAIM' }
+      ]
+    },
+    {
+      id: 'bot_3',
+      botName: 'GameLobby_Bot',
+      botToken: '5510****:AAF****LpZyT',
+      botUsername: '@GameLobbyBot',
+      platforms: ['tg', 'wa'],
+      status: 'SUCCESS',
+      createTime: '2026-07-01 09:12:45',
+      autoLoginPages: []
+    }
+  ]
+};
+
+/* =========================================================
+ *  STATE
+ * ========================================================= */
+const state = {
+  filters: {
+    botName: '',
+    botToken: '',
+    botUsername: '',
+    platform: ''
+  },
+  // Auto-login config modal
+  al: {
+    open: false,
+    botId: null,
+    // null = none; '__new__' = creating new row; pageId = editing that row
+    editingKey: null
+  }
+};
+
+let idSeq = 100;
+
+/* =========================================================
+ *  UTILS
+ * ========================================================= */
+function esc(s) {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function toast(msg, type) {
+  const root = document.getElementById('toast-root');
+  const el = document.createElement('div');
+  el.className = 'toast' + (type === 'ok' ? ' ok' : type === 'err' ? ' err' : '');
+  el.textContent = msg;
+  root.appendChild(el);
+  setTimeout(() => el.remove(), 2200);
+}
+
+function getBot(id) {
+  return MOCK.bots.find(b => b.id === id);
+}
+
+function nextId(prefix) {
+  idSeq += 1;
+  return prefix + '_' + idSeq;
+}
+
+function isValidUrl(str) {
+  try {
+    const u = new URL(str);
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch (_) {
+    return false;
+  }
+}
+
+function platformLabel(key) {
+  const map = { tg: 'Telegram', wa: 'WhatsApp', vb: 'Viber', ms: 'Messenger' };
+  return map[key] || key;
+}
+
+function renderPlatformIcons(platforms) {
+  return `<span class="platform-icons">${(platforms || []).map(p =>
+    `<span class="platform-dot ${esc(p)}" title="${esc(platformLabel(p))}">${esc(p === 'tg' ? 'T' : p === 'wa' ? 'W' : p === 'vb' ? 'V' : 'M')}</span>`
+  ).join('')}</span>`;
+}
+
+function pageTypeHint(pageType) {
+  if (pageType === 'Mini App') return '使用Telegram Mini App鉴权方式';
+  return '使用一次性Token鉴权方式';
+}
+
+/* =========================================================
+ *  AUTO LOGIN MODAL (list + inline edit)
+ * ========================================================= */
+function closeAutoLoginModal() {
+  state.al = { open: false, botId: null, editingKey: null };
+  document.getElementById('modal-root').innerHTML = '';
+}
+
+function openAutoLoginConfig(botId) {
+  const bot = getBot(botId);
+  if (!bot) {
+    toast('未找到该 Bot', 'err');
+    return;
+  }
+  state.al = { open: true, botId, editingKey: null };
+  renderAutoLoginModal();
+}
+
+function renderAutoLoginModal() {
+  const { botId, editingKey } = state.al;
+  const bot = getBot(botId);
+  if (!bot) {
+    closeAutoLoginModal();
+    return;
+  }
+
+  const pages = bot.autoLoginPages || [];
+  const isCreating = editingKey === '__new__';
+  const isEditing = !!editingKey;
+  const root = document.getElementById('modal-root');
+
+  const rowsHtml = pages.map(p => {
+    if (editingKey === p.id) {
+      return renderEditRow(botId, p.id, p);
+    }
+    return `
+      <tr data-page-id="${esc(p.id)}">
+        <td>${esc(p.autoLoginUrl)}</td>
+        <td>
+          <div>${esc(p.pageType)}</div>
+          <div class="field-hint">${esc(pageTypeHint(p.pageType))}</div>
+        </td>
+        <td>${esc(p.palCode)}</td>
+        <td class="col-actions">
+          <button class="btn sm" type="button" ${isEditing ? 'disabled' : ''} onclick="startInlineEdit('${esc(botId)}','${esc(p.id)}')">编辑</button>
+          <button class="btn sm danger" type="button" ${isEditing ? 'disabled' : ''} onclick="deleteAutoLoginPage('${esc(botId)}','${esc(p.id)}')">删除</button>
+        </td>
+      </tr>`;
+  }).join('');
+
+  const emptyRow = !pages.length && !isCreating
+    ? `<tr><td colspan="4"><div class="empty" style="padding:24px 16px;">暂无自动登录页面，请点击下方「新增」</div></td></tr>`
+    : '';
+
+  const newRow = isCreating
+    ? renderEditRow(botId, '__new__', { autoLoginUrl: '', pageType: 'H5', palCode: '' })
+    : '';
+
+  root.innerHTML = `
+    <div class="mask" id="al-mask">
+      <div class="modal" role="dialog" aria-modal="true" onclick="event.stopPropagation()">
+        <div class="modal-hd">
+          <span>自动登录配置 · ${esc(bot.botName)}</span>
+          <span class="x" onclick="closeAutoLoginModal()" title="关闭">✕</span>
+        </div>
+        <div class="modal-bd">
+          <div class="al-toolbar">
+            <div class="sub">一个 Bot 可配置多个自动登录页面（Mini App / H5）</div>
+            <button class="btn primary" type="button" ${isEditing ? 'disabled' : ''} onclick="startInlineCreate('${esc(botId)}')">新增</button>
+          </div>
+          <div class="tbl-wrap">
+            <table class="tbl" id="al-table">
+              <thead>
+                <tr>
+                  <th style="min-width:220px;">自动登录URL<span style="color:var(--danger);margin-left:2px;">*</span></th>
+                  <th style="min-width:160px;">页面类型<span style="color:var(--danger);margin-left:2px;">*</span></th>
+                  <th style="min-width:120px;">Palcode<span style="color:var(--danger);margin-left:2px;">*</span></th>
+                  <th class="col-actions">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rowsHtml}
+                ${emptyRow}
+                ${newRow}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="modal-ft">
+          <button class="btn" type="button" onclick="closeAutoLoginModal()">关闭</button>
+        </div>
+      </div>
+    </div>`;
+
+  const mask = document.getElementById('al-mask');
+  if (mask) {
+    mask.addEventListener('click', e => {
+      if (e.target === mask) {
+        if (state.al.editingKey) {
+          toast('请先保存或取消当前编辑', 'err');
+          return;
+        }
+        closeAutoLoginModal();
+      }
+    });
+  }
+
+  if (isEditing) {
+    setTimeout(() => {
+      const input = document.getElementById('al-inline-url');
+      if (input) input.focus();
+    }, 0);
+  }
+}
+
+function renderEditRow(botId, key, data) {
+  const pageType = data.pageType || 'H5';
+  return `
+    <tr class="al-row-editing" data-edit-key="${esc(key)}">
+      <td>
+        <div class="cell-edit" id="al-url-cell">
+          <input id="al-inline-url" type="text" placeholder="请输入自动登录页面URL" value="${esc(data.autoLoginUrl || '')}" />
+          <div class="field-error" id="al-url-error"></div>
+        </div>
+      </td>
+      <td>
+        <div class="cell-edit" id="al-page-type-cell">
+          <select id="al-inline-page-type" onchange="onInlinePageTypeChange()">
+            <option value="Mini App" ${pageType === 'Mini App' ? 'selected' : ''}>Mini App</option>
+            <option value="H5" ${pageType === 'H5' ? 'selected' : ''}>H5</option>
+          </select>
+          <div class="field-hint" id="al-inline-page-type-hint">${esc(pageTypeHint(pageType))}</div>
+          <div class="field-error" id="al-page-type-error"></div>
+        </div>
+      </td>
+      <td>
+        <div class="cell-edit" id="al-palcode-cell">
+          <input id="al-inline-palcode" type="text" placeholder="请输入Palcode" value="${esc(data.palCode || '')}" />
+          <div class="field-hint">字母、数字、下划线</div>
+          <div class="field-error" id="al-palcode-error"></div>
+        </div>
+      </td>
+      <td class="col-actions">
+        <button class="btn sm primary" type="button" onclick="saveInlineRow('${esc(botId)}','${esc(key)}')">保存</button>
+        <button class="btn sm" type="button" onclick="cancelInlineEdit()">取消</button>
+      </td>
+    </tr>`;
+}
+
+function onInlinePageTypeChange() {
+  const sel = document.getElementById('al-inline-page-type');
+  const hint = document.getElementById('al-inline-page-type-hint');
+  if (sel && hint) hint.textContent = pageTypeHint(sel.value);
+}
+
+function startInlineCreate(botId) {
+  if (state.al.editingKey) {
+    toast('请先保存或取消当前编辑', 'err');
+    return;
+  }
+  state.al.botId = botId;
+  state.al.editingKey = '__new__';
+  renderAutoLoginModal();
+}
+
+function startInlineEdit(botId, pageId) {
+  if (state.al.editingKey) {
+    toast('请先保存或取消当前编辑', 'err');
+    return;
+  }
+  const bot = getBot(botId);
+  if (!bot || !(bot.autoLoginPages || []).some(p => p.id === pageId)) {
+    toast('未找到该自动登录页面', 'err');
+    return;
+  }
+  state.al.botId = botId;
+  state.al.editingKey = pageId;
+  renderAutoLoginModal();
+}
+
+function cancelInlineEdit() {
+  state.al.editingKey = null;
+  renderAutoLoginModal();
+}
+
+function clearInlineErrors() {
+  ['url', 'page-type', 'palcode'].forEach(key => {
+    const cell = document.getElementById('al-' + key + '-cell');
+    const err = document.getElementById('al-' + key + '-error');
+    if (cell) cell.classList.remove('has-error');
+    if (err) err.textContent = '';
+  });
+}
+
+function setInlineError(key, message) {
+  const cell = document.getElementById('al-' + key + '-cell');
+  const err = document.getElementById('al-' + key + '-error');
+  if (cell) cell.classList.add('has-error');
+  if (err) err.textContent = message || '';
+}
+
+function validateInlineRow(botId, editingKey) {
+  clearInlineErrors();
+  const bot = getBot(botId);
+  if (!bot) return null;
+
+  const autoLoginUrl = (document.getElementById('al-inline-url')?.value || '').trim();
+  const pageType = document.getElementById('al-inline-page-type')?.value || '';
+  const palCode = (document.getElementById('al-inline-palcode')?.value || '').trim();
+  const excludeId = editingKey === '__new__' ? null : editingKey;
+
+  let ok = true;
+
+  if (!autoLoginUrl) {
+    setInlineError('url', '请输入自动登录URL');
+    ok = false;
+  } else if (!isValidUrl(autoLoginUrl)) {
+    setInlineError('url', '请输入正确的URL地址');
+    ok = false;
+  }
+
+  if (!pageType) {
+    setInlineError('page-type', '请选择页面类型');
+    ok = false;
+  }
+
+  if (!palCode) {
+    setInlineError('palcode', '请输入Palcode');
+    ok = false;
+  } else if (!/^[A-Za-z0-9_]+$/.test(palCode)) {
+    setInlineError('palcode', 'Palcode仅允许输入字母、数字和下划线');
+    ok = false;
+  } else {
+    const dup = (bot.autoLoginPages || []).some(
+      p => p.palCode.toLowerCase() === palCode.toLowerCase() && p.id !== excludeId
+    );
+    if (dup) {
+      setInlineError('palcode', '同一个Bot下Palcode不可重复');
+      ok = false;
+    }
+  }
+
+  if (!ok) return null;
+  return { autoLoginUrl, pageType, palCode };
+}
+
+function saveInlineRow(botId, editingKey) {
+  const bot = getBot(botId);
+  if (!bot) return;
+
+  const data = validateInlineRow(botId, editingKey);
+  if (!data) return;
+
+  if (!bot.autoLoginPages) bot.autoLoginPages = [];
+
+  if (editingKey === '__new__') {
+    bot.autoLoginPages.push({
+      id: nextId('al'),
+      autoLoginUrl: data.autoLoginUrl,
+      pageType: data.pageType,
+      palCode: data.palCode
+    });
+    state.al.editingKey = null;
+    renderAutoLoginModal();
+    toast('自动登录页面已新增', 'ok');
+  } else {
+    const page = bot.autoLoginPages.find(p => p.id === editingKey);
+    if (!page) {
+      toast('未找到该自动登录页面', 'err');
+      return;
+    }
+    page.autoLoginUrl = data.autoLoginUrl;
+    page.pageType = data.pageType;
+    page.palCode = data.palCode;
+    state.al.editingKey = null;
+    renderAutoLoginModal();
+    toast('自动登录页面已更新', 'ok');
+  }
+}
+
+function deleteAutoLoginPage(botId, pageId) {
+  if (state.al.editingKey) {
+    toast('请先保存或取消当前编辑', 'err');
+    return;
+  }
+  const bot = getBot(botId);
+  if (!bot) return;
+  const idx = (bot.autoLoginPages || []).findIndex(p => p.id === pageId);
+  if (idx < 0) return;
+  if (!confirm('确认删除该自动登录页面？')) return;
+  bot.autoLoginPages.splice(idx, 1);
+  renderAutoLoginModal();
+  toast('已删除', 'ok');
+}
+
+/* =========================================================
+ *  BOT LIST VIEW
+ * ========================================================= */
+function applyFilters() {
+  state.filters.botName = (document.getElementById('f-bot-name')?.value || '').trim();
+  state.filters.botToken = (document.getElementById('f-bot-token')?.value || '').trim();
+  state.filters.botUsername = (document.getElementById('f-bot-username')?.value || '').trim();
+  state.filters.platform = document.getElementById('f-platform')?.value || '';
+  render();
+}
+
+function filterBots() {
+  const f = state.filters;
+  return MOCK.bots.filter(b => {
+    if (f.botName && !b.botName.toLowerCase().includes(f.botName.toLowerCase())) return false;
+    if (f.botToken && !b.botToken.toLowerCase().includes(f.botToken.toLowerCase())) return false;
+    if (f.botUsername && !b.botUsername.toLowerCase().includes(f.botUsername.toLowerCase())) return false;
+    if (f.platform && !(b.platforms || []).includes(f.platform)) return false;
+    return true;
+  });
+}
+
+function showBotList() {
+  const list = filterBots();
+  const f = state.filters;
+
+  return `
+    <div class="breadcrumb"><span class="cur">社交聊天机器人</span></div>
+    <div class="filters">
+      <div class="filter-item">
+        <label>Bot Name</label>
+        <input id="f-bot-name" type="text" placeholder="请输入Bot Name" value="${esc(f.botName)}" />
+      </div>
+      <div class="filter-item">
+        <label>Bot Token</label>
+        <input id="f-bot-token" type="text" placeholder="请输入Bot Token" value="${esc(f.botToken)}" />
+      </div>
+      <div class="filter-item">
+        <label>Bot Username</label>
+        <input id="f-bot-username" type="text" placeholder="请输入Bot Username" value="${esc(f.botUsername)}" />
+      </div>
+      <div class="filter-item">
+        <label>Platform</label>
+        <select id="f-platform">
+          <option value="">请选择</option>
+          <option value="tg" ${f.platform === 'tg' ? 'selected' : ''}>Telegram</option>
+          <option value="wa" ${f.platform === 'wa' ? 'selected' : ''}>WhatsApp</option>
+          <option value="vb" ${f.platform === 'vb' ? 'selected' : ''}>Viber</option>
+          <option value="ms" ${f.platform === 'ms' ? 'selected' : ''}>Messenger</option>
+        </select>
+      </div>
+      <div class="filter-actions">
+        <button class="btn primary" type="button" onclick="applyFilters()">搜索</button>
+        <button class="btn success" type="button" onclick="toast('原型未接创建','err')">创建</button>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>Bot Name</th>
+            <th>Bot Token</th>
+            <th>Bot Username</th>
+            <th>Platform</th>
+            <th>Status</th>
+            <th>Create Time</th>
+            <th class="col-actions">操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${list.length ? list.map(b => `
+            <tr>
+              <td>${esc(b.botName)}</td>
+              <td>${esc(b.botToken)}</td>
+              <td>${esc(b.botUsername)}</td>
+              <td>${renderPlatformIcons(b.platforms)}</td>
+              <td><span class="tag success">${esc(b.status)}</span></td>
+              <td>${esc(b.createTime)}</td>
+              <td class="col-actions">
+                <button class="btn sm" type="button" onclick="toast('原型未接 Bot 编辑','err')">编辑</button>
+                <button class="btn sm danger" type="button" onclick="toast('原型未接 Bot 删除','err')">删除</button>
+                <button class="btn sm primary" type="button" onclick="openAutoLoginConfig('${esc(b.id)}')">自动登录</button>
+              </td>
+            </tr>`).join('') : `
+            <tr><td colspan="7"><div class="empty">暂无数据</div></td></tr>`}
+        </tbody>
+      </table>
+    </div>
+    <div class="pagination">
+      <span>共 ${list.length} 条</span>
+      <button class="pg-btn" disabled>‹</button>
+      <button class="pg-btn active">1</button>
+      <button class="pg-btn" disabled>›</button>
+    </div>`;
+}
+
+function render() {
+  document.getElementById('page-tabs').innerHTML =
+    `<div class="page-tab active">社交聊天机器人 <span class="x">×</span></div>`;
+  document.getElementById('content').innerHTML = showBotList();
+}
+
+render();
+</script>
+</body>
+</html>
