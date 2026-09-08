@@ -6,326 +6,238 @@
   <title>社交聊天机器人 · 自动登录配置</title>
   <style>
 :root {
-  --bg: #f0f2f5;
-  --card: #ffffff;
-  --line: #e8e8e8;
-  --border: #d9d9d9;
-  --text: #262626;
-  --text-2: #595959;
-  --muted: #8c8c8c;
-  --primary: #722ed1;
-  --primary-hover: #9254de;
-  --success: #52c41a;
-  --success-hover: #73d13d;
-  --danger: #ff4d4f;
-  --danger-hover: #ff7875;
-  --header: #1e2d5a;
-  --sidebar-w: 220px;
-  --header-h: 48px;
+  --bg: #F5F6F8;
+  --card: #FFFFFF;
+  --primary: #2E6BE6;
+  --primary-weak: #EEF4FF;
+  --primary-border: #C9DBFF;
+  --line: #E5E7EB;
+  --text-1: #1F2329;
+  --text-2: #4E5969;
+  --text-3: #86909C;
+  --danger: #E5484D;
+  --success: #2BA471;
+  --warning: #FF7D00;
+  --radius-s: 4px;
+  --radius-m: 6px;
+  --radius-l: 8px;
+  --font: "Inter", "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
 }
 
-* { box-sizing: border-box; }
-html, body { height: 100%; }
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
-  color: var(--text);
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  min-width: 1280px;
+  height: 100%;
+  font-family: var(--font);
+  font-size: 14px;
+  color: var(--text-1);
   background: var(--bg);
-  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
 }
 
-.app { display: flex; flex-direction: column; min-height: 100vh; }
+button { font-family: var(--font); }
+a { text-decoration: none; color: inherit; }
+[hidden] { display: none !important; }
 
-.top-header {
-  height: var(--header-h);
-  background: var(--header);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  padding: 0 20px;
-  gap: 32px;
-  position: sticky;
-  top: 0;
-  z-index: 20;
-}
-.logo {
-  font-weight: 700;
-  font-size: 18px;
-  letter-spacing: 0.02em;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.logo-mark {
-  width: 24px; height: 24px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #ffd666, #fa8c16);
-  display: inline-block;
-}
-.top-nav { display: flex; gap: 4px; flex: 1; }
-.top-nav a {
-  color: rgba(255,255,255,.85);
-  text-decoration: none;
-  padding: 6px 14px;
-  border-radius: 4px;
-  font-size: 14px;
-}
-.top-nav a:hover { background: rgba(255,255,255,.1); color: #fff; }
-.top-nav a.active { background: rgba(255,255,255,.15); color: #fff; }
+.lucide { width: 16px; height: 16px; stroke-width: 1.8; flex: none; }
+.req { color: var(--danger); margin-left: 2px; }
 
-.body-row { display: flex; flex: 1; min-height: calc(100vh - var(--header-h)); }
-
-.sidebar {
-  width: var(--sidebar-w);
-  background: #fff;
-  border-right: 1px solid var(--line);
-  padding: 12px 0;
-  flex-shrink: 0;
-}
-.side-group {
-  padding: 8px 16px 4px;
-  font-size: 12px;
-  color: var(--muted);
-}
-.side-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 20px;
-  color: var(--text-2);
-  cursor: pointer;
-  font-size: 14px;
-  border-left: 3px solid transparent;
-}
-.side-item:hover { background: #f5f5f5; }
-.side-item.active {
-  background: #f9f0ff;
-  color: var(--primary);
-  border-left-color: var(--primary);
-  font-weight: 500;
-}
-.side-item .ico { width: 16px; text-align: center; opacity: .85; }
-.side-sub {
-  padding: 8px 20px 8px 42px;
-  color: var(--text-2);
-  font-size: 13px;
-  cursor: pointer;
-}
-.side-sub:hover { color: var(--primary); }
-.side-sub.active { color: var(--primary); font-weight: 500; }
-
-.main {
+/* ---------------- 布局 ---------------- */
+.app-layout { display: flex; height: 100vh; overflow: hidden; }
+.app-content {
   flex: 1;
   min-width: 0;
-  padding: 16px 20px 24px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  overflow: hidden;
 }
+.content-body { flex: 1; min-height: 0; overflow-y: auto; scrollbar-gutter: stable; }
 
-.page-tabs { display: flex; gap: 0; align-items: flex-end; }
-.page-tab {
-  background: #fff;
-  border: 1px solid var(--border);
-  border-bottom: none;
-  padding: 8px 16px;
-  border-radius: 4px 4px 0 0;
+/* ---------------- 顶栏 ---------------- */
+.topbar {
+  height: 56px;
+  flex: none;
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px 0 0;
+}
+.topbar-menu { display: flex; align-items: center; height: 100%; }
+.topbar-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 24px;
+  font-size: 14px;
   color: var(--text-2);
-  font-size: 13px;
-  display: inline-flex;
+  cursor: pointer;
+}
+.topbar-item:hover { color: var(--text-1); }
+.topbar-item.active { color: var(--primary); font-weight: 600; }
+.topbar-item.active::after {
+  content: "";
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  bottom: 0;
+  height: 2px;
+  background: var(--primary);
+}
+.topbar-user {
+  display: flex;
   align-items: center;
   gap: 8px;
-  margin-right: 4px;
+  font-size: 12px;
+  color: var(--text-2);
 }
-.page-tab.active {
-  background: var(--primary);
-  border-color: var(--primary);
-  color: #fff;
-}
-.page-tab .x { opacity: .7; cursor: pointer; font-size: 12px; }
-
-.card {
-  background: var(--card);
-  border-radius: 4px;
-  box-shadow: 0 1px 2px rgba(0,0,0,.03);
-  padding: 16px 20px 20px;
-}
-
-.breadcrumb {
-  color: var(--muted);
-  font-size: 13px;
-  margin-bottom: 12px;
-}
-.breadcrumb .cur { color: var(--text); }
-
-.filters {
+.topbar-user .avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--primary-weak);
+  color: var(--primary);
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px 16px;
-  align-items: flex-end;
-  margin-bottom: 16px;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
 }
-.filter-item {
+
+/* ---------------- 侧边栏 ---------------- */
+.sidebar {
+  width: 220px;
+  flex: none;
+  background: var(--card);
+  border-right: 1px solid var(--line);
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  min-width: 160px;
 }
-.filter-item label { font-size: 13px; color: var(--text-2); }
-.filter-actions { display: flex; gap: 8px; align-items: center; }
+.sb-brand {
+  height: 56px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 20px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-1);
+  border-bottom: 1px solid var(--line);
+}
+.sb-brand .lucide { width: 20px; height: 20px; color: var(--primary); }
 
-input[type="text"],
-input[type="url"],
-select {
-  height: 32px;
-  padding: 4px 11px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  font-size: 14px;
-  color: var(--text);
-  background: #fff;
-  outline: none;
+.sb-menu { flex: 1; overflow-y: auto; padding: 12px 8px; }
+.sb-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   width: 100%;
-  font-family: inherit;
-  transition: border-color .2s, box-shadow .2s;
+  border: none;
+  background: none;
+  padding: 10px 12px;
+  border-radius: var(--radius-m);
+  font-size: 14px;
+  color: var(--text-2);
+  cursor: pointer;
+  text-align: left;
 }
-input::placeholder { color: #bfbfbf; }
-input:hover, select:hover { border-color: var(--primary-hover); }
-input:focus, select:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 2px rgba(114, 46, 209, .15);
+.sb-item:hover { background: var(--bg); color: var(--text-1); }
+.sb-item.active { color: var(--primary); font-weight: 600; }
+.sb-item .chev { margin-left: auto; width: 14px; height: 14px; color: var(--text-3); }
+.sub-item {
+  display: block;
+  padding: 9px 12px 9px 40px;
+  border-radius: var(--radius-m);
+  font-size: 14px;
+  color: var(--text-2);
+  cursor: pointer;
 }
-select { cursor: pointer; appearance: auto; }
+.sub-item:hover { background: var(--bg); color: var(--text-1); }
+.sub-item.active { background: var(--primary-weak); color: var(--primary); font-weight: 500; }
 
+/* ---------------- 按钮 ---------------- */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   height: 32px;
   padding: 0 16px;
-  border-radius: 4px;
-  border: 1px solid var(--border);
-  background: #fff;
-  color: var(--text);
+  border-radius: var(--radius-m);
+  border: 1px solid transparent;
   font-size: 14px;
   cursor: pointer;
-  font-family: inherit;
-  white-space: nowrap;
-  transition: all .15s;
-  user-select: none;
-}
-.btn:hover { border-color: var(--primary); color: var(--primary); }
-.btn.primary {
-  background: var(--primary);
-  border-color: var(--primary);
-  color: #fff;
-}
-.btn.primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); color: #fff; }
-.btn.success {
-  background: var(--success);
-  border-color: var(--success);
-  color: #fff;
-}
-.btn.success:hover { background: var(--success-hover); border-color: var(--success-hover); color: #fff; }
-.btn.danger {
-  background: var(--danger);
-  border-color: var(--danger);
-  color: #fff;
-}
-.btn.danger:hover { background: var(--danger-hover); border-color: var(--danger-hover); color: #fff; }
-.btn.sm { height: 28px; padding: 0 12px; font-size: 13px; }
-.btn:disabled {
-  opacity: .45;
-  cursor: not-allowed;
-}
-.btn:disabled:hover { border-color: var(--border); color: var(--text); }
-
-.tbl-wrap { overflow-x: auto; }
-table.tbl {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-}
-.tbl th, .tbl td {
-  padding: 12px 12px;
-  text-align: left;
-  border-bottom: 1px solid var(--line);
-  vertical-align: middle;
-}
-.tbl th {
-  background: #fafafa;
-  color: var(--text-2);
-  font-weight: 600;
-  font-size: 13px;
+  background: none;
+  transition: background .15s, border-color .15s, color .15s;
   white-space: nowrap;
 }
-.tbl tbody tr:hover { background: #fafafa; }
-.tbl .col-actions { white-space: nowrap; width: 1%; }
-.tbl .col-actions .btn { margin-right: 6px; }
-.tbl .col-actions .btn:last-child { margin-right: 0; }
-
-.tag {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 2px;
-  font-size: 12px;
-  line-height: 20px;
-  font-weight: 500;
-}
-.tag.success {
-  color: var(--success);
-  background: #f6ffed;
-  border: 1px solid #b7eb8f;
-}
-.platform-icons {
-  display: inline-flex;
-  gap: 4px;
-  align-items: center;
-}
-.platform-dot {
-  width: 22px; height: 22px;
-  border-radius: 50%;
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover:not(:disabled) { background: #2559C4; }
+.btn-outline { border-color: var(--line); color: var(--text-2); background: var(--card); }
+.btn-outline:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
+.btn-sm { height: 28px; padding: 0 12px; font-size: 12px; border-radius: var(--radius-s); }
+.icon-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: none;
+  border-radius: var(--radius-s);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
-  color: #fff;
-  font-weight: 700;
-}
-.platform-dot.tg { background: #229ED9; }
-.platform-dot.wa { background: #25D366; }
-.platform-dot.vb { background: #7360F2; }
-.platform-dot.ms { background: #0084FF; }
-
-.empty {
-  text-align: center;
-  padding: 40px 16px;
-  color: var(--muted);
-}
-
-.pagination {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 8px;
-  margin-top: 16px;
-  color: var(--muted);
-  font-size: 13px;
-}
-.pg-btn {
-  min-width: 28px; height: 28px;
-  border: 1px solid var(--border);
-  background: #fff;
-  border-radius: 4px;
+  color: var(--text-3);
   cursor: pointer;
+}
+.icon-btn:hover { background: var(--bg); color: var(--text-1); }
+.link-btn {
+  border: none;
+  background: none;
+  color: var(--primary);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+}
+.link-btn:hover:not(:disabled) { text-decoration: underline; }
+.link-btn:disabled { color: var(--text-3); cursor: not-allowed; }
+.link-btn-danger { color: var(--danger); }
+.link-btn-danger:disabled { color: var(--text-3); }
+
+/* ---------------- 标签 ---------------- */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-s);
+  font-size: 12px;
+  background: #F2F3F5;
   color: var(--text-2);
+  line-height: 20px;
 }
-.pg-btn.active {
-  background: var(--primary);
-  border-color: var(--primary);
-  color: #fff;
+.tag-success { background: #E8F7F0; color: var(--success); }
+
+/* ---------------- 表单控件 ---------------- */
+.input, .select {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  padding: 6px 12px;
+  font-size: 14px;
+  font-family: var(--font);
+  color: var(--text-1);
+  background: var(--card);
+  outline: none;
+  transition: border-color .15s;
 }
-.pg-btn:disabled { opacity: .45; cursor: not-allowed; }
+.input { height: 32px; }
+.input::placeholder { color: var(--text-3); }
+.input:focus, .select:focus { border-color: var(--primary); }
+.select { height: 32px; cursor: pointer; }
 
 .field-error {
   font-size: 12px;
@@ -335,159 +247,232 @@ table.tbl {
 }
 .field-hint {
   font-size: 12px;
-  color: var(--muted);
+  color: var(--text-3);
   line-height: 1.4;
   margin-top: 4px;
 }
-.cell-edit input,
-.cell-edit select {
-  height: 32px;
+.cell-edit.has-error .input,
+.cell-edit.has-error .select { border-color: var(--danger); }
+
+/* ---------------- 卡片 ---------------- */
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  padding: 24px;
 }
-.cell-edit.has-error input,
-.cell-edit.has-error select {
-  border-color: var(--danger);
+.card-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+
+/* ---------------- 表格 ---------------- */
+.table { width: 100%; border-collapse: collapse; }
+.table th, .table td {
+  text-align: left;
+  padding: 0 16px;
+  height: 44px;
+  font-size: 14px;
+  border-bottom: 1px solid var(--line);
 }
-.cell-edit.has-error input:focus,
-.cell-edit.has-error select:focus {
-  box-shadow: 0 0 0 2px rgba(255, 77, 79, .15);
+.table th { color: var(--text-3); font-weight: 500; font-size: 12px; white-space: nowrap; }
+.table td { color: var(--text-1); }
+.table tbody tr:hover { background: #FAFBFC; }
+.table-nowrap th, .table-nowrap td { white-space: nowrap; }
+.table .col-ops { white-space: nowrap; width: 1%; }
+.table .col-ops .link-btn { margin-right: 12px; }
+.table .col-ops .link-btn:last-child { margin-right: 0; }
+.table-scroll { overflow: auto; scrollbar-gutter: stable; }
+.table-card { padding: 20px 24px; }
+.table-empty { text-align: center; color: var(--text-3); padding: 32px 16px; }
+
+/* ---------------- 页面骨架 ---------------- */
+.page-main { padding: 24px 32px; max-width: 1440px; margin: 0 auto; }
+.page-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+.page-desc { font-size: 14px; color: var(--text-3); }
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
 }
-.al-row-editing { background: #faf5ff !important; }
+.page-header-actions { display: flex; align-items: center; gap: 8px; }
+
+/* ---------------- 筛选区 ---------------- */
+.filter-card { padding: 16px 24px; margin-bottom: 16px; }
+.filter-row { display: flex; flex-wrap: wrap; gap: 16px 24px; align-items: center; }
+.filter-item { display: flex; align-items: center; gap: 8px; }
+.filter-label { font-size: 13px; color: var(--text-2); flex: none; }
+.filter-item .input { width: auto; min-width: 180px; }
+.filter-item .select { width: auto; min-width: 120px; }
+.filter-actions { margin-left: auto; display: flex; gap: 8px; }
+
+/* ---------------- 分页 ---------------- */
+.table-footer { display: flex; justify-content: flex-end; align-items: center; margin-top: 16px; }
+.pagination { display: flex; align-items: center; gap: 4px; }
+.page-btn {
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  background: var(--card);
+  font-size: 13px;
+  color: var(--text-2);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.page-btn:hover:not(:disabled):not(.active) { border-color: var(--primary); color: var(--primary); }
+.page-btn.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+.page-btn:disabled { opacity: .4; cursor: not-allowed; }
+.page-total { font-size: 12px; color: var(--text-3); margin-right: 8px; }
+
+/* ---------------- 渠道图标 ---------------- */
+.platform-icons { display: inline-flex; gap: 4px; align-items: center; }
+.platform-dot {
+  width: 22px; height: 22px;
+  border-radius: var(--radius-s);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: #fff;
+  font-weight: 600;
+}
+.platform-dot.tg { background: #229ED9; }
+.platform-dot.wa { background: #25D366; }
+.platform-dot.vb { background: #7360F2; }
+.platform-dot.ms { background: #0084FF; }
+
+/* ---------------- 抽屉 ---------------- */
+.drawer-root {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  visibility: hidden;
+  pointer-events: none;
+}
+.drawer-root.open { visibility: visible; pointer-events: auto; }
+.drawer-mask {
+  position: absolute;
+  inset: 0;
+  background: rgba(31, 35, 41, .45);
+  opacity: 0;
+  transition: opacity .25s;
+}
+.drawer-root.open .drawer-mask { opacity: 1; }
+.drawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  background: var(--card);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform .28s ease;
+}
+.drawer-root.open .drawer { transform: translateX(0); }
+.drawer-md { width: 42vw; min-width: 560px; }
+.drawer-lg { width: 64vw; min-width: 820px; }
+.drawer-header {
+  height: 56px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--line);
+}
+.drawer-header h3 { font-size: 18px; font-weight: 600; }
+.drawer-body { flex: 1; overflow-y: auto; padding: 24px; }
+.drawer-footer {
+  flex: none;
+  border-top: 1px solid var(--line);
+  padding: 12px 24px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  background: var(--card);
+}
+
 .al-toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 12px;
   margin-bottom: 12px;
-  flex-wrap: wrap;
 }
-.al-toolbar .sub {
-  font-size: 13px;
-  color: var(--muted);
-}
+.al-toolbar .sub { font-size: 13px; color: var(--text-3); }
+.al-row-editing { background: var(--primary-weak) !important; }
+.al-row-editing td { vertical-align: top; padding-top: 8px; padding-bottom: 8px; height: auto; }
 
-/* Modal */
-.mask {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 16px;
-}
-.modal {
-  width: 860px;
-  max-width: 100%;
-  background: #fff;
-  border-radius: 4px;
-  box-shadow: 0 6px 16px rgba(0,0,0,.12), 0 3px 6px -4px rgba(0,0,0,.12), 0 9px 28px 8px rgba(0,0,0,.05);
-  display: flex;
-  flex-direction: column;
-  max-height: calc(100vh - 32px);
-}
-.modal-hd {
-  padding: 14px 20px;
-  border-bottom: 1px solid var(--line);
-  font-weight: 600;
-  font-size: 16px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-shrink: 0;
-}
-.modal-hd .x {
-  cursor: pointer;
-  color: var(--muted);
-  font-size: 16px;
-  line-height: 1;
-  padding: 4px;
-}
-.modal-hd .x:hover { color: var(--text); }
-.modal-bd {
-  padding: 16px 20px 20px;
-  overflow: auto;
-}
-.modal-ft {
-  padding: 12px 20px;
-  border-top: 1px solid var(--line);
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  background: #fafafa;
-  border-radius: 0 0 4px 4px;
-  flex-shrink: 0;
-}
-
+/* ---------------- Toast ---------------- */
 #toast-root {
   position: fixed;
-  top: 64px;
+  top: 72px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 1100;
+  z-index: 200;
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 8px;
   pointer-events: none;
 }
 .toast {
-  background: #fff;
-  border-radius: 4px;
-  padding: 10px 16px;
-  box-shadow: 0 6px 16px rgba(0,0,0,.12);
-  color: var(--text);
-  font-size: 14px;
-  border-left: 3px solid var(--primary);
-  animation: toast-in .2s ease;
+  background: var(--text-1);
+  color: #fff;
+  font-size: 13px;
+  padding: 8px 16px;
+  border-radius: var(--radius-m);
+  opacity: 0;
+  transition: opacity .2s;
+  white-space: nowrap;
 }
-.toast.ok { border-left-color: var(--success); }
-.toast.err { border-left-color: var(--danger); }
-@keyframes toast-in {
-  from { opacity: 0; transform: translateY(-8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@media (max-width: 900px) {
-  .sidebar { display: none; }
-  .filters .filter-item { min-width: calc(50% - 8px); flex: 1; }
-  .tbl .col-actions .btn { margin-bottom: 4px; }
-}
-@media (max-width: 560px) {
-  .filters .filter-item { min-width: 100%; }
-  .modal { width: 100%; }
-}
+.toast.show { opacity: 1; }
+.toast.err { background: var(--danger); }
   </style>
 </head>
 <body>
-<div class="app">
-  <header class="top-header">
-    <div class="logo"><span class="logo-mark"></span>digiplus</div>
-    <nav class="top-nav">
-      <a href="javascript:;" class="active">运营中心</a>
-      <a href="javascript:;">玩家</a>
-      <a href="javascript:;">设置</a>
+<div class="app-layout">
+  <aside class="sidebar">
+    <div class="sb-brand"><i data-lucide="bot"></i>Digiplus</div>
+    <nav class="sb-menu">
+      <div class="menu-group">
+        <button class="sb-item active" type="button">
+          <i data-lucide="bot"></i>机器人
+          <i data-lucide="chevron-down" class="chev"></i>
+        </button>
+        <div class="submenu">
+          <a class="sub-item active" href="javascript:;">社交聊天机器人</a>
+          <a class="sub-item" href="javascript:;">对话流程</a>
+          <a class="sub-item" href="javascript:;">用户管理</a>
+        </div>
+      </div>
     </nav>
-  </header>
+  </aside>
 
-  <div class="body-row">
-    <aside class="sidebar">
-      <div class="side-group">导航</div>
-      <div class="side-item active"><span class="ico">🤖</span>机器人</div>
-      <div class="side-sub active">社交聊天机器人</div>
-      <div class="side-sub">对话流程</div>
-      <div class="side-sub">用户管理</div>
-    </aside>
+  <div class="app-content">
+    <header class="topbar">
+      <div class="topbar-menu">
+        <a class="topbar-item active" href="javascript:;">运营中心</a>
+        <a class="topbar-item" href="javascript:;">玩家</a>
+        <a class="topbar-item" href="javascript:;">设置</a>
+      </div>
+      <div class="topbar-user"><span class="avatar">M</span>marvin@</div>
+    </header>
 
-    <main class="main">
-      <div class="page-tabs" id="page-tabs"></div>
-      <div class="card" id="content"></div>
-    </main>
+    <div class="content-body">
+      <main class="page-main" id="content"></main>
+    </div>
   </div>
 </div>
 
-<div id="modal-root"></div>
+<div id="drawer-host"></div>
 <div id="toast-root"></div>
 
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 <script>
 /* =========================================================
  *  MOCK DATA
@@ -542,7 +527,7 @@ const state = {
     botUsername: '',
     platform: ''
   },
-  // Auto-login config modal
+  // Auto-login config drawer
   al: {
     open: false,
     botId: null,
@@ -565,13 +550,21 @@ function esc(s) {
     .replace(/'/g, '&#39;');
 }
 
+function refreshIcons() {
+  if (window.lucide) window.lucide.createIcons();
+}
+
 function toast(msg, type) {
   const root = document.getElementById('toast-root');
   const el = document.createElement('div');
-  el.className = 'toast' + (type === 'ok' ? ' ok' : type === 'err' ? ' err' : '');
+  el.className = 'toast' + (type === 'err' ? ' err' : '');
   el.textContent = msg;
   root.appendChild(el);
-  setTimeout(() => el.remove(), 2200);
+  requestAnimationFrame(() => el.classList.add('show'));
+  setTimeout(() => {
+    el.classList.remove('show');
+    setTimeout(() => el.remove(), 200);
+  }, 2200);
 }
 
 function getBot(id) {
@@ -609,11 +602,28 @@ function pageTypeHint(pageType) {
 }
 
 /* =========================================================
- *  AUTO LOGIN MODAL (list + inline edit)
+ *  AUTO LOGIN DRAWER (list + inline edit)
  * ========================================================= */
 function closeAutoLoginModal() {
   state.al = { open: false, botId: null, editingKey: null };
-  document.getElementById('modal-root').innerHTML = '';
+  const host = document.getElementById('drawer-host');
+  const root = document.getElementById('al-drawer');
+  if (!root) {
+    host.innerHTML = '';
+    return;
+  }
+  root.classList.remove('open');
+  setTimeout(() => {
+    if (!state.al.open) host.innerHTML = '';
+  }, 280);
+}
+
+function onDrawerMaskClick() {
+  if (state.al.editingKey) {
+    toast('请先保存或取消当前编辑', 'err');
+    return;
+  }
+  closeAutoLoginModal();
 }
 
 function openAutoLoginConfig(botId) {
@@ -637,7 +647,6 @@ function renderAutoLoginModal() {
   const pages = bot.autoLoginPages || [];
   const isCreating = editingKey === '__new__';
   const isEditing = !!editingKey;
-  const root = document.getElementById('modal-root');
 
   const rowsHtml = pages.map(p => {
     if (editingKey === p.id) {
@@ -651,69 +660,73 @@ function renderAutoLoginModal() {
           <div class="field-hint">${esc(pageTypeHint(p.pageType))}</div>
         </td>
         <td>${esc(p.palCode)}</td>
-        <td class="col-actions">
-          <button class="btn sm" type="button" ${isEditing ? 'disabled' : ''} onclick="startInlineEdit('${esc(botId)}','${esc(p.id)}')">编辑</button>
-          <button class="btn sm danger" type="button" ${isEditing ? 'disabled' : ''} onclick="deleteAutoLoginPage('${esc(botId)}','${esc(p.id)}')">删除</button>
+        <td class="col-ops">
+          <button class="link-btn" type="button" ${isEditing ? 'disabled' : ''} onclick="startInlineEdit('${esc(botId)}','${esc(p.id)}')">编辑</button>
+          <button class="link-btn link-btn-danger" type="button" ${isEditing ? 'disabled' : ''} onclick="deleteAutoLoginPage('${esc(botId)}','${esc(p.id)}')">删除</button>
         </td>
       </tr>`;
   }).join('');
 
   const emptyRow = !pages.length && !isCreating
-    ? `<tr><td colspan="4"><div class="empty" style="padding:24px 16px;">暂无自动登录页面，请点击下方「新增」</div></td></tr>`
+    ? `<tr><td colspan="4"><div class="table-empty">暂无自动登录页面，请点击上方「新增」</div></td></tr>`
     : '';
 
   const newRow = isCreating
     ? renderEditRow(botId, '__new__', { autoLoginUrl: '', pageType: 'H5', palCode: '' })
     : '';
 
-  root.innerHTML = `
-    <div class="mask" id="al-mask">
-      <div class="modal" role="dialog" aria-modal="true" onclick="event.stopPropagation()">
-        <div class="modal-hd">
-          <span>自动登录配置 · ${esc(bot.botName)}</span>
-          <span class="x" onclick="closeAutoLoginModal()" title="关闭">✕</span>
-        </div>
-        <div class="modal-bd">
-          <div class="al-toolbar">
-            <div class="sub">一个 Bot 可配置多个自动登录页面（Mini App / H5）</div>
-            <button class="btn primary" type="button" ${isEditing ? 'disabled' : ''} onclick="startInlineCreate('${esc(botId)}')">新增</button>
-          </div>
-          <div class="tbl-wrap">
-            <table class="tbl" id="al-table">
-              <thead>
-                <tr>
-                  <th style="min-width:220px;">自动登录URL<span style="color:var(--danger);margin-left:2px;">*</span></th>
-                  <th style="min-width:160px;">页面类型<span style="color:var(--danger);margin-left:2px;">*</span></th>
-                  <th style="min-width:120px;">Palcode<span style="color:var(--danger);margin-left:2px;">*</span></th>
-                  <th class="col-actions">操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${rowsHtml}
-                ${emptyRow}
-                ${newRow}
-              </tbody>
-            </table>
-          </div>
-        </div>
-        <div class="modal-ft">
-          <button class="btn" type="button" onclick="closeAutoLoginModal()">关闭</button>
-        </div>
-      </div>
+  const bodyHtml = `
+    <div class="al-toolbar">
+      <div class="sub">一个 Bot 可配置多个自动登录页面（Mini App / H5）</div>
+      <button class="btn btn-primary" type="button" ${isEditing ? 'disabled' : ''} onclick="startInlineCreate('${esc(botId)}')">
+        <i data-lucide="plus"></i>新增
+      </button>
+    </div>
+    <div class="table-scroll">
+      <table class="table" id="al-table">
+        <thead>
+          <tr>
+            <th style="min-width:240px;">自动登录URL<span class="req">*</span></th>
+            <th style="min-width:180px;">页面类型<span class="req">*</span></th>
+            <th style="min-width:140px;">Palcode<span class="req">*</span></th>
+            <th class="col-ops">操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rowsHtml}
+          ${emptyRow}
+          ${newRow}
+        </tbody>
+      </table>
     </div>`;
 
-  const mask = document.getElementById('al-mask');
-  if (mask) {
-    mask.addEventListener('click', e => {
-      if (e.target === mask) {
-        if (state.al.editingKey) {
-          toast('请先保存或取消当前编辑', 'err');
-          return;
-        }
-        closeAutoLoginModal();
-      }
-    });
+  const host = document.getElementById('drawer-host');
+  let root = document.getElementById('al-drawer');
+
+  if (!root) {
+    host.innerHTML = `
+      <div class="drawer-root" id="al-drawer">
+        <div class="drawer-mask" onclick="onDrawerMaskClick()"></div>
+        <aside class="drawer drawer-lg" role="dialog" aria-modal="true">
+          <header class="drawer-header">
+            <h3 id="al-drawer-title"></h3>
+            <button class="icon-btn" type="button" aria-label="关闭" onclick="closeAutoLoginModal()"><i data-lucide="x"></i></button>
+          </header>
+          <div class="drawer-body" id="al-drawer-body"></div>
+          <footer class="drawer-footer">
+            <button class="btn btn-outline" type="button" onclick="closeAutoLoginModal()">关闭</button>
+          </footer>
+        </aside>
+      </div>`;
+    root = document.getElementById('al-drawer');
+    requestAnimationFrame(() => root.classList.add('open'));
+  } else if (!root.classList.contains('open')) {
+    root.classList.add('open');
   }
+
+  document.getElementById('al-drawer-title').textContent = `自动登录配置 · ${bot.botName}`;
+  document.getElementById('al-drawer-body').innerHTML = bodyHtml;
+  refreshIcons();
 
   if (isEditing) {
     setTimeout(() => {
@@ -729,13 +742,13 @@ function renderEditRow(botId, key, data) {
     <tr class="al-row-editing" data-edit-key="${esc(key)}">
       <td>
         <div class="cell-edit" id="al-url-cell">
-          <input id="al-inline-url" type="text" placeholder="请输入自动登录页面URL" value="${esc(data.autoLoginUrl || '')}" />
+          <input class="input" id="al-inline-url" type="text" placeholder="请输入自动登录页面URL" value="${esc(data.autoLoginUrl || '')}" />
           <div class="field-error" id="al-url-error"></div>
         </div>
       </td>
       <td>
         <div class="cell-edit" id="al-page-type-cell">
-          <select id="al-inline-page-type" onchange="onInlinePageTypeChange()">
+          <select class="select" id="al-inline-page-type" onchange="onInlinePageTypeChange()">
             <option value="Mini App" ${pageType === 'Mini App' ? 'selected' : ''}>Mini App</option>
             <option value="H5" ${pageType === 'H5' ? 'selected' : ''}>H5</option>
           </select>
@@ -745,14 +758,14 @@ function renderEditRow(botId, key, data) {
       </td>
       <td>
         <div class="cell-edit" id="al-palcode-cell">
-          <input id="al-inline-palcode" type="text" placeholder="请输入Palcode" value="${esc(data.palCode || '')}" />
+          <input class="input" id="al-inline-palcode" type="text" placeholder="请输入Palcode" value="${esc(data.palCode || '')}" />
           <div class="field-hint">字母、数字、下划线</div>
           <div class="field-error" id="al-palcode-error"></div>
         </div>
       </td>
-      <td class="col-actions">
-        <button class="btn sm primary" type="button" onclick="saveInlineRow('${esc(botId)}','${esc(key)}')">保存</button>
-        <button class="btn sm" type="button" onclick="cancelInlineEdit()">取消</button>
+      <td class="col-ops">
+        <button class="link-btn" type="button" onclick="saveInlineRow('${esc(botId)}','${esc(key)}')">保存</button>
+        <button class="link-btn" type="button" onclick="cancelInlineEdit()">取消</button>
       </td>
     </tr>`;
 }
@@ -872,7 +885,7 @@ function saveInlineRow(botId, editingKey) {
     });
     state.al.editingKey = null;
     renderAutoLoginModal();
-    toast('自动登录页面已新增', 'ok');
+    toast('自动登录页面已新增');
   } else {
     const page = bot.autoLoginPages.find(p => p.id === editingKey);
     if (!page) {
@@ -884,7 +897,7 @@ function saveInlineRow(botId, editingKey) {
     page.palCode = data.palCode;
     state.al.editingKey = null;
     renderAutoLoginModal();
-    toast('自动登录页面已更新', 'ok');
+    toast('自动登录页面已更新');
   }
 }
 
@@ -900,7 +913,7 @@ function deleteAutoLoginPage(botId, pageId) {
   if (!confirm('确认删除该自动登录页面？')) return;
   bot.autoLoginPages.splice(idx, 1);
   renderAutoLoginModal();
-  toast('已删除', 'ok');
+  toast('已删除');
 }
 
 /* =========================================================
@@ -911,6 +924,11 @@ function applyFilters() {
   state.filters.botToken = (document.getElementById('f-bot-token')?.value || '').trim();
   state.filters.botUsername = (document.getElementById('f-bot-username')?.value || '').trim();
   state.filters.platform = document.getElementById('f-platform')?.value || '';
+  render();
+}
+
+function resetFilters() {
+  state.filters = { botName: '', botToken: '', botUsername: '', platform: '' };
   render();
 }
 
@@ -930,79 +948,97 @@ function showBotList() {
   const f = state.filters;
 
   return `
-    <div class="breadcrumb"><span class="cur">社交聊天机器人</span></div>
-    <div class="filters">
-      <div class="filter-item">
-        <label>Bot Name</label>
-        <input id="f-bot-name" type="text" placeholder="请输入Bot Name" value="${esc(f.botName)}" />
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">社交聊天机器人</h1>
+        <p class="page-desc">管理各平台 Bot 的接入信息，并为 Bot 配置自动登录页面</p>
       </div>
-      <div class="filter-item">
-        <label>Bot Token</label>
-        <input id="f-bot-token" type="text" placeholder="请输入Bot Token" value="${esc(f.botToken)}" />
-      </div>
-      <div class="filter-item">
-        <label>Bot Username</label>
-        <input id="f-bot-username" type="text" placeholder="请输入Bot Username" value="${esc(f.botUsername)}" />
-      </div>
-      <div class="filter-item">
-        <label>Platform</label>
-        <select id="f-platform">
-          <option value="">请选择</option>
-          <option value="tg" ${f.platform === 'tg' ? 'selected' : ''}>Telegram</option>
-          <option value="wa" ${f.platform === 'wa' ? 'selected' : ''}>WhatsApp</option>
-          <option value="vb" ${f.platform === 'vb' ? 'selected' : ''}>Viber</option>
-          <option value="ms" ${f.platform === 'ms' ? 'selected' : ''}>Messenger</option>
-        </select>
-      </div>
-      <div class="filter-actions">
-        <button class="btn primary" type="button" onclick="applyFilters()">搜索</button>
-        <button class="btn success" type="button" onclick="toast('原型未接创建','err')">创建</button>
+      <div class="page-header-actions">
+        <button class="btn btn-primary" type="button" onclick="toast('原型未接创建','err')">
+          <i data-lucide="plus"></i>创建
+        </button>
       </div>
     </div>
-    <div class="tbl-wrap">
-      <table class="tbl">
-        <thead>
-          <tr>
-            <th>Bot Name</th>
-            <th>Bot Token</th>
-            <th>Bot Username</th>
-            <th>Platform</th>
-            <th>Status</th>
-            <th>Create Time</th>
-            <th class="col-actions">操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${list.length ? list.map(b => `
+
+    <section class="card filter-card">
+      <div class="filter-row">
+        <div class="filter-item">
+          <span class="filter-label">Bot Name</span>
+          <input class="input" id="f-bot-name" type="text" placeholder="请输入Bot Name" value="${esc(f.botName)}" />
+        </div>
+        <div class="filter-item">
+          <span class="filter-label">Bot Token</span>
+          <input class="input" id="f-bot-token" type="text" placeholder="请输入Bot Token" value="${esc(f.botToken)}" />
+        </div>
+        <div class="filter-item">
+          <span class="filter-label">Bot Username</span>
+          <input class="input" id="f-bot-username" type="text" placeholder="请输入Bot Username" value="${esc(f.botUsername)}" />
+        </div>
+        <div class="filter-item">
+          <span class="filter-label">Platform</span>
+          <select class="select" id="f-platform">
+            <option value="">全部</option>
+            <option value="tg" ${f.platform === 'tg' ? 'selected' : ''}>Telegram</option>
+            <option value="wa" ${f.platform === 'wa' ? 'selected' : ''}>WhatsApp</option>
+            <option value="vb" ${f.platform === 'vb' ? 'selected' : ''}>Viber</option>
+            <option value="ms" ${f.platform === 'ms' ? 'selected' : ''}>Messenger</option>
+          </select>
+        </div>
+        <div class="filter-actions">
+          <button class="btn btn-primary" type="button" onclick="applyFilters()">搜索</button>
+          <button class="btn btn-outline" type="button" onclick="resetFilters()">重置</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card table-card">
+      <h4 class="card-title">Bot 列表</h4>
+      <div class="table-scroll">
+        <table class="table table-nowrap">
+          <thead>
             <tr>
-              <td>${esc(b.botName)}</td>
-              <td>${esc(b.botToken)}</td>
-              <td>${esc(b.botUsername)}</td>
-              <td>${renderPlatformIcons(b.platforms)}</td>
-              <td><span class="tag success">${esc(b.status)}</span></td>
-              <td>${esc(b.createTime)}</td>
-              <td class="col-actions">
-                <button class="btn sm" type="button" onclick="toast('原型未接 Bot 编辑','err')">编辑</button>
-                <button class="btn sm danger" type="button" onclick="toast('原型未接 Bot 删除','err')">删除</button>
-                <button class="btn sm primary" type="button" onclick="openAutoLoginConfig('${esc(b.id)}')">自动登录</button>
-              </td>
-            </tr>`).join('') : `
-            <tr><td colspan="7"><div class="empty">暂无数据</div></td></tr>`}
-        </tbody>
-      </table>
-    </div>
-    <div class="pagination">
-      <span>共 ${list.length} 条</span>
-      <button class="pg-btn" disabled>‹</button>
-      <button class="pg-btn active">1</button>
-      <button class="pg-btn" disabled>›</button>
-    </div>`;
+              <th>Bot Name</th>
+              <th>Bot Token</th>
+              <th>Bot Username</th>
+              <th>Platform</th>
+              <th>Status</th>
+              <th>Create Time</th>
+              <th class="col-ops">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${list.length ? list.map(b => `
+              <tr>
+                <td>${esc(b.botName)}</td>
+                <td>${esc(b.botToken)}</td>
+                <td>${esc(b.botUsername)}</td>
+                <td>${renderPlatformIcons(b.platforms)}</td>
+                <td><span class="tag tag-success">${esc(b.status)}</span></td>
+                <td>${esc(b.createTime)}</td>
+                <td class="col-ops">
+                  <button class="link-btn" type="button" onclick="openAutoLoginConfig('${esc(b.id)}')">自动登录</button>
+                  <button class="link-btn" type="button" onclick="toast('原型未接 Bot 编辑','err')">编辑</button>
+                  <button class="link-btn link-btn-danger" type="button" onclick="toast('原型未接 Bot 删除','err')">删除</button>
+                </td>
+              </tr>`).join('') : `
+              <tr><td colspan="7"><div class="table-empty">暂无数据</div></td></tr>`}
+          </tbody>
+        </table>
+      </div>
+      <div class="table-footer">
+        <span class="page-total">共 ${list.length} 条</span>
+        <div class="pagination">
+          <button class="page-btn" type="button" disabled>‹</button>
+          <button class="page-btn active" type="button">1</button>
+          <button class="page-btn" type="button" disabled>›</button>
+        </div>
+      </div>
+    </section>`;
 }
 
 function render() {
-  document.getElementById('page-tabs').innerHTML =
-    `<div class="page-tab active">社交聊天机器人 <span class="x">×</span></div>`;
   document.getElementById('content').innerHTML = showBotList();
+  refreshIcons();
 }
 
 render();
