@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>对话流编辑 · Digiplus</title>
+  <link rel="stylesheet" href="assets/styles.css">
+  <link rel="stylesheet" href="assets/im.css">
+</head>
+<body>
+  <div class="app-layout">
+    <aside id="sidebar"></aside>
+    <div class="app-content">
+      <header id="topbar"></header>
+      <div class="content-body">
+        <main class="flow-editor-page" id="content"></main>
+      </div>
+    </div>
+  </div>
+  <div class="drawer-root" id="nodeDrawer">
+    <div class="drawer-mask" data-close></div>
+    <aside class="drawer drawer-lg">
+      <header class="drawer-header">
+        <h3 id="nodeDrawerTitle">节点编辑</h3>
+        <button class="icon-btn" type="button" data-close aria-label="关闭"><i data-lucide="x"></i></button>
+      </header>
+      <div class="drawer-body" id="nodeDrawerBody"></div>
+      <footer class="drawer-footer">
+        <button class="btn btn-outline" type="button" id="nodeCancelBtn">取消</button>
+        <button class="btn btn-primary" type="button" id="nodeSaveBtn">保存</button>
+      </footer>
+    </aside>
+  </div>
+  <div class="drawer-root drawer-stack" id="buttonDrawer">
+    <div class="drawer-mask" data-close></div>
+    <aside class="drawer drawer-md">
+      <header class="drawer-header">
+        <h3 id="buttonDrawerTitle">按钮编辑</h3>
+        <button class="icon-btn" type="button" data-close aria-label="关闭"><i data-lucide="x"></i></button>
+      </header>
+      <div class="drawer-body" id="buttonDrawerBody"></div>
+      <footer class="drawer-footer">
+        <button class="btn btn-outline" type="button" id="buttonCancelBtn">取消</button>
+        <button class="btn btn-primary" type="button" id="buttonSaveBtn">保存</button>
+      </footer>
+    </aside>
+  </div>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="assets/common.js"></script>
+  <script src="assets/mock-data.js"></script>
+  <script src="assets/flow-editor.js"></script>
+</body>
+</html>

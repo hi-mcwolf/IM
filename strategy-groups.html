@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>令牌集成 · Digiplus</title>
+  <title>策略组管理 · Digiplus</title>
   <link rel="stylesheet" href="assets/styles.css">
   <link rel="stylesheet" href="assets/im.css">
 </head>
@@ -17,22 +17,23 @@
       </div>
     </div>
   </div>
-  <div class="drawer-root" id="al-drawer">
-    <div class="drawer-mask" onclick="onDrawerMaskClick()"></div>
-    <aside class="drawer drawer-md" role="dialog" aria-modal="true">
+  <div class="drawer-root" id="groupDrawer">
+    <div class="drawer-mask" data-close></div>
+    <aside class="drawer drawer-md">
       <header class="drawer-header">
-        <h3 id="al-drawer-title">自动登录配置</h3>
-        <button class="icon-btn" type="button" aria-label="关闭" onclick="closeAutoLoginModal()"><i data-lucide="x"></i></button>
+        <h3 id="groupDrawerTitle">策略组编辑</h3>
+        <button class="icon-btn" type="button" data-close aria-label="关闭"><i data-lucide="x"></i></button>
       </header>
-      <div class="drawer-body" id="al-drawer-body"></div>
+      <div class="drawer-body" id="groupDrawerBody"></div>
       <footer class="drawer-footer">
-        <button class="btn btn-outline" type="button" onclick="closeAutoLoginModal()">关闭</button>
+        <button class="btn btn-outline" type="button" id="groupCancelBtn">取消</button>
+        <button class="btn btn-primary" type="button" id="groupSaveBtn">保存</button>
       </footer>
     </aside>
   </div>
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   <script src="assets/common.js"></script>
   <script src="assets/mock-data.js"></script>
-  <script src="assets/bots.js"></script>
+  <script src="assets/strategy-groups.js"></script>
 </body>
 </html>
