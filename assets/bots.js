@@ -1,7 +1,7 @@
 /* 社交聊天机器人列表 + 自动登录配置 */
 
 const botState = {
-  filters: { botName: '', botToken: '', botUsername: '', platform: '' },
+  filters: { pl: '', botName: '', botToken: '', botUsername: '', platform: '' },
   al: { open: false, botId: null, editingKey: null }
 };
 
@@ -206,6 +206,7 @@ async function deleteAutoLoginPage(botId, pageId) {
 }
 
 function applyFilters() {
+  botState.filters.pl = document.getElementById('f-pl')?.value || '';
   botState.filters.botName = (document.getElementById('f-bot-name')?.value || '').trim();
   botState.filters.botToken = (document.getElementById('f-bot-token')?.value || '').trim();
   botState.filters.botUsername = (document.getElementById('f-bot-username')?.value || '').trim();
@@ -214,13 +215,14 @@ function applyFilters() {
 }
 
 function resetFilters() {
-  botState.filters = { botName: '', botToken: '', botUsername: '', platform: '' };
+  botState.filters = { pl: '', botName: '', botToken: '', botUsername: '', platform: '' };
   renderBotList();
 }
 
 function filterBots() {
   const f = botState.filters;
   return DB.bots.filter(b => {
+    if (f.pl && b.productLineId !== f.pl) return false;
     if (f.botName && !b.botName.toLowerCase().includes(f.botName.toLowerCase())) return false;
     if (f.botToken && !b.botToken.toLowerCase().includes(f.botToken.toLowerCase())) return false;
     if (f.botUsername && !b.botUsername.toLowerCase().includes(f.botUsername.toLowerCase())) return false;
@@ -246,6 +248,13 @@ function renderBotList() {
     </div>
     <section class="card filter-card">
       <div class="filter-row">
+        <div class="filter-item">
+          <span class="filter-label">产品线</span>
+          <select class="select" id="f-pl">
+            <option value="">全部</option>
+            ${productLineOptions(f.pl)}
+          </select>
+        </div>
         <div class="filter-item">
           <span class="filter-label">Bot Name</span>
           <input class="input" id="f-bot-name" type="text" placeholder="请输入Bot Name" value="${esc(f.botName)}" />
@@ -280,6 +289,7 @@ function renderBotList() {
         <table class="table table-nowrap">
           <thead>
             <tr>
+              <th>产品线</th>
               <th>Bot Name</th>
               <th>Bot Token</th>
               <th>Bot Username</th>
@@ -292,6 +302,7 @@ function renderBotList() {
           <tbody>
             ${list.length ? list.map(b => `
               <tr>
+                <td>${esc(productLineById(b.productLineId)?.name || b.productLineId || '-')}</td>
                 <td>${esc(b.botName)}</td>
                 <td>${esc(b.botToken)}</td>
                 <td>${esc(b.botUsername)}</td>
@@ -303,7 +314,7 @@ function renderBotList() {
                   <button class="link-btn" type="button" onclick="showToast('原型未接 Bot 编辑','err')">编辑</button>
                   <button class="link-btn link-btn-danger" type="button" onclick="showToast('原型未接 Bot 删除','err')">删除</button>
                 </td>
-              </tr>`).join('') : `<tr><td colspan="7"><div class="table-empty">暂无数据</div></td></tr>`}
+              </tr>`).join('') : `<tr><td colspan="8"><div class="table-empty">暂无数据</div></td></tr>`}
           </tbody>
         </table>
       </div>

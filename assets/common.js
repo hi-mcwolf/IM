@@ -14,15 +14,14 @@ const IM_NAV = [
     label: 'Bot管理',
     icon: 'git-branch',
     children: [
-      { key: 'strategy-groups', label: '策略组管理', href: 'strategy-groups.html' },
+      { key: 'scenes', label: '来源管理', href: 'scenes.html' },
       { key: 'strategies', label: '策略管理', href: 'strategies.html' },
-      { key: 'flows', label: '对话流（新）', href: 'flows.html' },
-      { key: 'sys-flows', label: '对话流', href: 'sys-flows.html' }
+      { key: 'flows', label: '对话流', href: 'flows.html' }
     ]
   }
 ];
 
-const FLOW_NAV_KEYS = ['flows', 'flow-editor', 'variants'];
+const FLOW_NAV_KEYS = ['flows', 'flow-editor'];
 
 function renderSidebar(activeKey) {
   const host = document.getElementById('sidebar');
@@ -203,6 +202,8 @@ function statusTag(status) {
     offline: { label: '下线', cls: 'tag-gray' },
     SUCCESS: { label: 'SUCCESS', cls: 'tag-success' },
     normal: { label: '普通', cls: 'tag-info' },
+    bind: { label: '绑定', cls: 'tag-warning' },
+    fallback: { label: '兜底', cls: 'tag-warning' },
     system: { label: '系统保留', cls: 'tag-warning' }
   };
   const item = map[status] || { label: status || '-', cls: 'tag-gray' };
@@ -232,6 +233,28 @@ function fieldError(id, msg) {
   if (wrap) wrap.classList.toggle('has-error', !!msg);
 }
 
+function fixedPinHtml() {
+  return `<span class="fixed-mark" title="固定"><i data-lucide="pin"></i></span>`;
+}
+
 function optionHtml(value, label, selected) {
   return `<option value="${esc(value)}"${String(selected) === String(value) ? ' selected' : ''}>${esc(label)}</option>`;
+}
+
+function readQueryFilters(keys) {
+  const sp = new URLSearchParams(location.search);
+  const o = {};
+  keys.forEach(k => { o[k] = sp.get(k) || ''; });
+  return o;
+}
+
+function writeQueryFilters(obj) {
+  const sp = new URLSearchParams();
+  Object.entries(obj).forEach(([k, v]) => { if (v) sp.set(k, v); });
+  const q = sp.toString();
+  history.replaceState(null, '', q ? `${location.pathname}?${q}` : location.pathname);
+}
+
+function boolLabel(v) {
+  return v ? '是' : '否';
 }

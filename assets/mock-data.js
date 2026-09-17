@@ -1,27 +1,40 @@
-/* IM Bot 用户分层 — 内存 + sessionStorage mock */
+/* IM Bot 用户分层 v0.4 — 内存 + sessionStorage mock */
 
-const STORE_KEY = 'im-bot-layering-v1';
+const STORE_KEY = 'im-bot-layering-v05';
 
-const TAG_DEFS = [
-  { key: 'vip_level', label: 'vip_level', values: ['V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V8'] },
-  { key: 'is_rd', label: 'is_rd', values: ['true', 'false'] },
-  { key: 'is_reg', label: 'is_reg', values: ['true', 'false'] }
+const PRODUCT_LINES = [
+  { id: 'digiplus', name: 'digiplus' },
+  { id: 'BingoPlus', name: 'BingoPlus' }
 ];
 
-const PAGE_TYPES = ['首页', '列表', '分类菜单', '过渡', '收尾兜底'];
+const TAG_GROUPS = [
+  { category: '用户等级', tags: ['V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V8'] },
+  { category: '生命周期', tags: ['rd', 'fd'] }
+];
+
+const TAG_LABELS = { rd: 'rd', fd: 'fd' };
+
+const PAGE_TYPES = ['首页', '列表', '状态', '分类菜单', '过渡', '收尾'];
+
 const BUTTON_EVENTS = [
-  { value: 'open_node', label: '打开节点' },
-  { value: 'open_flow', label: '打开对话流' },
-  { value: 'back_menu', label: '回主菜单' },
-  { value: 'open_bp', label: '打开 BP URL' },
-  { value: 'none', label: '无' }
+  { value: 'Page', label: '页面' },
+  { value: 'Url', label: 'URL' },
+  { value: 'Flow', label: '对话流' },
+  { value: 'Event', label: '事件' },
+  { value: 'Home', label: '回主菜单' }
 ];
+
+const BUILTIN_EVENTS = [
+  { value: 'Support', label: '调起客服' },
+  { value: 'SharePhone', label: '分享手机号' },
+  { value: 'WifiCode', label: 'wifi code' }
+];
+
 const IMAGE_PRESETS = [
   { value: '', label: '不使用图片' },
   { value: 'https://cdn.example.com/welcome.jpg', label: '欢迎图' },
   { value: 'https://cdn.example.com/offer.jpg', label: '活动图' },
-  { value: 'https://cdn.example.com/rewards.jpg', label: '奖励图' },
-  { value: 'https://cdn.example.com/vip.jpg', label: 'VIP 专属图' }
+  { value: 'https://cdn.example.com/vip.jpg', label: 'VIP 图' }
 ];
 
 function clone(obj) {
@@ -39,24 +52,41 @@ function makeBtn(id, text, event, extra = {}) {
     id,
     text,
     event,
-    paramNodeId: extra.paramNodeId || '',
-    paramFlowId: extra.paramFlowId || '',
-    paramVariantKey: extra.paramVariantKey || '',
-    paramBpUrl: extra.paramBpUrl || '',
+    pageId: extra.pageId || '',
+    url: extra.url || '',
+    autoLogin: extra.autoLogin || false,
+    flowId: extra.flowId || '',
+    eventType: extra.eventType || '',
     style: extra.style || 'primary',
-    sort: extra.sort || 1,
-    variantOverrides: extra.variantOverrides || []
+    displayTags: extra.displayTags || [],
+    sort: extra.sort || 1
+  };
+}
+
+function makePage(id, name, pageType, extra = {}) {
+  return {
+    id,
+    name,
+    pageType,
+    image: extra.image || '',
+    text: extra.text || '',
+    cardButtons: extra.cardButtons || [],
+    mainMenuOverrideId: extra.mainMenuOverrideId || '',
+    autoNextPageId: extra.autoNextPageId || '',
+    status: extra.status || 'active',
+    order: extra.order || 0
   };
 }
 
 const SEED = {
-  seq: 200,
+  seq: 300,
   bots: [
     {
       id: 'bot_1',
       botName: 'BingoPlus_Official',
       botToken: '7283****:AAH****CmKpq',
       botUsername: '@BingoPlusBot',
+      productLineId: 'BingoPlus',
       platforms: ['tg', 'wa', 'vb', 'ms'],
       status: 'SUCCESS',
       createTime: '2026-05-12 10:24:18',
@@ -70,6 +100,7 @@ const SEED = {
       botName: 'Rewards_Support',
       botToken: '6691****:AAG****QwxRt',
       botUsername: '@RewardsSupportBot',
+      productLineId: 'BingoPlus',
       platforms: ['tg', 'ms'],
       status: 'SUCCESS',
       createTime: '2026-06-03 15:41:02',
@@ -82,404 +113,322 @@ const SEED = {
       botName: 'GameLobby_Bot',
       botToken: '5510****:AAF****LpZyT',
       botUsername: '@GameLobbyBot',
-      platforms: ['tg', 'wa'],
+      productLineId: 'digiplus',
+      platforms: ['vb'],
       status: 'SUCCESS',
       createTime: '2026-07-01 09:12:45',
       autoLoginPages: []
     }
   ],
-  flows: [
+  menus: [
     {
-      id: 'flow_home',
-      name: '首页承接',
-      type: 'normal',
-      status: 'published',
-      firstScreenNodeId: 'node_welcome',
-      mainMenuKeyboardId: 'keyboard_main',
-      updatedAt: '2026-09-14 16:40:00',
-      nodes: [
-        {
-          id: 'node_welcome',
-          name: '欢迎页',
-          nodeType: 'message',
-          pageType: '首页',
-          keyboardId: 'keyboard_welcome',
-          cards: [{
-            image: 'https://cdn.example.com/welcome.jpg',
-            title: '欢迎回来',
-            subtitle: '今日推荐活动',
-            statusLine: '',
-            descLine: '',
-            progress: '',
-            buttons: [
-              makeBtn('btn_w1', '查看活动', 'open_node', {
-                paramNodeId: 'node_offer',
-                sort: 1,
-                variantOverrides: [{ variantKey: 'vip', text: '进入专属活动' }]
-              }),
-              makeBtn('btn_w2', '我的奖励', 'open_node', { paramNodeId: 'node_rewards', style: 'secondary', sort: 2 })
-            ]
-          }]
-        },
-        {
-          id: 'node_offer',
-          name: '活动页',
-          nodeType: 'message',
-          pageType: '列表',
-          keyboardId: '',
-          cards: [{
-            image: 'https://cdn.example.com/offer.jpg',
-            title: '本周精选活动',
-            subtitle: '充值即送',
-            statusLine: '',
-            descLine: '完成任务可获得奖励',
-            progress: '',
-            buttons: [
-              makeBtn('btn_o1', '去充值', 'open_bp', { paramBpUrl: 'https://bp.com/deposit?mid={memberId}', sort: 1 })
-            ]
-          }]
-        },
-        {
-          id: 'node_rewards',
-          name: '奖励页',
-          nodeType: 'message',
-          pageType: '列表',
-          keyboardId: '',
-          cards: [{
-            image: 'https://cdn.example.com/rewards.jpg',
-            title: '我的奖励',
-            subtitle: '待领取 2 项',
-            statusLine: '进度 50%',
-            descLine: '',
-            progress: 50,
-            buttons: [
-              makeBtn('btn_r1', '立即领取', 'open_bp', { paramBpUrl: 'https://bp.com/rewards?mid={memberId}', sort: 1 })
-            ]
-          }]
-        },
-        {
-          id: 'node_levelup',
-          name: '升级页',
-          nodeType: 'message',
-          pageType: '过渡',
-          keyboardId: '',
-          cards: [{
-            image: '',
-            title: '升级攻略',
-            subtitle: '查看 VIP 权益',
-            statusLine: '',
-            descLine: '',
-            progress: '',
-            buttons: [
-              makeBtn('btn_l1', '回主菜单', 'back_menu', { style: 'secondary', sort: 1 })
-            ]
-          }]
-        },
-        {
-          id: 'keyboard_main',
-          name: '主菜单键盘',
-          nodeType: 'keyboard',
-          pageType: '',
-          keyboardId: '',
-          cards: [],
-          buttons: [
-            makeBtn('kb_m1', '首页', 'open_node', { paramNodeId: 'node_welcome', sort: 1 }),
-            makeBtn('kb_m2', '活动', 'open_node', { paramNodeId: 'node_offer', sort: 2 }),
-            makeBtn('kb_m3', '奖励', 'open_node', { paramNodeId: 'node_rewards', sort: 3 })
-          ]
-        },
-        {
-          id: 'keyboard_welcome',
-          name: '欢迎页键盘',
-          nodeType: 'keyboard',
-          pageType: '',
-          keyboardId: '',
-          cards: [],
-          buttons: [
-            makeBtn('kb_w1', '主菜单', 'back_menu', { sort: 1 })
-          ]
-        }
-      ],
-      variants: [
-        { key: 'default', name: '默认', status: 'active', nodeOverrides: {} },
-        {
-          key: 'vip',
-          name: 'VIP 专属',
-          status: 'active',
-          nodeOverrides: {
-            node_welcome: {
-              cards: [{
-                title: '尊贵的 VIP，欢迎回来',
-                subtitle: '专属活动已为您准备',
-                image: 'https://cdn.example.com/vip.jpg',
-                buttons: { btn_w1: { text: '进入专属活动' } }
-              }]
-            }
-          }
-        }
+      id: 'menu_main',
+      name: '主菜单',
+      productLineId: 'BingoPlus',
+      botId: 'bot_1',
+      status: 'active',
+      buttons: [
+        makeBtn('mb_1', '首页', 'Page', { pageId: 'page_welcome', style: 'primary', sort: 1 }),
+        makeBtn('mb_2', '活动', 'Page', { pageId: 'page_offer', style: 'primary', sort: 2 }),
+        makeBtn('mb_3', '客服', 'Event', { eventType: 'Support', style: 'secondary', sort: 3 }),
+        makeBtn('mb_4', '回首页', 'Home', { style: 'secondary', sort: 4 })
       ]
     },
     {
-      id: 'flow_support',
-      name: '客服承接',
+      id: 'menu_support',
+      name: '客服菜单',
+      productLineId: 'BingoPlus',
+      botId: 'bot_1',
+      status: 'active',
+      buttons: [
+        makeBtn('msb_1', '联系客服', 'Event', { eventType: 'Support', style: 'primary', sort: 1 }),
+        makeBtn('msb_2', '回首页', 'Flow', { flowId: 'flow_vip_home', style: 'secondary', sort: 2 })
+      ]
+    },
+    {
+      id: 'menu_bind',
+      name: '绑定菜单',
+      productLineId: 'BingoPlus',
+      botId: 'bot_1',
+      status: 'active',
+      buttons: [
+        makeBtn('mbb_1', '分享手机号', 'Event', { eventType: 'SharePhone', style: 'primary', sort: 1 })
+      ]
+    }
+  ],
+  flows: [
+    {
+      id: 'flow_vip_home',
+      name: 'VIP大客首页',
+      productLineId: 'BingoPlus',
+      botId: 'bot_1',
       type: 'normal',
       status: 'published',
-      firstScreenNodeId: 'node_support_hi',
-      mainMenuKeyboardId: 'keyboard_support',
-      updatedAt: '2026-09-12 11:08:00',
-      nodes: [
-        {
-          id: 'node_support_hi',
-          name: '客服欢迎',
-          nodeType: 'message',
-          pageType: '首页',
-          keyboardId: '',
-          cards: [{
-            image: '',
-            title: '需要帮助吗？',
-            subtitle: '查看常见问题',
-            statusLine: '',
-            descLine: '',
-            progress: '',
-            buttons: [makeBtn('btn_s1', '回首页', 'open_flow', { paramFlowId: 'flow_home', paramVariantKey: '', sort: 1 })]
-          }]
-        },
-        {
-          id: 'keyboard_support',
-          name: '客服主菜单',
-          nodeType: 'keyboard',
-          pageType: '',
-          keyboardId: '',
-          cards: [],
-          buttons: [makeBtn('kb_s1', '首页', 'open_flow', { paramFlowId: 'flow_home', sort: 1 })]
-        }
-      ],
-      variants: [{ key: 'default', name: '默认', status: 'active', nodeOverrides: {} }]
+      mainMenuId: 'menu_main',
+      firstPageId: 'page_welcome',
+      remark: '',
+      updatedAt: '2026-09-16 16:40:00',
+      pages: [
+        makePage('page_welcome', '欢迎页', '首页', {
+          order: 0,
+          image: 'https://cdn.example.com/vip.jpg',
+          text: '尊贵的 VIP，欢迎回来 {nickname}',
+          cardButtons: [
+            makeBtn('cb_w1', '查看活动详情', 'Page', { pageId: 'page_offer', sort: 1 }),
+            makeBtn('cb_w2', '去充值', 'Url', { url: 'https://bp.com/deposit?mid={memberId}', autoLogin: true, sort: 2 })
+          ]
+        }),
+        makePage('page_offer', '活动详情', '列表', {
+          order: 1,
+          image: 'https://cdn.example.com/offer.jpg',
+          text: '本周精选活动，充值即送',
+          cardButtons: [
+            makeBtn('cb_o1', '去充值', 'Url', { url: 'https://bp.com/deposit?mid={memberId}', autoLogin: true, sort: 1 })
+          ]
+        }),
+        makePage('page_wifi', 'Wifi', '过渡', {
+          order: 2,
+          text: '请使用场内 Wifi',
+          cardButtons: [
+            makeBtn('cb_wf1', '获取 wifi code', 'Event', { eventType: 'WifiCode', sort: 1 })
+          ]
+        })
+      ]
+    },
+    {
+      id: 'flow_member',
+      name: '普通会员首页',
+      productLineId: 'BingoPlus',
+      botId: 'bot_1',
+      type: 'normal',
+      status: 'published',
+      mainMenuId: 'menu_main',
+      firstPageId: 'page_member_hi',
+      remark: '',
+      updatedAt: '2026-09-15 11:08:00',
+      pages: [
+        makePage('page_member_hi', '会员欢迎', '首页', {
+          order: 0,
+          image: 'https://cdn.example.com/welcome.jpg',
+          text: '欢迎回来，今日推荐活动',
+          cardButtons: [
+            makeBtn('cb_m1', '查看活动', 'Page', { pageId: 'page_member_offer', sort: 1 })
+          ]
+        }),
+        makePage('page_member_offer', '会员活动', '列表', {
+          order: 1,
+          text: '完成任务可获得奖励',
+          cardButtons: [
+            makeBtn('cb_m2', '分享手机号', 'Event', { eventType: 'SharePhone', sort: 1 })
+          ]
+        })
+      ]
+    },
+    {
+      id: 'flow_cs',
+      name: '客服入口',
+      productLineId: 'BingoPlus',
+      botId: 'bot_1',
+      type: 'normal',
+      status: 'published',
+      mainMenuId: 'menu_support',
+      firstPageId: 'page_cs_hi',
+      remark: '',
+      updatedAt: '2026-09-14 09:12:00',
+      pages: [
+        makePage('page_cs_hi', '客服欢迎', '首页', {
+          order: 0,
+          text: '需要帮助吗？点击下方联系客服',
+          cardButtons: [
+            makeBtn('cb_cs1', '联系客服', 'Event', { eventType: 'Support', sort: 1 })
+          ]
+        })
+      ]
     },
     {
       id: 'flow_promo',
       name: '活动草稿',
+      productLineId: 'BingoPlus',
+      botId: 'bot_1',
       type: 'normal',
       status: 'draft',
-      firstScreenNodeId: '',
-      mainMenuKeyboardId: '',
-      updatedAt: '2026-09-15 09:12:00',
-      nodes: [],
-      variants: [{ key: 'default', name: '默认', status: 'active', nodeOverrides: {} }]
+      mainMenuId: 'menu_main',
+      firstPageId: '',
+      remark: '',
+      updatedAt: '2026-09-16 09:12:00',
+      pages: []
     },
     {
       id: 'sys_bind',
-      name: '绑定流程',
-      type: 'system',
+      name: '绑定对话流',
+      productLineId: 'BingoPlus',
+      botId: 'bot_1',
+      type: 'bind',
       status: 'published',
-      purpose: '未绑定时进入，完成后用原 context 重走',
-      firstScreenNodeId: 'node_bind',
-      mainMenuKeyboardId: 'keyboard_bind',
+      purpose: '未绑定用户显示',
+      mainMenuId: 'menu_bind',
+      firstPageId: 'page_bind',
+      remark: '用于未绑定用户显示',
       updatedAt: '2026-09-01 00:00:00',
-      nodes: [
-        {
-          id: 'node_bind',
-          name: '绑定引导',
-          nodeType: 'message',
-          pageType: '首页',
-          keyboardId: '',
-          cards: [{
-            image: '',
-            title: '请先绑定账号',
-            subtitle: '绑定后即可享受个性化承接',
-            statusLine: '',
-            descLine: '',
-            progress: '',
-            buttons: [makeBtn('btn_b1', '去绑定', 'open_bp', { paramBpUrl: 'https://bp.com/bind?mid={memberId}', sort: 1 })]
-          }]
-        },
-        {
-          id: 'keyboard_bind',
-          name: '绑定键盘',
-          nodeType: 'keyboard',
-          pageType: '',
-          keyboardId: '',
-          cards: [],
-          buttons: [makeBtn('kb_b1', '稍后', 'none', { style: 'secondary', sort: 1 })]
-        }
-      ],
-      variants: [{ key: 'default', name: '默认', status: 'active', nodeOverrides: {} }]
+      pages: [
+        makePage('page_bind', '绑定引导', '首页', {
+          order: 0,
+          text: '请先绑定账号，绑定后即可享受个性化承接',
+          cardButtons: [
+            makeBtn('cb_b1', '分享手机号', 'Event', { eventType: 'SharePhone', sort: 1 })
+          ]
+        })
+      ]
     },
     {
       id: 'sys_default',
-      name: '全局默认',
-      type: 'system',
+      name: '兜底对话流',
+      productLineId: 'BingoPlus',
+      botId: 'bot_1',
+      type: 'fallback',
       status: 'published',
-      purpose: '所有策略落空时使用的兜底对话流',
-      firstScreenNodeId: 'node_sys_hi',
-      mainMenuKeyboardId: 'keyboard_sys_default',
+      purpose: '所有策略都没匹配上时显示',
+      mainMenuId: 'menu_main',
+      firstPageId: 'page_sys_hi',
+      remark: '用于所有策略都没匹配上',
       updatedAt: '2026-09-01 00:00:00',
-      nodes: [
-        {
-          id: 'node_sys_hi',
-          name: '默认欢迎',
-          nodeType: 'message',
-          pageType: '首页',
-          keyboardId: '',
-          cards: [{
-            image: '',
-            title: '欢迎来到 BingoPlus',
-            subtitle: '为您展示默认内容',
-            statusLine: '',
-            descLine: '',
-            progress: '',
-            buttons: [makeBtn('btn_d1', '查看活动', 'none', { sort: 1 })]
-          }]
-        },
-        {
-          id: 'keyboard_sys_default',
-          name: '默认键盘',
-          nodeType: 'keyboard',
-          pageType: '',
-          keyboardId: '',
-          cards: [],
-          buttons: [makeBtn('kb_d1', '首页', 'back_menu', { sort: 1 })]
-        }
-      ],
-      variants: [{ key: 'default', name: '默认', status: 'active', nodeOverrides: {} }]
+      pages: [
+        makePage('page_sys_hi', '默认欢迎', '首页', {
+          order: 0,
+          text: '欢迎来到 BingoPlus',
+          cardButtons: [
+            makeBtn('cb_d1', '查看活动', 'Home', { sort: 1 })
+          ]
+        })
+      ]
     },
     {
       id: 'sys_offline',
       name: '离线留单',
+      productLineId: 'BingoPlus',
+      botId: 'bot_1',
       type: 'system',
       status: 'published',
-      purpose: '客服离线时使用',
-      firstScreenNodeId: 'node_offline',
-      mainMenuKeyboardId: 'keyboard_offline',
+      purpose: '客服无坐席时走此流程',
+      mainMenuId: 'menu_support',
+      firstPageId: 'page_offline',
       updatedAt: '2026-09-01 00:00:00',
-      nodes: [
-        {
-          id: 'node_offline',
-          name: '离线提示',
-          nodeType: 'message',
-          pageType: '收尾兜底',
-          keyboardId: '',
-          cards: [{
-            image: '',
-            title: '客服暂时离线',
-            subtitle: '请留下您的问题，上线后回复',
-            statusLine: '',
-            descLine: '',
-            progress: '',
-            buttons: [makeBtn('btn_off1', '无', 'none', { sort: 1 })]
-          }]
-        },
-        {
-          id: 'keyboard_offline',
-          name: '离线键盘',
-          nodeType: 'keyboard',
-          pageType: '',
-          keyboardId: '',
-          cards: [],
-          buttons: [makeBtn('kb_off1', '回主菜单', 'back_menu', { sort: 1 })]
-        }
-      ],
-      variants: [{ key: 'default', name: '默认', status: 'active', nodeOverrides: {} }]
+      pages: [
+        makePage('page_offline', '离线提示', '收尾', {
+          order: 0,
+          text: '客服暂时离线，请留下您的问题',
+          cardButtons: []
+        })
+      ]
     },
     {
       id: 'sys_finish',
       name: '收尾',
+      productLineId: 'BingoPlus',
+      botId: 'bot_1',
       type: 'system',
       status: 'published',
-      purpose: '客服会话结束后使用',
-      firstScreenNodeId: 'node_finish',
-      mainMenuKeyboardId: 'keyboard_finish',
+      purpose: '客服会话结束走此流程',
+      mainMenuId: 'menu_support',
+      firstPageId: 'page_finish',
       updatedAt: '2026-09-01 00:00:00',
-      nodes: [
-        {
-          id: 'node_finish',
-          name: '会话结束',
-          nodeType: 'message',
-          pageType: '收尾兜底',
-          keyboardId: '',
-          cards: [{
-            image: '',
-            title: '本次会话已结束',
-            subtitle: '感谢您的咨询',
-            statusLine: '',
-            descLine: '',
-            progress: '',
-            buttons: [makeBtn('btn_f1', '回主菜单', 'back_menu', { sort: 1 })]
-          }]
-        },
-        {
-          id: 'keyboard_finish',
-          name: '收尾键盘',
-          nodeType: 'keyboard',
-          pageType: '',
-          keyboardId: '',
-          cards: [],
-          buttons: [makeBtn('kb_f1', '首页', 'open_flow', { paramFlowId: 'flow_home', sort: 1 })]
-        }
-      ],
-      variants: [{ key: 'default', name: '默认', status: 'active', nodeOverrides: {} }]
+      pages: [
+        makePage('page_finish', '会话结束', '收尾', {
+          order: 0,
+          text: '本次会话已结束，感谢您的咨询',
+          cardButtons: [
+            makeBtn('cb_f1', '回主菜单', 'Home', { sort: 1 })
+          ]
+        })
+      ]
     }
   ],
-  groups: [
+  scenes: [
     {
-      id: 'home',
-      name: '首页策略组',
-      defaultFlowId: 'flow_home',
-      defaultVariantKey: 'default',
+      id: 'scene_vip',
+      name: 'VIP大客',
+      productLineId: 'BingoPlus',
+      botId: 'bot_1',
+      entryFlowId: '',
+      useStrategy: true,
+      effectiveStart: '2026-09-01 00:00:00',
+      effectiveEnd: '2026-12-31 23:59:59',
       status: 'active',
-      updatedAt: '2026-09-14 18:00:00'
+      remark: 'deeplink source=scene_vip',
+      createdAt: '2026-09-10 10:00:00',
+      updatedAt: '2026-09-16 18:00:00'
     },
     {
-      id: 'campaign',
-      name: '活动策略组',
-      defaultFlowId: 'flow_support',
-      defaultVariantKey: 'default',
+      id: 'scene_member',
+      name: '普通会员',
+      productLineId: 'BingoPlus',
+      botId: 'bot_1',
+      entryFlowId: '',
+      useStrategy: true,
+      effectiveStart: '',
+      effectiveEnd: '',
       status: 'active',
-      updatedAt: '2026-09-10 10:20:00'
+      remark: '',
+      createdAt: '2026-09-10 10:05:00',
+      updatedAt: '2026-09-15 12:00:00'
+    },
+    {
+      id: 'scene_cs',
+      name: '客服',
+      productLineId: 'BingoPlus',
+      botId: 'bot_1',
+      entryFlowId: 'flow_cs',
+      useStrategy: false,
+      effectiveStart: '',
+      effectiveEnd: '',
+      status: 'active',
+      remark: '专属客服入口，不走策略',
+      createdAt: '2026-09-10 10:10:00',
+      updatedAt: '2026-09-14 09:00:00'
     }
   ],
   strategies: [
     {
-      id: 'str_001',
-      groupId: 'home',
-      name: 'VIP6-8 首页',
-      sourceCondition: 'flow_home',
-      tagConditions: [{ key: 'vip_level', op: 'in', value: ['V6', 'V7', 'V8'] }],
-      takeoverFlowId: 'flow_home',
-      takeoverVariantKey: 'vip',
+      id: 'strategy_vip68',
+      sceneId: 'scene_vip',
+      productLineId: 'BingoPlus',
+      botId: 'bot_1',
+      tags: ['V6', 'V7', 'V8'],
+      flowId: 'flow_vip_home',
       priority: 10,
-      validStart: '2026-09-01',
-      validEnd: '2026-12-31',
+      effectiveStart: '2026-09-01 00:00:00',
+      effectiveEnd: '2026-12-31 23:59:59',
       status: 'active',
-      updatedAt: '2026-09-14 18:10:00'
+      remark: '',
+      createdAt: '2026-09-14 18:10:00'
     },
     {
-      id: 'str_002',
-      groupId: 'home',
-      name: 'RD 用户首页',
-      sourceCondition: 'flow_home',
-      tagConditions: [{ key: 'is_rd', op: '=', value: ['true'] }],
-      takeoverFlowId: 'flow_home',
-      takeoverVariantKey: 'default',
+      id: 'strategy_rd',
+      sceneId: 'scene_vip',
+      productLineId: 'BingoPlus',
+      botId: 'bot_1',
+      tags: ['rd'],
+      flowId: 'flow_member',
       priority: 20,
-      validStart: '',
-      validEnd: '',
+      effectiveStart: '',
+      effectiveEnd: '',
       status: 'active',
-      updatedAt: '2026-09-13 12:00:00'
+      remark: '',
+      createdAt: '2026-09-13 12:00:00'
     },
     {
-      id: 'str_003',
-      groupId: 'campaign',
-      name: '已注册活动',
-      sourceCondition: 'flow_support',
-      tagConditions: [{ key: 'is_reg', op: '=', value: ['true'] }],
-      takeoverFlowId: 'flow_support',
-      takeoverVariantKey: 'default',
+      id: 'strategy_member_default',
+      sceneId: 'scene_member',
+      productLineId: 'BingoPlus',
+      botId: 'bot_1',
+      tags: ['V1', 'V2', 'V3', 'V4', 'V5'],
+      flowId: 'flow_member',
       priority: 10,
-      validStart: '2026-09-01',
-      validEnd: '',
-      status: 'draft',
-      updatedAt: '2026-09-11 09:30:00'
+      effectiveStart: '',
+      effectiveEnd: '',
+      status: 'active',
+      remark: '',
+      createdAt: '2026-09-11 09:30:00'
     }
   ]
 };
@@ -504,20 +453,55 @@ function nextId(prefix) {
   return `${prefix}_${DB.seq}`;
 }
 
-function isIdToken(s, max = 30) {
-  return /^[a-z][a-z0-9_]{0,29}$/.test(s) && s.length <= max;
+function isIdToken(s, max = 50) {
+  return /^[a-z][a-z0-9_]{0,49}$/.test(s) && s.length <= max;
 }
 
 function eventLabel(v) {
   return BUTTON_EVENTS.find(e => e.value === v)?.label || v || '-';
 }
 
-function formatTagCondition(list) {
-  if (!list || !list.length) return '不限';
-  return list.map(c => {
-    if (c.op === 'in') return `${c.key} in (${(c.value || []).join(', ')})`;
-    return `${c.key} = ${(c.value || [])[0] || ''}`;
-  }).join(' AND ');
+function builtinEventLabel(v) {
+  return BUILTIN_EVENTS.find(e => e.value === v)?.label || v || '-';
+}
+
+function tagLabel(t) {
+  return TAG_LABELS[t] || t;
+}
+
+function formatTags(tags) {
+  if (!tags || !tags.length) return '-';
+  return tags.map(tagLabel).join(' / ');
+}
+
+function productLineById(id) {
+  return PRODUCT_LINES.find(p => p.id === id);
+}
+
+function botsByProductLine(pl) {
+  return DB.bots.filter(b => !pl || b.productLineId === pl);
+}
+
+function defaultProductLine() {
+  return PRODUCT_LINES[1]?.id || PRODUCT_LINES[0].id;
+}
+
+function defaultBot(pl) {
+  return botsByProductLine(pl)[0]?.id || '';
+}
+
+function isFixedFlow(f) {
+  return !!f && (f.type === 'bind' || f.type === 'fallback');
+}
+
+function fixedFlowLabel(type) {
+  if (type === 'bind') return '绑定对话流';
+  if (type === 'fallback') return '兜底对话流';
+  return '';
+}
+
+function findFixedFlow(pl, botId, type) {
+  return DB.flows.find(f => f.productLineId === pl && f.botId === botId && f.type === type);
 }
 
 function normalFlows() {
@@ -528,68 +512,76 @@ function systemFlows() {
   return DB.flows.filter(f => f.type === 'system');
 }
 
-function publishedFlows() {
-  return normalFlows().filter(f => f.status === 'published');
+function publishedFlows(pl, botId) {
+  return DB.flows.filter(f => f.status === 'published' && f.type !== 'system' && (!pl || f.productLineId === pl) && (!botId || f.botId === botId));
+}
+
+function publishedMatchFlows(pl, botId) {
+  return publishedFlows(pl, botId).filter(f => f.type === 'normal' || !f.type);
 }
 
 function flowById(id) {
   return DB.flows.find(f => f.id === id);
 }
 
-function groupById(id) {
-  return DB.groups.find(g => g.id === id);
+function menuById(id) {
+  return (DB.menus || []).find(m => m.id === id);
+}
+
+function menusByScope(pl, botId) {
+  return (DB.menus || []).filter(m => (!pl || m.productLineId === pl) && (!botId || m.botId === botId));
+}
+
+function sceneById(id) {
+  return DB.scenes.find(s => s.id === id);
+}
+
+function scenesByScope(pl, botId) {
+  return DB.scenes.filter(s => (!pl || s.productLineId === pl) && (!botId || s.botId === botId));
 }
 
 function strategyById(id) {
   return DB.strategies.find(s => s.id === id);
 }
 
-function messageNodes(flow) {
-  return (flow?.nodes || []).filter(n => n.nodeType === 'message');
+function pageById(flow, pageId) {
+  return (flow?.pages || []).find(p => p.id === pageId);
 }
 
-function keyboardNodes(flow) {
-  return (flow?.nodes || []).filter(n => n.nodeType === 'keyboard');
-}
-
-function firstScreenCandidates(flow) {
-  return messageNodes(flow).filter(n => (n.cards || []).length === 1);
-}
-
-function groupRefCount(groupId) {
-  return DB.strategies.filter(s => s.groupId === groupId).length;
+function sceneRefCount(sceneId) {
+  return DB.strategies.filter(s => s.sceneId === sceneId).length;
 }
 
 function flowRefCount(flowId) {
-  const fromStrategies = DB.strategies.filter(s => s.takeoverFlowId === flowId).length;
-  const fromGroups = DB.groups.filter(g => g.defaultFlowId === flowId).length;
-  return fromStrategies + fromGroups;
+  const fromS = DB.strategies.filter(s => s.flowId === flowId).length;
+  const fromSc = DB.scenes.filter(s => s.entryFlowId === flowId).length;
+  return fromS + fromSc;
 }
 
-function variantRefCount(flowId, key) {
-  const fromS = DB.strategies.filter(s => s.takeoverFlowId === flowId && s.takeoverVariantKey === key).length;
-  const fromG = DB.groups.filter(g => g.defaultFlowId === flowId && g.defaultVariantKey === key).length;
-  return fromS + fromG;
+function menuButtonCount(menuId) {
+  return (menuById(menuId)?.buttons || []).length;
 }
 
-function overrideCount(variant) {
-  if (!variant?.nodeOverrides) return 0;
-  let n = 0;
-  Object.values(variant.nodeOverrides).forEach(node => {
-    (node.cards || []).forEach(card => {
-      ['title', 'subtitle', 'image', 'statusLine', 'descLine', 'progress'].forEach(k => {
-        if (card[k] !== undefined && card[k] !== '' && card[k] !== null) n += 1;
-      });
-      if (card.buttons) n += Object.keys(card.buttons).length;
-    });
-  });
-  return n;
+function productLineOptions(selected) {
+  return PRODUCT_LINES.map(p => optionHtml(p.id, p.name, selected)).join('');
 }
 
-function flowPreview(flow, variantKey) {
-  return `${flow?.id || '-'}+${variantKey || 'default'}`;
+function botOptions(pl, selected) {
+  return botsByProductLine(pl).map(b => optionHtml(b.id, b.botName, selected)).join('');
 }
 
-function nodeById(flow, nodeId) {
-  return (flow?.nodes || []).find(n => n.id === nodeId);
+function sceneOptions(pl, botId, selected) {
+  return scenesByScope(pl, botId).map(s => optionHtml(s.id, `${s.name} (${s.id})`, selected)).join('');
+}
+
+function publishedFlowOptions(pl, botId, selected) {
+  return publishedFlows(pl, botId).map(f => optionHtml(f.id, `${f.name} (${f.id})`, selected)).join('');
+}
+
+function publishedMatchFlowOptions(pl, botId, selected) {
+  return publishedMatchFlows(pl, botId).map(f => optionHtml(f.id, `${f.name} (${f.id})`, selected)).join('');
+}
+
+function menuOptions(pl, botId, selected) {
+  return menusByScope(pl, botId).map(m => optionHtml(m.id, `${m.name} (${m.id})`, selected)).join('');
 }

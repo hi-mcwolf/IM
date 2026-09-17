@@ -2,32 +2,26 @@
 
 const PAGE_SIZE = 20;
 let page = 1;
-let filters = { keyword: '', type: '', status: '' };
+let filters = readQueryFilters(['pl', 'bot', 'kw', 'status']);
 
-function filteredFlows() {
-  const kw = filters.keyword.toLowerCase();
-  return normalFlows()
-    .filter(f => {
-      if (kw && !f.id.toLowerCase().includes(kw) && !f.name.toLowerCase().includes(kw)) return false;
-      if (filters.type && f.type !== filters.type) return false;
-      if (filters.status && f.status !== filters.status) return false;
-      return true;
-    })
-    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-}
+if (!filters.pl) filters.pl = defaultProductLine();
+if (!filters.bot) filters.bot = defaultBot(filters.pl);
 
 function applyQuery() {
-  filters.keyword = (document.getElementById('f-kw')?.value || '').trim();
-  filters.type = document.getElementById('f-type')?.value || '';
+  filters.pl = document.getElementById('f-pl')?.value || '';
+  filters.bot = document.getElementById('f-bot')?.value || '';
+  filters.kw = (document.getElementById('f-kw')?.value || '').trim();
   filters.status = document.getElementById('f-status')?.value || '';
   page = 1;
+  writeQueryFilters(filters);
   render();
 }
 
-function resetQuery() {
-  filters = { keyword: '', type: '', status: '' };
-  page = 1;
-  render();
+function onPlChange() {
+  filters.pl = document.getElementById('f-pl').value;
+  filters.bot = defaultBot(filters.pl);
+  document.getElementById('f-bot').innerHTML = botOptions(filters.pl, filters.bot);
+  applyQuery();
 }
 
 function gotoPage(p) {
@@ -35,11 +29,28 @@ function gotoPage(p) {
   render();
 }
 
+function filteredFlows() {
+  const kw = (filters.kw || '').toLowerCase();
+  return normalFlows()
+    .filter(f => {
+      if (filters.pl && f.productLineId !== filters.pl) return false;
+      if (filters.bot && f.botId !== filters.bot) return false;
+      if (kw && !f.id.toLowerCase().includes(kw) && !f.name.toLowerCase().includes(kw)) return false;
+      if (filters.status && f.status !== filters.status) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      const rank = f => (f.type === 'bind' ? 0 : f.type === 'fallback' ? 1 : 2);
+      return rank(a) - rank(b) || b.updatedAt.localeCompare(a.updatedAt);
+    });
+}
+
 function canPublish(flow) {
-  const hasFirst = !!flow.firstScreenNodeId && firstScreenCandidates(flow).some(n => n.id === flow.firstScreenNodeId);
-  const hasMenu = !!flow.mainMenuKeyboardId && keyboardNodes(flow).some(n => n.id === flow.mainMenuKeyboardId);
-  const hasVariant = (flow.variants || []).some(v => v.key === 'default');
-  return hasFirst && hasMenu && hasVariant;
+  const hasPage = (flow.pages || []).length >= 1;
+  const menu = menuById(flow.mainMenuId);
+  const hasMenuBtn = (menu?.buttons || []).length >= 1;
+  const hasFirst = !!flow.firstPageId && (flow.pages || []).some(p => p.id === flow.firstPageId);
+  return hasPage && hasMenuBtn && hasFirst;
 }
 
 function render() {
@@ -49,11 +60,17 @@ function render() {
   document.getElementById('content').innerHTML = `
     <div class="page-header">
       <div>
-        <h1 class="page-title">对话流（新）</h1>
-        <p class="page-desc">配置 Bot 承接结构：首屏、节点、按钮、主菜单键盘与变体</p>
+        <h1 class="page-title">对话流</h1>
+        <p class="page-desc">配置主菜单 + 多页面承接结构；未绑定用户走绑定对话流，策略未命中走兜底对话流</p>
       </div>
       <div class="page-header-actions">
-        <button class="btn btn-primary" type="button" onclick="location.href='flow-editor.html'">
+        <button class="btn btn-outline" type="button" ${findFixedFlow(filters.pl, filters.bot, 'bind') ? 'disabled title="当前 Bot 已有绑定对话流"' : ''} onclick="goNew('bind')">
+          <i data-lucide="plus"></i>新建绑定对话流
+        </button>
+        <button class="btn btn-outline" type="button" ${findFixedFlow(filters.pl, filters.bot, 'fallback') ? 'disabled title="当前 Bot 已有兜底对话流"' : ''} onclick="goNew('fallback')">
+          <i data-lucide="plus"></i>新建兜底对话流
+        </button>
+        <button class="btn btn-primary" type="button" onclick="goNew()">
           <i data-lucide="plus"></i>新建对话流
         </button>
       </div>
@@ -61,19 +78,20 @@ function render() {
     <section class="card filter-card">
       <div class="filter-row">
         <div class="filter-item">
-          <span class="filter-label">搜索</span>
-          <input class="input" id="f-kw" maxlength="30" placeholder="请输入对话流名称或 Id" value="${esc(filters.keyword)}" />
+          <span class="filter-label">产品线</span>
+          <select class="select" id="f-pl" onchange="onPlChange()">${productLineOptions(filters.pl)}</select>
         </div>
         <div class="filter-item">
-          <span class="filter-label">类型</span>
-          <select class="select" id="f-type">
-            <option value="">全部</option>
-            <option value="normal"${filters.type === 'normal' ? ' selected' : ''}>普通</option>
-          </select>
+          <span class="filter-label">Bot</span>
+          <select class="select" id="f-bot" onchange="applyQuery()">${botOptions(filters.pl, filters.bot)}</select>
+        </div>
+        <div class="filter-item">
+          <span class="filter-label">关键字</span>
+          <input class="input" id="f-kw" maxlength="50" placeholder="输入对话流 ID 或名称模糊搜索" value="${esc(filters.kw)}" />
         </div>
         <div class="filter-item">
           <span class="filter-label">状态</span>
-          <select class="select" id="f-status">
+          <select class="select" id="f-status" onchange="applyQuery()">
             <option value="">全部</option>
             <option value="draft"${filters.status === 'draft' ? ' selected' : ''}>草稿</option>
             <option value="published"${filters.status === 'published' ? ' selected' : ''}>已发布</option>
@@ -82,7 +100,6 @@ function render() {
         </div>
         <div class="filter-actions">
           <button class="btn btn-primary" type="button" onclick="applyQuery()">查询</button>
-          <button class="btn btn-outline" type="button" onclick="resetQuery()">重置</button>
         </div>
       </div>
     </section>
@@ -92,41 +109,35 @@ function render() {
         <table class="table table-nowrap">
           <thead>
             <tr>
-              <th>Id</th>
+              <th>对话流 ID</th>
               <th>名称</th>
+              <th>默认主菜单</th>
+              <th>页面数</th>
               <th>类型</th>
-              <th>首屏节点</th>
-              <th>节点</th>
-              <th>变体</th>
               <th>状态</th>
               <th class="col-ops">操作</th>
             </tr>
           </thead>
           <tbody>
             ${list.length ? list.map(f => {
-              const refs = flowRefCount(f.id);
+              const menu = menuById(f.mainMenuId);
               const published = f.status === 'published';
-              const canDel = !published && refs === 0;
-              const canOffline = published && refs === 0;
               const canPub = (f.status === 'draft' || f.status === 'offline') && canPublish(f);
-              const nodeCount = messageNodes(f).length;
               return `<tr>
                 <td>${esc(f.id)}</td>
-                <td>${esc(f.name)}</td>
+                <td>${isFixedFlow(f) ? fixedPinHtml() : ''}${esc(f.name)}</td>
+                <td>${esc(menu ? menu.name : '-')}</td>
+                <td>${(f.pages || []).length}</td>
                 <td>${statusTag(f.type)}</td>
-                <td>${esc(f.firstScreenNodeId || '-')}</td>
-                <td>${nodeCount}</td>
-                <td>${(f.variants || []).length}</td>
                 <td>${statusTag(f.status)}</td>
                 <td class="col-ops">
                   <button class="link-btn" type="button" onclick="location.href='flow-editor.html?id=${encodeURIComponent(f.id)}'">编辑</button>
                   <button class="link-btn" type="button" onclick="copyFlow('${esc(f.id)}')">复制</button>
-                  ${f.status !== 'published' ? `<button class="link-btn" type="button" ${canPub ? '' : 'disabled'} onclick="publishFlow('${esc(f.id)}')">发布</button>` : ''}
-                  ${published ? `<button class="link-btn" type="button" ${canOffline ? '' : `disabled title="该对话流被 ${refs} 条策略引用,请先解除引用"`} onclick="offlineFlow('${esc(f.id)}')">下线</button>` : ''}
-                  <button class="link-btn link-btn-danger" type="button" ${canDel ? '' : 'disabled'} onclick="deleteFlow('${esc(f.id)}')">删除</button>
+                  ${!published ? `<button class="link-btn" type="button" ${canPub ? '' : 'disabled'} onclick="publishFlow('${esc(f.id)}')">发布</button>` : ''}
+                  ${published && !isFixedFlow(f) ? `<button class="link-btn" type="button" onclick="offlineFlow('${esc(f.id)}')">下线</button>` : ''}
                 </td>
               </tr>`;
-            }).join('') : `<tr><td colspan="8"><div class="table-empty">暂无数据</div></td></tr>`}
+            }).join('') : `<tr><td colspan="7"><div class="table-empty">暂无数据</div></td></tr>`}
           </tbody>
         </table>
       </div>
@@ -135,12 +146,23 @@ function render() {
   refreshIcons();
 }
 
-async function copyFlow(id) {
-  const f = flowById(id);
-  if (!f || f.type === 'system') {
-    showToast('系统保留类型不可复制', 'err');
+function goNew(type) {
+  if (!filters.pl || !filters.bot) {
+    showToast('请先选择产品线与 Bot', 'err');
     return;
   }
+  const t = type || 'normal';
+  if ((t === 'bind' || t === 'fallback') && findFixedFlow(filters.pl, filters.bot, t)) {
+    showToast(`当前 Bot 已有${fixedFlowLabel(t)}`, 'err');
+    return;
+  }
+  const q = `pl=${encodeURIComponent(filters.pl)}&bot=${encodeURIComponent(filters.bot)}${t !== 'normal' ? `&type=${encodeURIComponent(t)}` : ''}`;
+  location.href = `flow-editor.html?${q}`;
+}
+
+async function copyFlow(id) {
+  const f = flowById(id);
+  if (!f) return;
   const ok = await confirmModal({ title: `确认复制对话流 ${f.name}？`, confirmText: '确认复制', danger: false });
   if (!ok) return;
   let newId = `${f.id}_copy`;
@@ -154,18 +176,19 @@ async function copyFlow(id) {
   copy.name = `${f.name} 副本`;
   copy.status = 'draft';
   copy.type = 'normal';
+  copy.purpose = '';
+  copy.remark = '';
   copy.updatedAt = nowTs();
   DB.flows.push(copy);
   saveStore();
-  showToast('已创建副本');
-  render();
+  location.href = `flow-editor.html?id=${encodeURIComponent(newId)}`;
 }
 
 function publishFlow(id) {
   const f = flowById(id);
   if (!f) return;
   if (!canPublish(f)) {
-    showToast('发布前必须配置首屏节点、主菜单键盘、至少 1 个变体', 'err');
+    showToast('发布前需至少 1 个页面、1 个主菜单按钮，并指定首屏', 'err');
     return;
   }
   f.status = 'published';
@@ -178,11 +201,6 @@ function publishFlow(id) {
 async function offlineFlow(id) {
   const f = flowById(id);
   if (!f) return;
-  const refs = flowRefCount(id);
-  if (refs > 0) {
-    showToast(`该对话流被 ${refs} 条策略引用,请先解除引用`, 'err');
-    return;
-  }
   const ok = await confirmModal({ title: `确认下线对话流 ${f.name}？`, confirmText: '确认下线', danger: false });
   if (!ok) return;
   f.status = 'offline';
@@ -192,22 +210,8 @@ async function offlineFlow(id) {
   render();
 }
 
-async function deleteFlow(id) {
-  const f = flowById(id);
-  if (!f) return;
-  if (f.type === 'system' || f.status === 'published' || flowRefCount(id) > 0) {
-    showToast('系统保留 / 被引用 / 已发布状态下不可删除', 'err');
-    return;
-  }
-  const ok = await confirmModal({ title: `确认删除对话流 ${f.name}？`, confirmText: '确认删除' });
-  if (!ok) return;
-  DB.flows = DB.flows.filter(x => x.id !== id);
-  saveStore();
-  showToast('删除成功');
-  render();
-}
-
 document.addEventListener('DOMContentLoaded', () => {
   initShell('flows');
+  writeQueryFilters(filters);
   render();
 });
