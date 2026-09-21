@@ -1,0 +1,2606 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Digiplus · Messenger Business Message</title>
+  <style>
+:root {
+  --bg: #F5F6F8;
+  --card: #FFFFFF;
+  --primary: #2E6BE6;
+  --primary-hover: #2559C4;
+  --primary-weak: #EEF4FF;
+  --primary-border: #C9DBFF;
+  --line: #E5E7EB;
+  --border: #E5E7EB;
+  --text: #1F2329;
+  --text-1: #1F2329;
+  --text-2: #4E5969;
+  --text-3: #86909C;
+  --muted: #86909C;
+  --danger: #E5484D;
+  --danger-hover: #C9373C;
+  --success: #2BA471;
+  --success-hover: #259365;
+  --info: #2E6BE6;
+  --warn: #FF7D00;
+  --warning: #FF7D00;
+  --radius-s: 4px;
+  --radius-m: 6px;
+  --radius-l: 8px;
+  --sidebar-w: 220px;
+  --header-h: 56px;
+  --font: "PingFang SC", "Microsoft YaHei", "微软雅黑", Inter, Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: var(--font);
+  color: var(--text-1);
+  background: var(--bg);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+button { font-family: var(--font); }
+a { text-decoration: none; color: inherit; }
+.lucide { width: 16px; height: 16px; stroke-width: 1.8; flex: none; }
+
+.app-layout { display: flex; height: 100vh; overflow: hidden; }
+.app-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.content-body { flex: 1; min-height: 0; overflow-y: auto; scrollbar-gutter: stable; }
+
+.topbar {
+  height: 56px;
+  flex: none;
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px 0 0;
+}
+.topbar-menu { display: flex; align-items: center; height: 100%; }
+.topbar-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 24px;
+  font-size: 14px;
+  color: var(--text-2);
+}
+.topbar-item.active { color: var(--primary); font-weight: 600; }
+.topbar-item.active::after {
+  content: "";
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  bottom: 0;
+  height: 2px;
+  background: var(--primary);
+}
+.topbar-actions { display: flex; align-items: center; gap: 12px; }
+.topbar-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+.topbar-user .avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--primary-weak);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.sidebar {
+  width: var(--sidebar-w);
+  flex: none;
+  background: var(--card);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+}
+.sb-brand {
+  height: 56px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 20px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-1);
+  border-bottom: 1px solid var(--line);
+}
+.sb-brand .lucide { width: 20px; height: 20px; color: var(--primary); }
+.sb-menu { flex: 1; overflow-y: auto; padding: 12px 8px; }
+.sb-item, .sub-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  border: none;
+  background: none;
+  padding: 10px 12px;
+  border-radius: var(--radius-m);
+  font-size: 14px;
+  color: var(--text-2);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+.sb-item:hover, .sub-item:hover { background: var(--bg); color: var(--text-1); }
+.sb-item.active { color: var(--primary); font-weight: 600; }
+.sb-item .chev {
+  margin-left: auto;
+  width: 14px;
+  height: 14px;
+  color: var(--text-3);
+}
+.sub-item { padding: 9px 12px 9px 40px; display: block; }
+.sub-item.active { background: var(--primary-weak); color: var(--primary); font-weight: 500; }
+.menu-group { margin-top: 4px; }
+
+.menu-toggle {
+  display: none !important;
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--text-2);
+  border-radius: var(--radius-m);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+}
+.stats-main { padding: 24px 32px; max-width: 1440px; margin: 0 auto; }
+.stats-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.page-title { font-size: 20px; font-weight: 700; margin: 0 0 8px; }
+.page-desc { font-size: 14px; color: var(--text-3); margin: 0; }
+.stats-header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.breadcrumb { display: none; }
+.page-head { display: none; }
+
+.page-tabs {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  border-bottom: 1px solid var(--line);
+  margin: -8px 0 16px;
+}
+.page-tab {
+  position: relative;
+  padding: 0 2px 10px;
+  font-size: 14px;
+  color: var(--text-2);
+  cursor: pointer;
+  user-select: none;
+}
+.page-tab:hover { color: var(--text-1); }
+.page-tab.active { color: var(--primary); font-weight: 600; }
+.page-tab.active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--primary);
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  padding: 24px;
+}
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+  align-items: center;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  padding: 16px 24px;
+  margin-bottom: 16px;
+}
+.filter-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: auto;
+  flex: 0 0 auto;
+}
+.filter-item.wide { min-width: 280px; }
+.filter-item label, .form-row > label {
+  font-size: 13px;
+  color: var(--text-2);
+  white-space: nowrap;
+  margin: 0;
+}
+.filter-item input, .filter-item select { width: auto; min-width: 140px; }
+.filter-item.wide input { min-width: 0; flex: 1; }
+.filter-actions {
+  flex: 1 0 100%;
+  margin-left: 0;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: nowrap;
+}
+
+input[type="text"], input[type="password"], input[type="number"], input[type="url"],
+input[type="datetime-local"], input[type="file"], select, textarea {
+  height: 32px;
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  font-size: 14px;
+  color: var(--text-1);
+  background: var(--card);
+  outline: none;
+  width: 100%;
+  font-family: inherit;
+  transition: border-color .15s;
+}
+textarea { height: auto; min-height: 96px; padding: 8px 12px; resize: vertical; line-height: 1.6; }
+input[type="file"] { padding: 3px 8px; }
+input::placeholder, textarea::placeholder { color: var(--text-3); }
+input:hover, select:hover, textarea:hover { border-color: var(--primary); }
+input:focus, select:focus, textarea:focus { border-color: var(--primary); }
+.has-error input, .has-error select, .has-error textarea { border-color: var(--danger); }
+.req { color: var(--danger); margin-left: 2px; }
+input[type="radio"], input[type="checkbox"] { accent-color: var(--primary); width: 15px; height: 15px; cursor: pointer; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 16px;
+  border-radius: var(--radius-m);
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--text-2);
+  font-size: 14px;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: background .15s, border-color .15s, color .15s;
+  user-select: none;
+}
+.btn:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
+.btn.primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+.btn.primary:hover:not(:disabled) { background: var(--primary-hover); border-color: var(--primary-hover); color: #fff; }
+.btn.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+.btn.danger:hover:not(:disabled) { background: var(--danger-hover); border-color: var(--danger-hover); color: #fff; }
+.btn.sm { height: 28px; padding: 0 12px; font-size: 12px; border-radius: var(--radius-s); }
+.btn.link { border: none; background: transparent; color: var(--primary); height: 28px; padding: 0 6px; }
+.btn.link:hover { color: var(--primary-hover); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn:disabled:hover { border-color: var(--line); color: var(--text-2); }
+.btn.primary:disabled:hover { color: #fff; border-color: var(--primary); }
+
+.tbl-wrap {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  overflow-x: auto;
+}
+.tbl-wrap:has(+ .pagination) {
+  border-bottom: none;
+  border-radius: var(--radius-l) var(--radius-l) 0 0;
+}
+.tbl-wrap + .pagination {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-top: none;
+  border-radius: 0 0 var(--radius-l) var(--radius-l);
+  margin-top: 0;
+  padding: 12px 16px 16px;
+}
+table.tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font);
+  font-size: 13px;
+}
+.tbl th, .tbl td {
+  padding: 0 16px;
+  height: 44px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-1);
+}
+.tbl th {
+  background: var(--card);
+  color: var(--text-3);
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+.tbl th.no-sort { cursor: default; }
+.tbl th .arrow { color: var(--text-3); font-size: 10px; margin-left: 4px; font-family: inherit; }
+.tbl th.sorted .arrow { color: var(--primary); }
+.tbl tbody tr:hover { background: #FAFBFC; }
+.tbl .col-actions { white-space: nowrap; width: 1%; }
+.tbl .mono {
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--text-1);
+}
+.tbl .col-actions .btn.sm {
+  border: none;
+  background: none;
+  color: var(--primary);
+  height: auto;
+  padding: 0 10px 0 0;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 400;
+}
+.tbl .col-actions .btn.sm:hover { text-decoration: underline; }
+.tbl .col-actions .btn.sm.danger { color: var(--danger); background: none; }
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-s);
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 20px;
+  font-weight: 500;
+  border: none;
+  white-space: nowrap;
+  background: #F2F3F5;
+  color: var(--text-2);
+}
+.tag.pending { color: var(--text-2); background: #F2F3F5; }
+.tag.sending, .tag.info { color: var(--primary); background: var(--primary-weak); }
+.tag.success { color: var(--success); background: #E8F7F0; }
+.tag.failed { color: var(--danger); background: #FDEBEC; }
+.tag.off { color: var(--text-3); background: #F2F3F5; }
+.tag.warn { color: var(--warning); background: #FFF3E6; }
+
+.empty { text-align: center; padding: 48px 16px; color: var(--text-3); }
+.loading { text-align: center; padding: 48px 16px; color: var(--text-3); }
+.spinner {
+  width: 22px; height: 22px;
+  border: 2px solid var(--line);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  display: inline-block;
+  animation: spin .8s linear infinite;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.page-total { font-size: 12px; color: var(--text-3); margin-right: 8px; }
+.pagination {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+  margin-top: 16px;
+  color: var(--text-3);
+  font-size: 12px;
+  padding: 0 8px 16px;
+}
+.tbl-wrap + .pagination, .tbl-wrap .pagination { padding: 12px 16px 16px; }
+.pg-btn {
+  min-width: 28px; height: 28px;
+  padding: 0 6px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  border-radius: var(--radius-s);
+  cursor: pointer;
+  color: var(--text-2);
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.pg-btn:hover:not(:disabled):not(.active) { border-color: var(--primary); color: var(--primary); }
+.pg-btn.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+.pg-btn:disabled { opacity: .4; cursor: not-allowed; }
+.field-error { font-size: 12px; color: var(--danger); line-height: 1.4; margin-top: 4px; }
+.tbl-add { margin-top: 12px; }
+.tbl .draft-row > td { background: var(--primary-weak); vertical-align: top; }
+.tbl .draft-row input, .tbl .draft-row select { width: 100%; min-width: 120px; }
+.tbl .draft-row .col-actions { white-space: nowrap; }
+.field-hint { font-size: 12px; color: var(--text-3); line-height: 1.4; margin-top: 4px; }
+.hint-bar {
+  background: var(--primary-weak);
+  border: 1px solid var(--primary-border);
+  color: var(--primary);
+  padding: 8px 12px;
+  border-radius: var(--radius-m);
+  font-size: 13px;
+  margin: 4px 0 12px;
+}
+.warn-bar {
+  background: #FFF3E6;
+  border: 1px solid #FFD9B3;
+  color: var(--warning);
+  padding: 8px 12px;
+  border-radius: var(--radius-m);
+  font-size: 13px;
+  margin: 4px 0 12px;
+}
+.mask {
+  position: fixed; inset: 0;
+  background: rgba(31, 35, 41, .45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+.modal {
+  width: 640px;
+  max-width: 100%;
+  background: var(--card);
+  border-radius: var(--radius-l);
+  box-shadow: 0 8px 24px rgba(31, 35, 41, .12);
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 32px);
+}
+.modal.lg { width: 860px; }
+.modal.xl { width: 1100px; }
+.modal .preview-card { position: static; }
+.modal-hd {
+  height: 56px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--line);
+  font-weight: 600;
+  font-size: 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+.modal-hd .x { cursor: pointer; color: var(--text-3); padding: 4px; }
+.modal-hd .x:hover { color: var(--text-1); }
+.modal-bd { padding: 24px; overflow: auto; }
+.modal-ft {
+  padding: 12px 24px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  background: var(--card);
+  border-radius: 0 0 var(--radius-l) var(--radius-l);
+  flex-shrink: 0;
+}
+#toast-root {
+  position: fixed;
+  top: 72px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+.toast {
+  background: var(--text-1);
+  border-radius: var(--radius-m);
+  padding: 8px 16px;
+  color: #fff;
+  font-size: 13px;
+  animation: toast-in .2s ease;
+  pointer-events: auto;
+  border: none;
+}
+.toast.ok, .toast.err { border: none; }
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.form-row { margin-bottom: 24px; }
+.form-row > label { display: block; margin-bottom: 8px; font-size: 14px; font-weight: 600; color: var(--text-1); white-space: normal; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
+.chk-list {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  padding: 8px 10px;
+  max-height: 148px;
+  overflow: auto;
+  background: #fff;
+}
+.chk-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 13px; }
+.chk-item input { width: auto; height: auto; }
+.radio-row { display: flex; gap: 16px; align-items: center; height: 32px; }
+.radio-row label { display: flex; align-items: center; gap: 6px; cursor: pointer; color: var(--text-2); }
+.radio-row input { width: auto; height: auto; }
+.create-layout { display: grid; grid-template-columns: 1fr 340px; gap: 16px; align-items: start; }
+.preview-card {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  padding: 16px;
+  position: sticky;
+  top: 0;
+}
+.msgr {
+  background: #fff;
+  border-radius: var(--radius-l);
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+.msgr-hd {
+  background: #0084ff;
+  color: #fff;
+  padding: 10px 12px;
+  font-weight: 600;
+  font-size: 13px;
+}
+.msgr-bd { padding: 12px; }
+.msgr-img {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  background: var(--primary-weak);
+  display: block;
+  border-radius: var(--radius-m);
+  margin-bottom: 8px;
+}
+.msgr-img.ph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-3);
+  font-size: 12px;
+}
+.msgr-title { font-weight: 600; margin-bottom: 6px; }
+.msgr-body { color: var(--text-2); font-size: 13px; white-space: pre-wrap; line-height: 1.5; }
+.msgr-cta {
+  margin-top: 10px;
+  background: #0084ff;
+  color: #fff;
+  text-align: center;
+  padding: 8px;
+  border-radius: var(--radius-m);
+  font-size: 13px;
+  font-weight: 500;
+}
+.elig-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+.elig-item {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  padding: 8px 10px;
+}
+.elig-item .n { font-size: 18px; font-weight: 600; color: var(--text-1); }
+.elig-item .k { font-size: 12px; color: var(--text-3); }
+.detail-dl { display: grid; grid-template-columns: 160px 1fr; gap: 8px 12px; font-size: 13px; }
+.detail-dl dt { color: var(--text-3); }
+.detail-dl dd { margin: 0; word-break: break-all; }
+.sub-type-list { display: flex; flex-direction: column; gap: 12px; }
+.sub-type-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  padding: 12px 14px;
+  background: var(--bg);
+}
+.sub-type-hd {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+.stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.stat-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  padding: 16px 20px;
+}
+.stat-card .n { font-size: 24px; font-weight: 700; }
+.stat-card .k { font-size: 13px; color: var(--text-2); margin-top: 8px; }
+.dash-links { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 4px; }
+.dash-link {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  padding: 16px 20px;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+.dash-link:hover { border-color: var(--primary); }
+.dash-link .t { font-weight: 600; margin-bottom: 4px; }
+.dash-link .d { font-size: 12px; color: var(--text-3); }
+
+@media (max-width: 1100px) {
+  .create-layout { grid-template-columns: 1fr; }
+  .preview-card { position: static; }
+  .stat-grid, .dash-links { grid-template-columns: 1fr 1fr; }
+  .form-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 900px) {
+  .menu-toggle { display: inline-flex !important; }
+  .sidebar { display: none; }
+  .sidebar.open {
+    display: flex;
+    position: absolute;
+    top: 0; bottom: 0; left: 0;
+    z-index: 15;
+    box-shadow: 4px 0 16px rgba(31, 35, 41, .08);
+  }
+  .filters .filter-item { min-width: calc(50% - 8px); flex: 1; }
+  .stats-main { padding: 16px; }
+}
+@media (max-width: 560px) {
+  .filters .filter-item { min-width: 100%; }
+  .stat-grid, .dash-links { grid-template-columns: 1fr; }
+  .detail-dl { grid-template-columns: 1fr; }
+}
+
+  </style>
+</head>
+<body>
+<div class="app-layout" id="app">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="app-content">
+    <header class="topbar" id="topbar">
+      <nav class="topbar-menu">
+        <span class="topbar-item active">触达中心</span>
+      </nav>
+      <div class="topbar-actions">
+        <button class="menu-toggle" type="button" data-act="toggle-side">菜单</button>
+        <div class="topbar-user"><span class="avatar">M</span>marvin@</div>
+      </div>
+    </header>
+    <div class="content-body">
+      <main class="stats-main" id="content"></main>
+    </div>
+  </div>
+</div>
+<div id="modal-root"></div>
+<div id="toast-root"></div>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script>
+(function () {
+  const LS_KEY = 'dplus_mbm_v3';
+  const PAGE_SIZE = 10;
+
+  const CATALOG = {
+    pages: [
+      { id: 'page_bp_official', name: 'BingoPlus Official', adAccountIds: ['ad_bp'] },
+      { id: 'page_bp_support', name: 'BingoPlus Support', adAccountIds: ['ad_bp'] },
+      { id: 'page_rewards', name: 'Rewards Page', adAccountIds: ['ad_rewards'] },
+      { id: 'page_promo', name: 'Promo Page', adAccountIds: ['ad_promo', 'ad_bp'] },
+      { id: 'page_vip', name: 'VIP Club', adAccountIds: ['ad_rewards'] }
+    ],
+    adAccounts: [
+      { id: 'ad_bp', name: 'BingoPlus Ads' },
+      { id: 'ad_rewards', name: 'Rewards Ads' },
+      { id: 'ad_promo', name: 'Promo Ads' }
+    ],
+    protosTags: [
+      { id: 'vip', name: 'VIP', count: 1280 },
+      { id: 'high', name: 'High Value', count: 860 },
+      { id: 'new', name: 'New User', count: 2140 },
+      { id: 'inactive7', name: 'Inactive 7d', count: 540 },
+      { id: 'deposit', name: 'Deposit', count: 970 }
+    ]
+  };
+
+  const ROUTES = {
+    account: { title: 'Business Account', desc: '配置 Messenger 商业账户、Page 与 Ad Account' },
+    subscription: { title: '订阅管理', desc: '' },
+    'sub-msg-query': { title: '订阅消息', desc: '查询、取消待发送、重试失败任务' },
+    campaign: { title: '活动管理', desc: '营销消息必须关联 Campaign' }
+  };
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function toInputDt(d) {
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) +
+      'T' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+  }
+  function toDisplayDt(d) {
+    if (typeof d === 'string') return d.replace('T', ' ');
+    return toInputDt(d).replace('T', ' ');
+  }
+  function parseDt(s) {
+    if (!s) return null;
+    const d = new Date(String(s).replace(' ', 'T'));
+    return isNaN(d.getTime()) ? null : d;
+  }
+  const DEMO_NOW = new Date('2026-08-16T22:25:00');
+  function demoNow() {
+    const n = new Date();
+    if (Math.abs(n.getTime() - DEMO_NOW.getTime()) < 14 * 24 * 3600 * 1000) return n;
+    return new Date(DEMO_NOW.getTime());
+  }
+  function daysAgo(n) {
+    const d = new Date(demoNow().getTime());
+    d.setDate(d.getDate() - n);
+    return d;
+  }
+  function defaultRange() {
+    const from = daysAgo(7);
+    from.setHours(0, 0, 0, 0);
+    const to = demoNow();
+    to.setHours(23, 59, 59, 0);
+    return { from: toInputDt(from), to: toInputDt(to) };
+  }
+
+  const SEED = {
+    accounts: [
+      {
+        id: 'acc_1', platform: 'messenger', businessAccount: 'BingoPlus Messenger',
+        apiKey: 'MOCK_KEY_BP_001', apiSecret: 'MOCK_SECRET_BP_001',
+        facebookPageIds: ['page_bp_official', 'page_bp_support'],
+        adAccountId: 'ad_bp', status: '开启', createdAt: '2026-05-12 10:24:18'
+      },
+      {
+        id: 'acc_2', platform: 'messenger', businessAccount: 'Rewards Messenger',
+        apiKey: 'MOCK_KEY_RW_002', apiSecret: 'MOCK_SECRET_RW_002',
+        facebookPageIds: ['page_rewards', 'page_vip'],
+        adAccountId: 'ad_rewards', status: '开启', createdAt: '2026-06-03 15:41:02'
+      },
+      {
+        id: 'acc_3', platform: 'messenger', businessAccount: 'Promo Messenger',
+        apiKey: 'MOCK_KEY_PM_003', apiSecret: 'MOCK_SECRET_PM_003',
+        facebookPageIds: ['page_promo'],
+        adAccountId: 'ad_promo', status: '关闭', createdAt: '2026-07-01 09:12:45'
+      }
+    ],
+    viberAccounts: ['BingoPlus Viber', 'Rewards Viber'],
+    subscriptionTypes: [
+      { id: 'st_1', platform: 'messenger', businessAccount: 'BingoPlus Messenger', facebookPage: 'BingoPlus Official', subscriptionType: 'Weekly Promo', status: '开启' },
+      { id: 'st_2', platform: 'messenger', businessAccount: 'BingoPlus Messenger', facebookPage: 'BingoPlus Support', subscriptionType: 'Jackpot Alert', status: '开启' },
+      { id: 'st_3', platform: 'messenger', businessAccount: 'Rewards Messenger', facebookPage: 'Rewards Page', subscriptionType: 'Rewards Update', status: '开启' },
+      { id: 'st_4', platform: 'messenger', businessAccount: 'Rewards Messenger', facebookPage: 'VIP Club', subscriptionType: 'VIP Offer', status: '关闭' },
+      { id: 'st_5', platform: 'messenger', businessAccount: 'Promo Messenger', facebookPage: 'Promo Page', subscriptionType: 'Flash Sale', status: '开启' }
+    ],
+    subscriptions: [
+      { id: 'sub_1', platform: 'messenger', businessAccount: 'BingoPlus Messenger', facebookPage: 'BingoPlus Official', loginName: 'maria.santos', imUserId: 'ms_100861001', subscriptionType: 'Weekly Promo', initialSubscriptionDate: '2026-08-10 09:12:11', latestSubscriptionTime: '2026-08-15 18:22:01', lastLoginTime: '2026-08-16 08:11:09', subscriptionStatus: '已订阅', notificationMessagesToken: 'NMT_8f3a91c2d4e5b607', tokenStatus: '有效', nextEligibleDatetime: '2026-08-17 18:22:01' },
+      { id: 'sub_2', platform: 'messenger', businessAccount: 'BingoPlus Messenger', facebookPage: 'BingoPlus Support', loginName: 'juan.dela', imUserId: 'ms_100861002', subscriptionType: 'Jackpot Alert', initialSubscriptionDate: '2026-08-12 11:30:00', latestSubscriptionTime: '2026-08-12 11:30:00', lastLoginTime: '2026-08-16 12:04:33', subscriptionStatus: '已订阅', notificationMessagesToken: 'NMT_22ab44cd66ef8890', tokenStatus: '有效', nextEligibleDatetime: '2026-08-13 11:30:00' },
+      { id: 'sub_3', platform: 'messenger', businessAccount: 'Rewards Messenger', facebookPage: 'Rewards Page', loginName: 'anna.reyes', imUserId: 'ms_100861003', subscriptionType: 'Rewards Update', initialSubscriptionDate: '2026-08-09 20:15:44', latestSubscriptionTime: '2026-08-14 14:05:18', lastLoginTime: '2026-08-15 21:40:02', subscriptionStatus: '已订阅', notificationMessagesToken: 'NMT_aa11bb22cc33dd44', tokenStatus: '有效', nextEligibleDatetime: '2026-08-16 14:05:18' },
+      { id: 'sub_4', platform: 'messenger', businessAccount: 'Rewards Messenger', facebookPage: 'VIP Club', loginName: 'carlo.lim', imUserId: 'ms_100861004', subscriptionType: 'VIP Offer', initialSubscriptionDate: '2026-07-20 10:00:00', latestSubscriptionTime: '2026-08-11 09:00:00', lastLoginTime: '2026-08-16 10:18:55', subscriptionStatus: '取消订阅', notificationMessagesToken: 'NMT_dead0000beef1111', tokenStatus: '已退订', nextEligibleDatetime: '-' },
+      { id: 'sub_5', platform: 'messenger', businessAccount: 'Promo Messenger', facebookPage: 'Promo Page', loginName: 'lisa.go', imUserId: 'ms_100861005', subscriptionType: 'Flash Sale', initialSubscriptionDate: '2026-08-13 08:40:21', latestSubscriptionTime: '2026-08-13 08:40:21', lastLoginTime: '2026-08-13 19:22:10', subscriptionStatus: '已订阅', notificationMessagesToken: 'NMT_expired99887766', tokenStatus: '已过期', nextEligibleDatetime: '2026-08-20 08:40:21' },
+      { id: 'sub_6', platform: 'messenger', businessAccount: 'BingoPlus Messenger', facebookPage: 'BingoPlus Official', loginName: 'pedro.cruz', imUserId: 'ms_100861006', subscriptionType: 'Weekly Promo', initialSubscriptionDate: '2026-08-16 07:05:00', latestSubscriptionTime: '2026-08-16 07:05:00', lastLoginTime: '2026-08-16 07:08:12', subscriptionStatus: '未订阅', notificationMessagesToken: 'NMT_invalid12345678', tokenStatus: '无效', nextEligibleDatetime: '-' },
+      { id: 'sub_7', platform: 'viber', businessAccount: 'BingoPlus Viber', facebookPage: '', loginName: 'rosa.tan', imUserId: 'vb_200771001', subscriptionType: 'Service Notice', initialSubscriptionDate: '2026-08-11 16:22:09', latestSubscriptionTime: '2026-08-15 09:11:32', lastLoginTime: '2026-08-16 09:00:01', subscriptionStatus: '已订阅', notificationMessagesToken: '', tokenStatus: '', nextEligibleDatetime: '-' },
+      { id: 'sub_8', platform: 'viber', businessAccount: 'Rewards Viber', facebookPage: '', loginName: 'mark.sy', imUserId: 'vb_200771002', subscriptionType: 'Promo Blast', initialSubscriptionDate: '2026-08-14 13:18:40', latestSubscriptionTime: '2026-08-14 13:18:40', lastLoginTime: '2026-08-15 18:33:27', subscriptionStatus: '已订阅', notificationMessagesToken: '', tokenStatus: '', nextEligibleDatetime: '-' },
+      { id: 'sub_9', platform: 'viber', businessAccount: 'BingoPlus Viber', facebookPage: '', loginName: 'ivy.chua', imUserId: 'vb_200771003', subscriptionType: 'Service Notice', initialSubscriptionDate: '2026-07-02 10:10:10', latestSubscriptionTime: '2026-07-30 10:10:10', lastLoginTime: '2026-08-01 10:10:10', subscriptionStatus: '取消订阅', notificationMessagesToken: '', tokenStatus: '', nextEligibleDatetime: '-' },
+      { id: 'sub_10', platform: 'messenger', businessAccount: 'BingoPlus Messenger', facebookPage: 'BingoPlus Official', loginName: 'nina.bautista', imUserId: 'ms_100861010', subscriptionType: 'Jackpot Alert', initialSubscriptionDate: '2026-08-15 22:01:19', latestSubscriptionTime: '2026-08-15 22:01:19', lastLoginTime: '2026-08-16 13:45:00', subscriptionStatus: '已订阅', notificationMessagesToken: 'NMT_cafebabe00112233', tokenStatus: '有效', nextEligibleDatetime: '2026-08-16 22:01:19' },
+      { id: 'sub_11', platform: 'messenger', businessAccount: 'Rewards Messenger', facebookPage: 'Rewards Page', loginName: 'owen.dy', imUserId: 'ms_100861011', subscriptionType: 'Rewards Update', initialSubscriptionDate: '2026-08-10 06:06:06', latestSubscriptionTime: '2026-08-16 06:30:00', lastLoginTime: '2026-08-16 11:11:11', subscriptionStatus: '已订阅', notificationMessagesToken: 'NMT_feedface44556677', tokenStatus: '有效', nextEligibleDatetime: '2026-08-17 06:30:00' },
+      { id: 'sub_12', platform: 'messenger', businessAccount: 'Promo Messenger', facebookPage: 'Promo Page', loginName: 'kate.ong', imUserId: 'ms_100861012', subscriptionType: 'Flash Sale', initialSubscriptionDate: '2026-08-12 19:19:19', latestSubscriptionTime: '2026-08-16 01:02:03', lastLoginTime: '2026-08-16 14:20:00', subscriptionStatus: '已订阅', notificationMessagesToken: 'NMT_0ff1ce9988776655', tokenStatus: '有效', nextEligibleDatetime: '2026-08-17 01:02:03' },
+      { id: 'sub_13', platform: 'messenger', businessAccount: 'BingoPlus Messenger', facebookPage: 'BingoPlus Support', loginName: 'ryan.flores', imUserId: 'ms_100861013', subscriptionType: 'Weekly Promo', initialSubscriptionDate: '2026-08-11 15:27:40', latestSubscriptionTime: '2026-08-16 15:27:40', lastLoginTime: '2026-08-16 16:01:08', subscriptionStatus: '已订阅', notificationMessagesToken: 'NMT_aabbccddeeff0011', tokenStatus: '有效', nextEligibleDatetime: '2026-08-17 15:27:40' },
+      { id: 'sub_14', platform: 'viber', businessAccount: 'BingoPlus Viber', facebookPage: '', loginName: 'sara.yu', imUserId: 'vb_200771004', subscriptionType: 'Service Notice', initialSubscriptionDate: '2026-08-13 11:11:11', latestSubscriptionTime: '2026-08-16 09:09:09', lastLoginTime: '2026-08-16 12:12:12', subscriptionStatus: '已订阅', notificationMessagesToken: '', tokenStatus: '', nextEligibleDatetime: '-' },
+      { id: 'sub_15', platform: 'messenger', businessAccount: 'BingoPlus Messenger', facebookPage: 'BingoPlus Official', loginName: 'maria.santos', imUserId: 'ms_100861001', subscriptionType: 'Jackpot Alert', initialSubscriptionDate: '2026-08-11 10:08:22', latestSubscriptionTime: '2026-08-16 10:08:22', lastLoginTime: '2026-08-16 08:11:09', subscriptionStatus: '已订阅', notificationMessagesToken: 'NMT_maria_jackpot01', tokenStatus: '有效', nextEligibleDatetime: '2026-08-17 10:08:22' },
+      { id: 'sub_16', platform: 'messenger', businessAccount: 'BingoPlus Messenger', facebookPage: 'BingoPlus Support', loginName: 'juan.dela', imUserId: 'ms_100861002', subscriptionType: 'Weekly Promo', initialSubscriptionDate: '2026-08-13 08:00:00', latestSubscriptionTime: '2026-08-13 08:00:00', lastLoginTime: '2026-08-16 12:04:33', subscriptionStatus: '已订阅', notificationMessagesToken: 'NMT_juan_weekly002', tokenStatus: '有效', nextEligibleDatetime: '2026-08-14 08:00:00' },
+      { id: 'sub_17', platform: 'messenger', businessAccount: 'Rewards Messenger', facebookPage: 'VIP Club', loginName: 'anna.reyes', imUserId: 'ms_100861003', subscriptionType: 'VIP Offer', initialSubscriptionDate: '2026-08-10 12:00:00', latestSubscriptionTime: '2026-08-12 09:30:00', lastLoginTime: '2026-08-15 21:40:02', subscriptionStatus: '取消订阅', notificationMessagesToken: 'NMT_anna_vip_unsub', tokenStatus: '已退订', nextEligibleDatetime: '-' },
+      { id: 'sub_18', platform: 'messenger', businessAccount: 'BingoPlus Messenger', facebookPage: 'BingoPlus Official', loginName: 'pedro.cruz', imUserId: 'ms_100861006', subscriptionType: 'Jackpot Alert', initialSubscriptionDate: '2026-08-16 07:20:00', latestSubscriptionTime: '2026-08-16 07:20:00', lastLoginTime: '2026-08-16 07:08:12', subscriptionStatus: '已订阅', notificationMessagesToken: 'NMT_pedro_jackpot1', tokenStatus: '有效', nextEligibleDatetime: '2026-08-17 07:20:00' },
+      { id: 'sub_19', platform: 'viber', businessAccount: 'BingoPlus Viber', facebookPage: '', loginName: 'rosa.tan', imUserId: 'vb_200771001', subscriptionType: 'Promo Blast', initialSubscriptionDate: '2026-08-12 18:00:00', latestSubscriptionTime: '2026-08-15 18:00:00', lastLoginTime: '2026-08-16 09:00:01', subscriptionStatus: '已订阅', notificationMessagesToken: '', tokenStatus: '', nextEligibleDatetime: '-' },
+      { id: 'sub_20', platform: 'messenger', businessAccount: 'BingoPlus Messenger', facebookPage: 'BingoPlus Official', loginName: 'nina.bautista', imUserId: 'ms_100861010', subscriptionType: 'Weekly Promo', initialSubscriptionDate: '2026-08-14 21:00:00', latestSubscriptionTime: '2026-08-16 12:00:00', lastLoginTime: '2026-08-16 13:45:00', subscriptionStatus: '已订阅', notificationMessagesToken: 'NMT_nina_weekly010', tokenStatus: '有效', nextEligibleDatetime: '2026-08-17 12:00:00' }
+    ],
+    subscriptionGroups: [
+      { id: 'sg_1', platform: 'messenger', businessAccount: 'BingoPlus Messenger', facebookPage: 'BingoPlus Official', groupName: 'VIP 高价值用户组', memberCount: 1280, pushableCount: 448, source: 'VIP', createdAt: '2026-08-10 09:30:00' },
+      { id: 'sg_2', platform: 'messenger', businessAccount: 'BingoPlus Messenger', facebookPage: 'BingoPlus Support', groupName: '八月新注册用户组', memberCount: 2140, pushableCount: 749, source: 'New User', createdAt: '2026-08-11 14:05:20' },
+      { id: 'sg_3', platform: 'messenger', businessAccount: 'Rewards Messenger', facebookPage: 'Rewards Page', groupName: '积分活跃用户组', memberCount: 860, pushableCount: 301, source: 'High Value', createdAt: '2026-08-12 10:18:44' },
+      { id: 'sg_4', platform: 'messenger', businessAccount: 'Rewards Messenger', facebookPage: 'VIP Club', groupName: 'VIP 周末召回组', memberCount: 540, pushableCount: 189, source: 'Inactive 7d', createdAt: '2026-08-13 16:40:00' },
+      { id: 'sg_5', platform: 'messenger', businessAccount: 'Promo Messenger', facebookPage: 'Promo Page', groupName: '闪购名单导入组', memberCount: 1460, pushableCount: 511, source: 'flash_sale_users.csv', createdAt: '2026-08-14 08:22:10' },
+      { id: 'sg_6', platform: 'messenger', businessAccount: 'BingoPlus Messenger', facebookPage: 'BingoPlus Official', groupName: '存款用户组', memberCount: 970, pushableCount: 339, source: 'Deposit', createdAt: '2026-08-15 11:11:11' },
+      { id: 'sg_7', platform: 'viber', businessAccount: 'BingoPlus Viber', facebookPage: '', groupName: 'Viber 服务通知组', memberCount: 1500, pushableCount: 525, source: 'viber_service_list.csv', createdAt: '2026-08-15 19:02:33' },
+      { id: 'sg_8', platform: 'viber', businessAccount: 'Rewards Viber', facebookPage: '', groupName: 'Viber 促销订阅组', memberCount: 800, pushableCount: 280, source: 'High Value', createdAt: '2026-08-16 09:45:00' }
+    ],
+    subscriptionMessages: [
+      { id: 'sm_1', platform: 'messenger', businessAccount: 'BingoPlus Messenger', facebookPage: 'BingoPlus Official', subscriptionType: 'Weekly Promo', taskName: '八月周促订阅邀请', targetUsers: 2140, subscribedUsers: 470, sendingTimeType: '立即', sendingTime: '2026-08-15 10:00:00', status: '成功', messageTitle: '订阅 Weekly Promo', messageContent: '第一时间获取每周优惠与活动提醒。', image: '', button: 'GET_UPDATES', protosTags: 'New User', uploadFileName: '', failReason: '' },
+      { id: 'sm_2', platform: 'messenger', businessAccount: 'BingoPlus Messenger', facebookPage: 'BingoPlus Support', subscriptionType: 'Jackpot Alert', taskName: '头奖提醒订阅', targetUsers: 1280, subscribedUsers: 281, sendingTimeType: '定时', sendingTime: '2026-08-18 09:00:00', status: '待发送', messageTitle: '订阅 Jackpot Alert', messageContent: '大奖开出时立即通知你。', image: '', button: 'OPT_IN', protosTags: 'VIP', uploadFileName: '', failReason: '' },
+      { id: 'sm_3', platform: 'messenger', businessAccount: 'Rewards Messenger', facebookPage: 'Rewards Page', subscriptionType: 'Rewards Update', taskName: '积分到账提醒订阅', targetUsers: 860, subscribedUsers: 189, sendingTimeType: '立即', sendingTime: '2026-08-14 16:20:11', status: '失败', messageTitle: '订阅 Rewards Update', messageContent: '积分与奖励更新不错过。', image: '', button: 'GET_UPDATES', protosTags: 'High Value', uploadFileName: '', failReason: '供应商拒绝：Page 未完成 Marketing Message 权限校验' },
+      { id: 'sm_4', platform: 'messenger', businessAccount: 'Promo Messenger', facebookPage: 'Promo Page', subscriptionType: 'Flash Sale', taskName: '闪购订阅预热', targetUsers: 970, subscribedUsers: 213, sendingTimeType: '立即', sendingTime: '2026-08-16 09:30:00', status: '发送中', messageTitle: '订阅 Flash Sale', messageContent: '限时折扣开始前通知你。', image: '', button: 'OPT_IN', protosTags: '', uploadFileName: 'flash_sale_users.csv', failReason: '' },
+      { id: 'sm_5', platform: 'messenger', businessAccount: 'Rewards Messenger', facebookPage: 'VIP Club', subscriptionType: 'VIP Offer', taskName: '历史VIP订阅（类型已关闭）', targetUsers: 540, subscribedUsers: 118, sendingTimeType: '立即', sendingTime: '2026-07-22 12:00:00', status: '成功', messageTitle: '订阅 VIP Offer', messageContent: '专属优惠通道。', image: '', button: 'GET_UPDATES', protosTags: 'VIP', uploadFileName: '', failReason: '' }
+    ],
+    campaigns: [
+      { id: 'cp_1', campaignName: 'August Retention', campaignId: '120398847261', businessAccount: 'BingoPlus Messenger', pageId: 'page_bp_official', adAccountId: 'ad_bp', budgetType: '每日预算', dailyBudget: 500000, lifetimeBudget: 0, status: '开启', createdAt: '2026-08-01 10:00:00', updatedAt: '2026-08-10 11:20:00' },
+      { id: 'cp_2', campaignName: 'Rewards Reactivation', campaignId: '120398847262', businessAccount: 'Rewards Messenger', pageId: 'page_rewards', adAccountId: 'ad_rewards', budgetType: '生命周期预算', dailyBudget: 0, lifetimeBudget: 2500000, status: '草稿', createdAt: '2026-08-05 14:12:00', updatedAt: '2026-08-05 14:12:00' },
+      { id: 'cp_3', campaignName: 'Promo Flash', campaignId: '120398847263', businessAccount: 'Promo Messenger', pageId: 'page_promo', adAccountId: 'ad_promo', budgetType: '每日预算', dailyBudget: 120000, lifetimeBudget: 0, status: '预算耗尽', createdAt: '2026-07-18 09:00:00', updatedAt: '2026-08-12 23:59:00' },
+      { id: 'cp_4', campaignName: 'VIP Weekend', campaignId: '120398847264', businessAccount: 'Rewards Messenger', pageId: 'page_vip', adAccountId: 'ad_rewards', budgetType: '每日预算', dailyBudget: 80000, lifetimeBudget: 0, status: '关闭', createdAt: '2026-08-08 08:08:08', updatedAt: '2026-08-14 18:00:00' },
+      { id: 'cp_5', campaignName: 'Support Reconnect', campaignId: '120398847265', businessAccount: 'BingoPlus Messenger', pageId: 'page_bp_support', adAccountId: 'ad_bp', budgetType: '生命周期预算', dailyBudget: 0, lifetimeBudget: 900000, status: '失败', createdAt: '2026-08-09 13:13:13', updatedAt: '2026-08-09 13:40:00' }
+    ],
+    bizMessages: [
+      { id: 'bm_1', campaign: 'August Retention', campaignId: '120398847261', platform: 'messenger', businessAccount: 'BingoPlus Messenger', taskName: '八月留存营销图文', messageType: 'Image', targetUsers: 980, sendingTime: '2026-08-15 11:00:00', status: '成功' },
+      { id: 'bm_2', campaign: 'August Retention', campaignId: '120398847261', platform: 'messenger', businessAccount: 'BingoPlus Messenger', taskName: '存款提醒按钮消息', messageType: 'Button', targetUsers: 640, sendingTime: '2026-08-16 10:30:00', status: '发送中' },
+      { id: 'bm_3', campaign: 'Rewards Reactivation', campaignId: '120398847262', platform: 'messenger', businessAccount: 'Rewards Messenger', taskName: '积分文本召回', messageType: 'Text', targetUsers: 720, sendingTime: '2026-08-18 09:00:00', status: '待发送' },
+      { id: 'bm_4', campaign: 'Promo Flash', campaignId: '120398847263', platform: 'messenger', businessAccount: 'Promo Messenger', taskName: '闪购按钮触达', messageType: 'Button', targetUsers: 430, sendingTime: '2026-08-12 20:00:00', status: '失败' },
+      { id: 'bm_5', campaign: 'VIP Weekend', campaignId: '120398847264', platform: 'messenger', businessAccount: 'Rewards Messenger', taskName: 'VIP 周末配图', messageType: 'Image', targetUsers: 210, sendingTime: '2026-08-14 19:00:00', status: '成功' },
+      { id: 'bm_6', campaign: '-', campaignId: '', platform: 'viber', businessAccount: 'BingoPlus Viber', taskName: 'Viber 服务通知', messageType: 'Text', targetUsers: 1500, sendingTime: '2026-08-15 08:00:00', status: '成功' },
+      { id: 'bm_7', campaign: '-', campaignId: '', platform: 'viber', businessAccount: 'Rewards Viber', taskName: 'Viber 活动图', messageType: 'Image', targetUsers: 800, sendingTime: '2026-08-16 12:00:00', status: '发送中' },
+      { id: 'bm_8', campaign: '-', campaignId: '', platform: 'viber', businessAccount: 'BingoPlus Viber', taskName: 'Viber 按钮引导', messageType: 'Button', targetUsers: 600, sendingTime: '2026-08-17 10:00:00', status: '待发送' },
+      { id: 'bm_9', campaign: 'Support Reconnect', campaignId: '120398847265', platform: 'messenger', businessAccount: 'BingoPlus Messenger', taskName: '客服回访文本', messageType: 'Text', targetUsers: 300, sendingTime: '2026-08-09 15:00:00', status: '失败' },
+      { id: 'bm_10', campaign: 'August Retention', campaignId: '120398847261', platform: 'messenger', businessAccount: 'BingoPlus Messenger', taskName: '晚间促销文本', messageType: 'Text', targetUsers: 1100, sendingTime: '2026-08-16 20:00:00', status: '待发送' },
+      { id: 'bm_11', campaign: 'Promo Flash', campaignId: '120398847263', platform: 'messenger', businessAccount: 'Promo Messenger', taskName: '库存提醒图', messageType: 'Image', targetUsers: 360, sendingTime: '2026-08-13 18:18:18', status: '成功' },
+      { id: 'bm_12', campaign: 'VIP Weekend', campaignId: '120398847264', platform: 'messenger', businessAccount: 'Rewards Messenger', taskName: '专属礼包按钮', messageType: 'Button', targetUsers: 180, sendingTime: '2026-08-15 21:00:00', status: '成功' }
+    ]
+  };
+
+  let store = loadStore();
+  let idSeq = 400;
+
+  const state = {
+    route: 'account',
+    subTab: 'users',
+    loading: false,
+    tables: {},
+    filters: {},
+    modal: null,
+    createForm: emptyCreateForm(),
+    testing: false
+  };
+
+  function emptyCreateForm() {
+    return {
+      platform: 'messenger',
+      businessAccount: '',
+      facebookPage: '',
+      subscriptionType: '',
+      taskName: '',
+      uploadFileName: '',
+      uploadCount: 0,
+      protosTags: '',
+      messageTitle: '',
+      messageContent: '',
+      image: '',
+      button: 'GET_UPDATES',
+      sendingTimeType: '立即',
+      scheduledAt: toInputDt(new Date(Date.now() + 3600000)),
+      errors: {}
+    };
+  }
+
+  function loadStore() {
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.accounts) {
+          Object.keys(SEED).forEach(key => {
+            if (!Array.isArray(parsed[key])) parsed[key] = JSON.parse(JSON.stringify(SEED[key]));
+          });
+          parsed.subscriptionTypes.forEach(t => {
+            if (t.facebookPage != null) return;
+            const seeded = SEED.subscriptionTypes.find(s => s.id === t.id);
+            const acc = parsed.accounts.find(a => a.businessAccount === t.businessAccount);
+            const firstPage = acc && (acc.facebookPageIds || [])[0];
+            t.facebookPage = seeded ? seeded.facebookPage : (firstPage ? pageName(firstPage) : '');
+          });
+          return parsed;
+        }
+      }
+    } catch (e) { /* ignore */ }
+    return JSON.parse(JSON.stringify(SEED));
+  }
+  function saveStore() {
+    localStorage.setItem(LS_KEY, JSON.stringify(store));
+  }
+
+  function esc(s) {
+    return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+  function toast(msg, type) {
+    const root = document.getElementById('toast-root');
+    const el = document.createElement('div');
+    el.className = 'toast' + (type === 'ok' ? ' ok' : type === 'err' ? ' err' : '');
+    el.textContent = msg;
+    root.appendChild(el);
+    setTimeout(() => el.remove(), 2800);
+  }
+  function nextId(prefix) {
+    idSeq += 1;
+    return prefix + '_' + idSeq;
+  }
+  function maskSecret(v) {
+    const s = String(v || '');
+    if (!s) return '-';
+    if (s.length <= 8) return s.slice(0, 2) + '****';
+    return s.slice(0, 4) + '****' + s.slice(-4);
+  }
+  function pageName(id) {
+    const p = CATALOG.pages.find(x => x.id === id);
+    return p ? p.name : id || '-';
+  }
+  function adName(id) {
+    const a = CATALOG.adAccounts.find(x => x.id === id);
+    return a ? a.name : id || '-';
+  }
+  function platformLabel(v) {
+    if (v === 'messenger') return 'Messenger';
+    if (v === 'viber') return 'Viber';
+    return v || '-';
+  }
+  function statusTag(status) {
+    const map = {
+      '待发送': 'pending', Pending: 'pending',
+      '发送中': 'sending', Sending: 'sending',
+      '成功': 'success', Success: 'success',
+      '失败': 'failed', Failed: 'failed',
+      '开启': 'success', '关闭': 'off', '草稿': 'pending',
+      '预算耗尽': 'warn', '已删除': 'off',
+      '已订阅': 'success', '未订阅': 'pending', '取消订阅': 'failed',
+      '有效': 'success', '已过期': 'warn', '无效': 'failed', '已退订': 'off'
+    };
+    const cls = map[status] || 'pending';
+    return '<span class="tag ' + cls + '">' + esc(status || '-') + '</span>';
+  }
+  function optList(list, value, placeholder) {
+    const ph = placeholder ? '<option value="">' + esc(placeholder) + '</option>' : '';
+    return ph + list.map(it => {
+      const v = typeof it === 'string' ? it : it.value;
+      const l = typeof it === 'string' ? it : it.label;
+      return '<option value="' + esc(v) + '"' + (String(v) === String(value) ? ' selected' : '') + '>' + esc(l) + '</option>';
+    }).join('');
+  }
+  function messengerAccounts() {
+    return store.accounts.filter(a => a.platform === 'messenger');
+  }
+  function allBusinessAccounts() {
+    const set = new Set(store.accounts.map(a => a.businessAccount).concat(store.viberAccounts || []));
+    return Array.from(set);
+  }
+  function pagesOfAccount(ba) {
+    const acc = store.accounts.find(a => a.businessAccount === ba);
+    if (!acc) return [];
+    return (acc.facebookPageIds || []).map(id => ({ id, name: pageName(id) }));
+  }
+  function adsForPages(pageIds) {
+    const ids = new Set();
+    (pageIds || []).forEach(pid => {
+      const p = CATALOG.pages.find(x => x.id === pid);
+      (p && p.adAccountIds || []).forEach(id => ids.add(id));
+    });
+    return CATALOG.adAccounts.filter(a => ids.has(a.id));
+  }
+  function pageMatchesAd(pageId, adAccountId) {
+    const p = CATALOG.pages.find(x => x.id === pageId);
+    return !!(p && p.adAccountIds.includes(adAccountId));
+  }
+  function openTypes(ba) {
+    return store.subscriptionTypes.filter(t => t.businessAccount === ba && t.status === '开启');
+  }
+  function inRange(val, from, to) {
+    if (!from && !to) return true;
+    const d = parseDt(val);
+    if (!d) return false;
+    if (from && d < parseDt(from)) return false;
+    if (to && d > parseDt(to)) return false;
+    return true;
+  }
+  function sortRows(rows, key, dir) {
+    if (!key) return rows;
+    const m = dir === 'asc' ? 1 : -1;
+    return rows.slice().sort((a, b) => {
+      const va = a[key] == null ? '' : a[key];
+      const vb = b[key] == null ? '' : b[key];
+      if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * m;
+      return String(va).localeCompare(String(vb), 'zh') * m;
+    });
+  }
+  function paginate(rows, page) {
+    const total = rows.length;
+    const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    const p = Math.min(Math.max(1, page || 1), pages);
+    const start = (p - 1) * PAGE_SIZE;
+    return { rows: rows.slice(start, start + PAGE_SIZE), total, pages, page: p };
+  }
+  function tableState(route) {
+    if (!state.tables[route]) state.tables[route] = { page: 1, sortKey: '', sortDir: 'desc' };
+    return state.tables[route];
+  }
+  function th(label, key, ts, extraClass) {
+    const sorted = ts.sortKey === key;
+    const arrow = sorted ? (ts.sortDir === 'asc' ? '▲' : '▼') : '↕';
+    return '<th class="' + (sorted ? 'sorted ' : '') + (extraClass || '') + '" data-act="sort" data-key="' + esc(key) + '">' +
+      esc(label) + '<span class="arrow">' + arrow + '</span></th>';
+  }
+  function pager(pg) {
+    if (!pg.total) return '';
+    let btns = '';
+    const from = Math.max(1, pg.page - 2);
+    const to = Math.min(pg.pages, pg.page + 2);
+    btns += '<button class="pg-btn" data-act="page" data-page="' + (pg.page - 1) + '" ' + (pg.page <= 1 ? 'disabled' : '') + '>‹</button>';
+    for (let i = from; i <= to; i++) {
+      btns += '<button class="pg-btn' + (i === pg.page ? ' active' : '') + '" data-act="page" data-page="' + i + '">' + i + '</button>';
+    }
+    btns += '<button class="pg-btn" data-act="page" data-page="' + (pg.page + 1) + '" ' + (pg.page >= pg.pages ? 'disabled' : '') + '>›</button>';
+    return '<div class="pagination"><span class="page-total">共 ' + pg.total + ' 条</span>' + btns + '</div>';
+  }
+  function loadingHtml() {
+    return '<div class="loading"><span class="spinner"></span>加载中…</div>';
+  }
+  function emptyHtml(text) {
+    return '<div class="empty">' + esc(text || '暂无数据') + '</div>';
+  }
+  function crumbHtml(route) {
+    const r = ROUTES[route];
+    const parts = (r.crumbs || []).map((c, i, arr) => i === arr.length - 1 ? '<span class="cur">' + esc(c) + '</span>' : esc(c));
+    return '<div class="breadcrumb">' + parts.join(' / ') + '</div>';
+  }
+  function fieldErr(errors, key) {
+    return errors && errors[key] ? '<div class="field-error">' + esc(errors[key]) + '</div>' : '';
+  }
+  function wrapErr(errors, key, html) {
+    return '<div class="' + (errors && errors[key] ? 'has-error' : '') + '">' + html + fieldErr(errors, key) + '</div>';
+  }
+  function downloadCSV(filename, headers, rows) {
+    const lines = [headers.join(',')].concat(rows.map(r => r.map(v => {
+      const s = String(v == null ? '' : v);
+      if (/[",\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+      return s;
+    }).join(',')));
+    const blob = new Blob(['\ufeff' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+  function targetAudienceName(t) {
+    return t.uploadFileName || t.protosTags || '-';
+  }
+  function subscribedCount(t) {
+    if (typeof t.subscribedUsers === 'number') return t.subscribedUsers;
+    return Math.floor((t.targetUsers || 0) * 0.22);
+  }
+  function withLoading(fn) {
+    state.loading = true;
+    renderPage();
+    setTimeout(() => {
+      state.loading = false;
+      if (typeof fn === 'function') fn();
+      renderPage();
+    }, 280);
+  }
+
+  function renderSidebar() {
+    const r = state.route;
+    const item = (route, label, cls) =>
+      '<div class="' + cls + (r === route ? ' active' : '') + '" data-act="nav" data-route="' + route + '">' + label + '</div>';
+    const host = document.getElementById('sidebar');
+    host.className = 'sidebar' + (host.classList.contains('open') ? ' open' : '');
+    host.innerHTML =
+      '<div class="sb-brand"><i data-lucide="layout-grid"></i>Digiplus</div>' +
+      '<nav class="sb-menu">' +
+        item('account', '<i data-lucide="building-2"></i>Business Account', 'sb-item') +
+        '<div class="menu-group">' +
+          '<div class="sb-item"><i data-lucide="message-square"></i>消息管理<i data-lucide="chevron-down" class="chev"></i></div>' +
+          item('subscription', '订阅管理', 'sub-item') +
+          item('sub-msg-query', '订阅消息', 'sub-item') +
+          item('campaign', '活动管理', 'sub-item') +
+        '</div>' +
+      '</nav>';
+  }
+
+  function navigate(route) {
+    if (!ROUTES[route]) return;
+    state.route = route;
+    state.loading = false;
+    location.hash = route;
+    document.getElementById('sidebar').classList.remove('open');
+    renderAll();
+  }
+
+  function renderAll() {
+    renderSidebar();
+    renderPage();
+    if (window.lucide) lucide.createIcons();
+  }
+
+  function renderPage() {
+    const el = document.getElementById('content');
+    const map = {
+      account: renderAccount,
+      subscription: renderSubscription,
+      'sub-msg-query': renderQuerySubMsg,
+      campaign: renderCampaign
+    };
+    (map[state.route] || renderAccount)(el);
+  }
+
+  function pageChrome(extraBtns) {
+    const r = ROUTES[state.route];
+    return '<div class="stats-header"><div><h1 class="page-title">' + esc(r.title) + '</h1>' +
+      (r.desc ? '<p class="page-desc">' + esc(r.desc) + '</p>' : '') + '</div>' +
+      (extraBtns ? '<div class="stats-header-actions">' + extraBtns + '</div>' : '') + '</div>';
+  }
+  function filterSearchActions() {
+    return '<div class="filter-actions">' +
+      '<button class="btn primary" data-act="search">搜索</button>' +
+      '<button class="btn" data-act="reset">Reset</button>' +
+      '</div>';
+  }
+  function pageTabsHtml(tabs, active) {
+    return '<div class="page-tabs">' + tabs.map(t =>
+      '<div class="page-tab' + (t.key === active ? ' active' : '') + '" data-act="sub-tab" data-tab="' +
+      esc(t.key) + '">' + esc(t.label) + '</div>'
+    ).join('') + '</div>';
+  }
+
+  /* ========== Dashboard / placeholders ========== */
+  function renderDashboard(el) {
+    const accN = store.accounts.length;
+    const subN = store.subscriptions.length;
+    const smN = store.subscriptionMessages.length;
+    const cpN = store.campaigns.filter(c => c.status !== '已删除').length;
+    el.innerHTML = crumbHtml('dashboard') +
+      '<div class="page-head"><div><h1>工作台</h1><div class="sub">Messenger Business Message 通道演示（前端 Mock，不连接 Infobip / Meta）</div></div></div>' +
+      '<div class="stat-grid" style="margin-bottom:16px;">' +
+        statCard(accN, '商业账户') +
+        statCard(subN, '订阅记录') +
+        statCard(smN, '订阅消息任务') +
+        statCard(cpN, '活动') +
+      '</div>' +
+      '<div class="dash-links">' +
+        dashLink('account', 'Messenger 商业账户', '配置 Messenger 商业账户、Page 与 Ad Account') +
+        dashLink('subscription', '订阅管理', '查询 opt-in 用户与订阅状态') +
+        dashLink('subscription-type', '订阅类型管理', '维护订阅类型，关闭后不可新建任务') +
+        dashLink('sub-msg-create', '新建订阅消息', 'Opt-in 任务，成功仅表示供应商已接受请求') +
+        dashLink('sub-msg-query', '订阅消息查询', '查询、取消待发送、重试失败任务') +
+        dashLink('campaign', '活动管理', '营销消息必须关联 Campaign') +
+        dashLink('biz-query', '商务消息查询', 'Viber 与 Messenger Business Message 任务') +
+      '</div>';
+  }
+  function statCard(n, k) {
+    return '<div class="stat-card"><div class="n">' + n + '</div><div class="k">' + esc(k) + '</div></div>';
+  }
+  function dashLink(route, t, d) {
+    return '<button type="button" class="dash-link" data-act="nav" data-route="' + route + '"><div class="t">' + esc(t) + '</div><div class="d">' + esc(d) + '</div></button>';
+  }
+  function renderPlaceholder(el) {
+    const r = ROUTES[state.route];
+    el.innerHTML = pageChrome() +
+      '<div class="empty">当前系统已支持 Messenger Bot、Viber Business Message 和用户管理。<br/>本 Demo 聚焦新增的 Messenger Business Message 通道，' + esc(r.title) + ' 为占位入口。</div>';
+  }
+
+  /* ========== Account ========== */
+  function renderAccount(el) {
+    const ts = tableState('account');
+    const f = ensureFilters('account', { businessAccount: '', status: '' });
+    const btns = '<button class="btn primary" data-act="add">Add</button>';
+    let html = pageChrome(btns) +
+      '<div class="filters">' +
+        filterSelect('商业账户 / Business Account', 'businessAccount', allBaOpts(), f.businessAccount) +
+        filterSelect('Status', 'status', ['开启', '关闭'], f.status, '全部') +
+        filterSearchActions() +
+      '</div>';
+    if (state.loading) { el.innerHTML = html + loadingHtml(); return; }
+    let rows = store.accounts.filter(a => {
+      if (f.businessAccount && a.businessAccount !== f.businessAccount) return false;
+      if (f.status && a.status !== f.status) return false;
+      return true;
+    });
+    rows = sortRows(rows, ts.sortKey || 'createdAt', ts.sortDir);
+    const pg = paginate(rows, ts.page);
+    ts.page = pg.page;
+    html += '<div class="tbl-wrap"><table class="tbl"><thead><tr>' +
+      th('Platform', 'platform', ts) +
+      th('Business Account', 'businessAccount', ts) +
+      '<th class="no-sort">API Key</th><th class="no-sort">API Secret</th>' +
+      th('Status', 'status', ts) +
+      th('Created At', 'createdAt', ts) +
+      '<th class="no-sort col-actions">Actions</th></tr></thead><tbody>';
+    if (!pg.rows.length) html += '<tr><td colspan="7">' + emptyHtml('暂无商业账户') + '</td></tr>';
+    pg.rows.forEach(a => {
+      html += '<tr><td>' + esc(platformLabel(a.platform)) + '</td>' +
+        '<td>' + esc(a.businessAccount) + '</td>' +
+        '<td class="mono">' + esc(maskSecret(a.apiKey)) + '</td>' +
+        '<td class="mono">' + esc(maskSecret(a.apiSecret)) + '</td>' +
+        '<td>' + statusTag(a.status) + '</td>' +
+        '<td>' + esc(a.createdAt) + '</td>' +
+        '<td class="col-actions"><button class="btn sm" data-act="edit" data-id="' + esc(a.id) + '">Edit</button></td></tr>';
+    });
+    html += '</tbody></table></div>' + pager(pg);
+    el.innerHTML = html;
+  }
+  function allBaOpts() {
+    return allBusinessAccounts();
+  }
+  function filterSelect(label, key, options, value, ph) {
+    const opts = (options || []).map(o => typeof o === 'string' ? { value: o, label: o } : o);
+    return '<div class="filter-item"><label>' + esc(label) + '</label><select data-filter="' + esc(key) + '">' +
+      optList(opts, value, ph || '全部') + '</select></div>';
+  }
+  function filterText(label, key, value, maxlength) {
+    return '<div class="filter-item"><label>' + esc(label) + '</label><input type="text" data-filter="' + esc(key) + '" value="' + esc(value || '') + '"' +
+      (maxlength ? ' maxlength="' + maxlength + '"' : '') + ' /></div>';
+  }
+  function filterRange(label, keyFrom, keyTo, from, to) {
+    return '<div class="filter-item wide"><label>' + esc(label) + '</label>' +
+      '<div style="display:flex;gap:6px;align-items:center;">' +
+      '<input type="datetime-local" step="1" data-filter="' + esc(keyFrom) + '" value="' + esc(from || '') + '" />' +
+      '<span style="color:var(--muted);">~</span>' +
+      '<input type="datetime-local" step="1" data-filter="' + esc(keyTo) + '" value="' + esc(to || '') + '" />' +
+      '</div></div>';
+  }
+  function pageDataKey() {
+    return state.route === 'subscription' ? subTabKey() : state.route;
+  }
+  function ensureFilters(route, defaults) {
+    if (!state.filters[route]) state.filters[route] = Object.assign({}, defaults);
+    return state.filters[route];
+  }
+  function readFilters(route) {
+    const f = state.filters[route] || (state.filters[route] = {});
+    document.querySelectorAll('#content [data-filter]').forEach(el => {
+      f[el.getAttribute('data-filter')] = el.value;
+    });
+    return f;
+  }
+
+  function openAccountModal(id) {
+    const acc = id ? store.accounts.find(a => a.id === id) : null;
+    state.modal = {
+      type: 'account',
+      id: id || null,
+      form: acc ? {
+        platform: acc.platform,
+        businessAccount: acc.businessAccount,
+        apiKey: '',
+        apiSecret: '',
+        facebookPageIds: (acc.facebookPageIds || []).slice(),
+        adAccountId: acc.adAccountId,
+        status: acc.status,
+        keepKey: true
+      } : {
+        platform: 'messenger',
+        businessAccount: '',
+        apiKey: '',
+        apiSecret: '',
+        facebookPageIds: [],
+        adAccountId: '',
+        status: '开启',
+        keepKey: false
+      },
+      errors: {}
+    };
+    renderModal();
+  }
+
+  function accountModalBody() {
+    const m = state.modal;
+    const f = m.form;
+    const ads = adsForPages(f.facebookPageIds);
+    if (f.adAccountId && !ads.some(a => a.id === f.adAccountId)) f.adAccountId = '';
+    const showExtra = f.platform === 'messenger';
+    let pagesHtml = CATALOG.pages.map(p => {
+      const ck = f.facebookPageIds.includes(p.id) ? ' checked' : '';
+      return '<label class="chk-item"><input type="checkbox" data-modal-field="facebookPageIds" value="' + esc(p.id) + '"' + ck + ' />' + esc(p.name) + '</label>';
+    }).join('');
+    return '<div class="form-row"><label>Platform<span class="req">*</span></label>' +
+      wrapErr(m.errors, 'platform', '<select data-modal-field="platform" disabled><option value="messenger" selected>Messenger</option></select>') +
+      '<div class="field-hint">枚举值 messenger，固定为 Messenger</div></div>' +
+      '<div class="form-row"><label>Business Account<span class="req">*</span></label>' +
+      wrapErr(m.errors, 'businessAccount', '<input type="text" data-modal-field="businessAccount" maxlength="100" placeholder="请输入或选择商业账户" value="' + esc(f.businessAccount) + '" list="ba-suggest" />') +
+      '<datalist id="ba-suggest">' + messengerAccounts().map(a => '<option value="' + esc(a.businessAccount) + '"></option>').join('') + '</datalist></div>' +
+      '<div class="form-grid"><div class="form-row"><label>API Key<span class="req">*</span></label>' +
+      wrapErr(m.errors, 'apiKey', '<input type="password" data-modal-field="apiKey" placeholder="' + (m.id ? '留空则保留原值（已脱敏）' : '请输入 API Key') + '" value="' + esc(f.apiKey) + '" autocomplete="off" />') +
+      '</div><div class="form-row"><label>API Secret<span class="req">*</span></label>' +
+      wrapErr(m.errors, 'apiSecret', '<input type="password" data-modal-field="apiSecret" placeholder="' + (m.id ? '留空则保留原值（已脱敏）' : '请输入 API Secret') + '" value="' + esc(f.apiSecret) + '" autocomplete="off" />') +
+      '</div></div>' +
+      (showExtra ? (
+        '<div class="form-row"><label>Facebook Page<span class="req">*</span></label>' +
+        wrapErr(m.errors, 'facebookPageIds', '<div class="chk-list">' + pagesHtml + '</div>') +
+        '<div class="field-hint">选择 Page 后，Ad Account 将按联动关系筛选</div></div>' +
+        '<div class="form-row"><label>Ad Account<span class="req">*</span></label>' +
+        wrapErr(m.errors, 'adAccountId', '<select data-modal-field="adAccountId">' +
+          optList(ads.map(a => ({ value: a.id, label: a.name })), f.adAccountId, ads.length ? '请选择 Ad Account' : '请先选择 Facebook Page') +
+          '</select>') + '</div>'
+      ) : '') +
+      '<div class="form-row"><label>Status<span class="req">*</span></label><select data-modal-field="status">' +
+      optList(['开启', '关闭'], f.status) + '</select></div>';
+  }
+
+  function saveAccount() {
+    const m = state.modal;
+    const f = m.form;
+    const errors = {};
+    f.platform = 'messenger';
+    if (!f.businessAccount.trim()) errors.businessAccount = '请填写 Business Account';
+    const dup = store.accounts.some(a => a.businessAccount.trim() === f.businessAccount.trim() && a.id !== m.id);
+    if (f.businessAccount.trim() && dup) errors.businessAccount = '该 Business Account 已存在';
+    if (!m.id && !f.apiKey.trim()) errors.apiKey = '请填写 API Key';
+    if (!m.id && !f.apiSecret.trim()) errors.apiSecret = '请填写 API Secret';
+    if (!f.facebookPageIds.length) errors.facebookPageIds = '请至少选择一个 Facebook Page';
+    if (!f.adAccountId) errors.adAccountId = '请选择 Ad Account';
+    if (f.adAccountId && f.facebookPageIds.some(pid => !pageMatchesAd(pid, f.adAccountId))) {
+      errors.adAccountId = 'Ad Account 必须与所选 Facebook Page 匹配';
+    }
+    m.errors = errors;
+    if (Object.keys(errors).length) { renderModal(); return; }
+    if (m.id) {
+      const acc = store.accounts.find(a => a.id === m.id);
+      acc.businessAccount = f.businessAccount.trim();
+      if (f.apiKey.trim()) acc.apiKey = f.apiKey.trim();
+      if (f.apiSecret.trim()) acc.apiSecret = f.apiSecret.trim();
+      acc.facebookPageIds = f.facebookPageIds.slice();
+      acc.adAccountId = f.adAccountId;
+      acc.status = f.status;
+      toast('商业账户已更新', 'ok');
+    } else {
+      store.accounts.unshift({
+        id: nextId('acc'),
+        platform: 'messenger',
+        businessAccount: f.businessAccount.trim(),
+        apiKey: f.apiKey.trim(),
+        apiSecret: f.apiSecret.trim(),
+        facebookPageIds: f.facebookPageIds.slice(),
+        adAccountId: f.adAccountId,
+        status: f.status,
+        createdAt: toDisplayDt(new Date())
+      });
+      toast('商业账户已创建', 'ok');
+    }
+    saveStore();
+    closeModal();
+    renderPage();
+  }
+
+  function testConnection() {
+    const f = state.modal.form;
+    const acc = state.modal.id ? store.accounts.find(a => a.id === state.modal.id) : null;
+    const key = f.apiKey.trim() || (acc && acc.apiKey) || '';
+    const secret = f.apiSecret.trim() || (acc && acc.apiSecret) || '';
+    if (!key || !secret) {
+      toast('请先填写 API Key 和 API Secret', 'err');
+      return;
+    }
+    if (!f.facebookPageIds.length || !f.adAccountId) {
+      toast('请选择 Facebook Page 和 Ad Account 后再测试连接', 'err');
+      return;
+    }
+    state.testing = true;
+    renderModal();
+    setTimeout(() => {
+      state.testing = false;
+      const ok = Math.random() > 0.28;
+      if (ok) toast('连接成功：已模拟校验 Messenger Business Account', 'ok');
+      else toast('连接失败：模拟供应商返回鉴权错误（非真实 API）', 'err');
+      renderModal();
+    }, 900);
+  }
+
+  /* ========== Subscription ========== */
+  function defaultSubFilters() {
+    const r = defaultRange();
+    return {
+      platform: '', businessAccount: '', facebookPage: '', loginName: '', subscriptionType: '',
+      initialFrom: r.from, initialTo: r.to,
+      latestFrom: r.from, latestTo: r.to,
+      loginFrom: r.from, loginTo: r.to,
+      eligibleFrom: '', eligibleTo: ''
+    };
+  }
+  function defaultSubGroupFilters() {
+    return {
+      createdFrom: '', createdTo: '',
+      platform: '', businessAccount: '', facebookPage: '', groupName: ''
+    };
+  }
+  const SUB_TABS = [
+    { key: 'users', label: '订阅用户' },
+    { key: 'groups', label: '订阅用户组' }
+  ];
+  function subTabKey() {
+    return state.subTab === 'groups' ? 'subscription-group' : 'subscription';
+  }
+  function matchSubFilters(s, f) {
+    if (f.platform && s.platform !== f.platform) return false;
+    if (f.businessAccount && s.businessAccount !== f.businessAccount) return false;
+    if (f.facebookPage && !(s.facebookPage || '').toLowerCase().includes(f.facebookPage.toLowerCase())) return false;
+    if (f.loginName && !(s.loginName || '').toLowerCase().includes(f.loginName.toLowerCase())) return false;
+    if (f.subscriptionType && s.subscriptionType !== f.subscriptionType) return false;
+    if (!inRange(s.initialSubscriptionDate, f.initialFrom, f.initialTo)) return false;
+    if (!inRange(s.latestSubscriptionTime, f.latestFrom, f.latestTo)) return false;
+    if (!inRange(s.lastLoginTime, f.loginFrom, f.loginTo)) return false;
+    if (!inRange(s.nextEligibleDatetime, f.eligibleFrom, f.eligibleTo)) return false;
+    return true;
+  }
+  function renderSubscription(el) {
+    if (state.subTab === 'groups') renderSubGroups(el);
+    else renderSubUsers(el);
+  }
+  function renderSubUsers(el) {
+    const ts = tableState('subscription');
+    const f = ensureFilters('subscription', defaultSubFilters());
+    const types = Array.from(new Set(store.subscriptionTypes.map(t => t.subscriptionType).concat(
+      store.subscriptions.map(s => s.subscriptionType)
+    )));
+    const btns = '<button class="btn" data-act="export">Export</button>';
+    let html = pageChrome(btns) + pageTabsHtml(SUB_TABS, state.subTab) + '<div class="filters">' +
+      filterSelect('平台 / Platform', 'platform', [{ value: 'viber', label: 'viber' }, { value: 'messenger', label: 'messenger' }], f.platform) +
+      filterSelect('商业账户 / Business Account', 'businessAccount', allBaOpts(), f.businessAccount) +
+      filterText('Facebook Page / Facebook Page', 'facebookPage', f.facebookPage, 200) +
+      filterText('用户 / Login Name', 'loginName', f.loginName, 200) +
+      filterSelect('订阅类型 / Subscription Type', 'subscriptionType', types, f.subscriptionType) +
+      filterRange('首次订阅时间 / Initial subscription date', 'initialFrom', 'initialTo', f.initialFrom, f.initialTo) +
+      filterRange('最新订阅时间 / Latest subscription time', 'latestFrom', 'latestTo', f.latestFrom, f.latestTo) +
+      filterRange('最后登录时间 / Last login time', 'loginFrom', 'loginTo', f.loginFrom, f.loginTo) +
+      filterRange('可推送时间 / Next eligible datetime', 'eligibleFrom', 'eligibleTo', f.eligibleFrom, f.eligibleTo) +
+      filterSearchActions() +
+      '</div>';
+    if (state.loading) { el.innerHTML = html + loadingHtml(); return; }
+    let rows = store.subscriptions.filter(s => matchSubFilters(s, f));
+    rows = sortRows(rows, ts.sortKey || 'latestSubscriptionTime', ts.sortDir);
+    const pg = paginate(rows, ts.page);
+    ts.page = pg.page;
+    html += '<div class="tbl-wrap"><table class="tbl"><thead><tr>' +
+      th('平台 / Platform', 'platform', ts) +
+      th('商业账户 / Business Account', 'businessAccount', ts) +
+      th('Facebook Page / Facebook Page', 'facebookPage', ts) +
+      th('用户 / Login Name', 'loginName', ts) +
+      th('IM用户ID / IM UserId', 'imUserId', ts) +
+      th('订阅类型 / Subscription Type', 'subscriptionType', ts) +
+      th('首次订阅时间 / Initial subscription date', 'initialSubscriptionDate', ts) +
+      th('最新订阅时间 / Latest subscription time', 'latestSubscriptionTime', ts) +
+      th('最新登录时间 / Last login time', 'lastLoginTime', ts) +
+      '<th class="no-sort col-actions">Actions</th></tr></thead><tbody>';
+    if (!pg.rows.length) html += '<tr><td colspan="10">' + emptyHtml('没有符合筛选条件的订阅记录') + '</td></tr>';
+    pg.rows.forEach(s => {
+      html += '<tr><td>' + esc(s.platform) + '</td><td>' + esc(s.businessAccount) + '</td>' +
+        '<td>' + esc(s.facebookPage || '-') + '</td><td>' + esc(s.loginName) + '</td>' +
+        '<td class="mono">' + esc(s.imUserId) + '</td><td>' + esc(s.subscriptionType) + '</td>' +
+        '<td>' + esc(s.initialSubscriptionDate) + '</td><td>' + esc(s.latestSubscriptionTime) + '</td>' +
+        '<td>' + esc(s.lastLoginTime) + '</td>' +
+        '<td class="col-actions"><button class="btn sm" data-act="detail" data-id="' + esc(s.id) + '">Detail</button></td></tr>';
+    });
+    html += '</tbody></table></div>' + pager(pg);
+    el.innerHTML = html;
+  }
+  function exportSubscriptions() {
+    const f = readFilters('subscription');
+    const rows = store.subscriptions.filter(s => matchSubFilters(s, f));
+    downloadCSV('subscription-export.csv', [
+      'Platform', 'Business Account', 'Facebook Page', 'Login Name', 'IM UserId',
+      'Subscription Type', 'Initial subscription date', 'Latest subscription time', 'Last login time',
+      'Next eligible datetime', 'Subscription Status'
+    ], rows.map(s => [
+      s.platform, s.businessAccount, s.facebookPage, s.loginName, s.imUserId,
+      s.subscriptionType, s.initialSubscriptionDate, s.latestSubscriptionTime, s.lastLoginTime,
+      s.nextEligibleDatetime, s.subscriptionStatus
+    ]));
+    toast('已按筛选结果导出 CSV（共 ' + rows.length + ' 条）', 'ok');
+  }
+
+  /* ========== Subscription Group ========== */
+  function renderSubGroups(el) {
+    const ts = tableState('subscription-group');
+    const f = ensureFilters('subscription-group', defaultSubGroupFilters());
+    const btns = '<button class="btn primary" data-act="open-create-group">新建订阅组</button>';
+    let html = pageChrome(btns) + pageTabsHtml(SUB_TABS, state.subTab) + '<div class="filters">' +
+      filterRange('创建时间 / Created At', 'createdFrom', 'createdTo', f.createdFrom, f.createdTo) +
+      filterSelect('平台 / Platform', 'platform', [{ value: 'viber', label: 'viber' }, { value: 'messenger', label: 'messenger' }], f.platform) +
+      filterSelect('商业账号 / Business Account', 'businessAccount', allBaOpts(), f.businessAccount) +
+      filterText('Facebook Page / Facebook Page', 'facebookPage', f.facebookPage, 200) +
+      filterText('订阅组名称 / Group Name', 'groupName', f.groupName, 100) +
+      filterSearchActions() +
+      '</div>';
+    if (state.loading) { el.innerHTML = html + loadingHtml(); return; }
+    let rows = (store.subscriptionGroups || []).filter(g => {
+      if (f.platform && g.platform !== f.platform) return false;
+      if (f.businessAccount && g.businessAccount !== f.businessAccount) return false;
+      if (f.facebookPage && !(g.facebookPage || '').toLowerCase().includes(f.facebookPage.toLowerCase())) return false;
+      if (f.groupName && !(g.groupName || '').toLowerCase().includes(f.groupName.toLowerCase())) return false;
+      if (!inRange(g.createdAt, f.createdFrom, f.createdTo)) return false;
+      return true;
+    });
+    rows = sortRows(rows, ts.sortKey || 'createdAt', ts.sortDir);
+    const pg = paginate(rows, ts.page);
+    ts.page = pg.page;
+    html += '<div class="tbl-wrap"><table class="tbl"><thead><tr>' +
+      th('平台 / Platform', 'platform', ts) +
+      th('商业账号 / Business Account', 'businessAccount', ts) +
+      th('Facebook Page / Facebook Page', 'facebookPage', ts) +
+      th('订阅组名称 / Group Name', 'groupName', ts) +
+      th('订阅组人数 / Members', 'memberCount', ts) +
+      th('可推送数量 / Pushable', 'pushableCount', ts) +
+      th('创建时间 / Created At', 'createdAt', ts) +
+      '</tr></thead><tbody>';
+    if (!pg.rows.length) html += '<tr><td colspan="7">' + emptyHtml('没有符合筛选条件的订阅用户组') + '</td></tr>';
+    pg.rows.forEach(g => {
+      html += '<tr><td>' + esc(g.platform) + '</td><td>' + esc(g.businessAccount) + '</td>' +
+        '<td>' + esc(g.facebookPage || '-') + '</td><td>' + esc(g.groupName) + '</td>' +
+        '<td>' + esc(String(g.memberCount || 0)) + '</td><td>' + esc(String(g.pushableCount || 0)) + '</td>' +
+        '<td>' + esc(g.createdAt) + '</td></tr>';
+    });
+    html += '</tbody></table></div>' + pager(pg);
+    el.innerHTML = html;
+  }
+  function emptySubGroupForm() {
+    const acc = messengerAccounts().find(a => a.status === '开启') || messengerAccounts()[0];
+    const ba = acc ? acc.businessAccount : '';
+    const pages = pagesOfAccount(ba);
+    return {
+      groupName: '',
+      platform: 'messenger',
+      businessAccount: ba,
+      facebookPage: pages[0] ? pages[0].name : '',
+      uploadFileName: '',
+      uploadCount: 0,
+      protosTags: ''
+    };
+  }
+  function openCreateGroupModal() {
+    state.modal = { type: 'sub-group', form: emptySubGroupForm(), errors: {} };
+    renderModal();
+  }
+  function subGroupModalBody() {
+    const m = state.modal;
+    const f = m.form;
+    const accs = f.platform === 'viber'
+      ? (store.viberAccounts || [])
+      : messengerAccounts().map(a => a.businessAccount);
+    const pages = pagesOfAccount(f.businessAccount);
+    const tag = CATALOG.protosTags.find(t => t.name === f.protosTags);
+    return wrapErr(m.errors, 'groupName', '<div class="form-row"><label>订阅组名称 / Group Name<span class="req">*</span></label>' +
+      '<input type="text" data-modal-field="groupName" maxlength="100" placeholder="1–100 个字符" value="' + esc(f.groupName) + '" /></div>') +
+      '<div class="form-grid">' +
+      '<div class="form-row"><label>平台 / Platform<span class="req">*</span></label>' +
+      '<select data-modal-field="platform">' + optList([{ value: 'messenger', label: 'messenger' }, { value: 'viber', label: 'viber' }], f.platform) + '</select></div>' +
+      wrapErr(m.errors, 'businessAccount', '<div class="form-row"><label>商业账号 / Business Account<span class="req">*</span></label>' +
+        '<select data-modal-field="businessAccount">' + optList(accs, f.businessAccount, '请选择商业账号') + '</select></div>') +
+      '</div>' +
+      (f.platform === 'messenger'
+        ? wrapErr(m.errors, 'facebookPage', '<div class="form-row"><label>Facebook Page / Facebook Page<span class="req">*</span></label>' +
+          '<select data-modal-field="facebookPage">' + optList(pages.map(p => p.name), f.facebookPage, pages.length ? '请选择 Facebook Page' : '请先选择商业账号') + '</select></div>')
+        : '<div class="form-row"><label>Facebook Page / Facebook Page</label>' +
+          '<input type="text" value="" placeholder="Viber 渠道无需 Facebook Page" disabled /></div>') +
+      wrapErr(m.errors, 'target', '<div class="form-grid"><div class="form-row"><label>上传 / Upload</label>' +
+        '<input type="file" data-modal-field="upload" accept=".csv,.txt,text/csv" />' +
+        (f.uploadFileName
+          ? '<div class="field-hint">已选择：' + esc(f.uploadFileName) + '（模拟 ' + f.uploadCount + ' 名用户）</div>'
+          : '<div class="field-hint">上传用户名单 CSV，与星灵标签二选一</div>') +
+        '</div><div class="form-row"><label>星灵标签 / Protos Tags</label>' +
+        '<select data-modal-field="protosTags">' + optList(CATALOG.protosTags.map(t => t.name), f.protosTags, '请选择已配置标签') + '</select>' +
+        (tag ? '<div class="field-hint">标签人群：' + tag.count + ' 名用户</div>' : '<div class="field-hint">选择标签后将清空已上传文件</div>') +
+        '</div></div>');
+  }
+  function saveSubGroup() {
+    const m = state.modal;
+    const f = m.form;
+    const errors = {};
+    const name = String(f.groupName || '').trim();
+    if (!name) errors.groupName = '请填写订阅组名称';
+    else if ((store.subscriptionGroups || []).some(g => g.businessAccount === f.businessAccount && g.groupName === name)) {
+      errors.groupName = '同一商业账号下订阅组名称不能重复';
+    }
+    if (!f.businessAccount) errors.businessAccount = '请选择商业账号';
+    if (f.platform === 'messenger' && !f.facebookPage) errors.facebookPage = '请选择 Facebook Page';
+    if (!f.uploadFileName && !f.protosTags) errors.target = '请通过上传或星灵标签选择用户，二者必选其一';
+    if (f.uploadFileName && f.protosTags) errors.target = '上传与星灵标签只能选择一种';
+    m.errors = errors;
+    if (Object.keys(errors).length) { renderModal(); return; }
+    const tag = CATALOG.protosTags.find(t => t.name === f.protosTags);
+    const memberCount = f.uploadCount || (tag ? tag.count : 0);
+    store.subscriptionGroups.unshift({
+      id: nextId('sg'),
+      platform: f.platform,
+      businessAccount: f.businessAccount,
+      facebookPage: f.platform === 'messenger' ? f.facebookPage : '',
+      groupName: name,
+      memberCount: memberCount,
+      pushableCount: Math.floor(memberCount * 0.35),
+      source: f.uploadFileName || f.protosTags,
+      createdAt: toDisplayDt(new Date())
+    });
+    saveStore();
+    closeModal();
+    toast('订阅组已创建', 'ok');
+    tableState('subscription-group').page = 1;
+    renderPage();
+  }
+  function openSubDetail(id) {
+    const s = store.subscriptions.find(x => x.id === id);
+    if (!s) return;
+    const types = store.subscriptions.filter(x =>
+      x.platform === s.platform &&
+      x.businessAccount === s.businessAccount &&
+      x.imUserId === s.imUserId
+    ).slice().sort((a, b) => String(b.latestSubscriptionTime || '').localeCompare(String(a.latestSubscriptionTime || '')));
+    state.modal = { type: 'sub-detail', user: s, types: types };
+    renderModal();
+  }
+
+  /* ========== Subscription Type ========== */
+  function subtypeListHtml() {
+    const ts = tableState('subscription-type');
+    const m = state.modal;
+    const draft = m ? m.draft : null;
+    let rows = sortRows(store.subscriptionTypes, ts.sortKey || 'subscriptionType', ts.sortDir);
+    const pg = paginate(rows, ts.page);
+    ts.page = pg.page;
+    let html = '<div class="hint-bar">关闭后不能新建该类型的订阅消息，但历史订阅记录保留。</div>' +
+      '<div class="tbl-wrap"><table class="tbl"><thead><tr>' +
+      th('Platform / 平台', 'platform', ts) +
+      th('Business Account / 商业账户', 'businessAccount', ts) +
+      th('Facebook Page / Facebook Page', 'facebookPage', ts) +
+      th('Subscription Type / 订阅类型', 'subscriptionType', ts) +
+      th('Status / 状态', 'status', ts) +
+      '<th class="no-sort col-actions">Actions</th></tr></thead><tbody>';
+    if (!pg.rows.length && !draft) html += '<tr><td colspan="6">' + emptyHtml('暂无订阅类型') + '</td></tr>';
+    pg.rows.forEach(t => {
+      const toggle = t.status === '开启' ? '关闭' : '开启';
+      html += '<tr><td>' + esc(t.platform) + '</td><td>' + esc(t.businessAccount) + '</td>' +
+        '<td>' + esc(t.facebookPage || '-') + '</td>' +
+        '<td>' + esc(t.subscriptionType) + '</td><td>' + statusTag(t.status) + '</td>' +
+        '<td class="col-actions"><button class="btn sm" data-act="toggle-type" data-id="' + esc(t.id) + '">' + toggle + '</button></td></tr>';
+    });
+    if (draft) html += subtypeDraftRowHtml(draft, m.errors);
+    html += '</tbody></table></div>' + pager(pg) +
+      '<div class="tbl-add">' +
+      '<button class="btn" data-act="subtype-add"' + (draft ? ' disabled' : '') + '>+ 添加订阅类型</button>' +
+      '</div>';
+    return html;
+  }
+  function subtypeDraftRowHtml(draft, errors) {
+    const accs = messengerAccounts().map(a => a.businessAccount);
+    const pages = pagesOfAccount(draft.businessAccount).map(p => p.name);
+    return '<tr class="draft-row"><td>messenger</td>' +
+      '<td class="' + (errors.businessAccount ? 'has-error' : '') + '">' +
+      '<select data-draft-field="businessAccount">' + optList(accs, draft.businessAccount, '请选择') + '</select>' +
+      fieldErr(errors, 'businessAccount') + '</td>' +
+      '<td class="' + (errors.facebookPage ? 'has-error' : '') + '">' +
+      '<select data-draft-field="facebookPage">' + optList(pages, draft.facebookPage, pages.length ? '请选择' : '请先选择账户') + '</select>' +
+      fieldErr(errors, 'facebookPage') + '</td>' +
+      '<td class="' + (errors.subscriptionType ? 'has-error' : '') + '">' +
+      '<input type="text" data-draft-field="subscriptionType" placeholder="请输入订阅类型" value="' + esc(draft.subscriptionType) + '" />' +
+      fieldErr(errors, 'subscriptionType') + '</td>' +
+      '<td>' + statusTag('开启') + '</td>' +
+      '<td class="col-actions"><button class="btn sm primary" data-act="subtype-save">保存</button>' +
+      '<button class="btn sm" data-act="subtype-cancel">取消</button></td></tr>';
+  }
+  function openSubTypeMgr() {
+    tableState('subscription-type').page = 1;
+    state.modal = { type: 'subtype-mgr', draft: null, errors: {} };
+    renderModal();
+  }
+  function startSubTypeDraft() {
+    const m = state.modal;
+    const acc = messengerAccounts().find(a => a.status === '开启') || messengerAccounts()[0];
+    const ba = acc ? acc.businessAccount : '';
+    const pages = pagesOfAccount(ba);
+    m.draft = { businessAccount: ba, facebookPage: pages[0] ? pages[0].name : '', subscriptionType: '' };
+    m.errors = {};
+    tableState('subscription-type').page = Math.max(1, Math.ceil(store.subscriptionTypes.length / PAGE_SIZE));
+    renderModal();
+  }
+  function saveSubType() {
+    const m = state.modal;
+    const d = m.draft;
+    if (!d) return;
+    const errors = {};
+    const name = String(d.subscriptionType || '').trim();
+    if (!d.businessAccount) errors.businessAccount = '请选择 Business Account';
+    if (!d.facebookPage) errors.facebookPage = '请选择 Facebook Page';
+    if (!name) errors.subscriptionType = '请填写 Subscription Type';
+    else if (store.subscriptionTypes.some(t =>
+      t.businessAccount === d.businessAccount && t.facebookPage === d.facebookPage && t.subscriptionType === name
+    )) {
+      errors.subscriptionType = '同一 Page 下订阅类型名称不能重复';
+    }
+    m.errors = errors;
+    if (Object.keys(errors).length) { renderModal(); return; }
+    store.subscriptionTypes.unshift({
+      id: nextId('st'),
+      platform: 'messenger',
+      businessAccount: d.businessAccount,
+      facebookPage: d.facebookPage,
+      subscriptionType: name,
+      status: '开启'
+    });
+    saveStore();
+    toast('订阅类型已创建', 'ok');
+    m.draft = null;
+    m.errors = {};
+    renderModal();
+  }
+
+  /* ========== Create subscription message ========== */
+  function calcEligibility(form) {
+    const tag = CATALOG.protosTags.find(t => t.name === form.protosTags);
+    const target = form.uploadCount || (tag ? tag.count : 0);
+    const subscribed = Math.floor(target * 0.22);
+    const noInteraction = Math.floor(target * 0.11);
+    const frequency = Math.floor(target * 0.07);
+    const noMessengerId = Math.floor(target * 0.05);
+    const eligible = Math.max(0, target - subscribed - noInteraction - frequency - noMessengerId);
+    return { target, eligible, subscribed, noInteraction, frequency, noMessengerId };
+  }
+  function createFormHtml() {
+    const f = state.createForm;
+    const accs = messengerAccounts().filter(a => a.status === '开启');
+    const pages = pagesOfAccount(f.businessAccount);
+    const types = openTypes(f.businessAccount);
+    if (f.facebookPage && !pages.some(p => p.name === f.facebookPage) && pages[0]) f.facebookPage = pages[0].name;
+    if (f.subscriptionType && !types.some(t => t.subscriptionType === f.subscriptionType)) f.subscriptionType = types[0] ? types[0].subscriptionType : '';
+    const elig = calcEligibility(f);
+    const inconsistent = f.subscriptionType && f.messageTitle && f.messageContent &&
+      !(f.messageTitle.includes(f.subscriptionType) || f.messageContent.includes(f.subscriptionType));
+    let html = '<div class="create-layout"><div>' +
+      wrapErr(f.errors, 'platform', '<div class="form-row"><label>平台 / Platform<span class="req">*</span></label>' +
+        '<select data-field="platform"><option value="messenger" selected>messenger</option></select></div>') +
+      wrapErr(f.errors, 'businessAccount', '<div class="form-row"><label>商业账户 / Business Account<span class="req">*</span></label>' +
+        '<select data-field="businessAccount">' + optList(accs.map(a => a.businessAccount), f.businessAccount, '请选择商业账户') + '</select></div>') +
+      wrapErr(f.errors, 'facebookPage', '<div class="form-row"><label>Facebook Page / Facebook Page<span class="req">*</span></label>' +
+        '<select data-field="facebookPage">' + optList(pages.map(p => p.name), f.facebookPage, pages.length ? '请选择 Facebook Page' : '请先选择商业账户') + '</select></div>') +
+      wrapErr(f.errors, 'subscriptionType', '<div class="form-row"><label>订阅类型 / Subscription Type<span class="req">*</span></label>' +
+        '<select data-field="subscriptionType">' + optList(types.map(t => t.subscriptionType), f.subscriptionType, types.length ? '请选择已开启的订阅类型' : '当前账户没有开启中的订阅类型') + '</select>' +
+        '<div class="field-hint">仅展示已配置且开启的订阅类型</div></div>') +
+      wrapErr(f.errors, 'taskName', '<div class="form-row"><label>任务名称 / Task Name<span class="req">*</span></label>' +
+        '<input type="text" data-field="taskName" maxlength="100" placeholder="1–100 个字符" value="' + esc(f.taskName) + '" /></div>') +
+      wrapErr(f.errors, 'target', '<div class="form-grid"><div class="form-row"><label>上传 / Upload</label>' +
+        '<input type="file" data-field="upload" accept=".csv,.txt,text/csv" />' +
+        (f.uploadFileName ? '<div class="field-hint">已选择：' + esc(f.uploadFileName) + '（模拟 ' + f.uploadCount + ' 名用户）</div>' : '<div class="field-hint">上传用户名单 CSV，与星星标签二选一</div>') +
+        '</div><div class="form-row"><label>星星标签 / Protos Tags</label>' +
+        '<select data-field="protosTags">' + optList(CATALOG.protosTags.map(t => t.name), f.protosTags, '请选择已配置标签') + '</select></div></div>') +
+      wrapErr(f.errors, 'messageTitle', '<div class="form-row"><label>消息标题 / Message Title<span class="req">*</span></label>' +
+        '<input type="text" data-field="messageTitle" maxlength="80" value="' + esc(f.messageTitle) + '" /></div>') +
+      (inconsistent ? '<div class="warn-bar">订阅类型与标题/内容不一致：建议在标题或内容中包含「' + esc(f.subscriptionType) + '」，便于用户理解订阅内容。</div>' : '') +
+      wrapErr(f.errors, 'messageContent', '<div class="form-row"><label>消息内容 / Message Content<span class="req">*</span></label>' +
+        '<textarea data-field="messageContent" maxlength="500">' + esc(f.messageContent) + '</textarea></div>') +
+      '<div class="form-row"><label>图片 / Image</label><input type="file" data-field="image" accept="image/*" />' +
+      '<div class="field-hint">可选。上传后在右侧预览卡片中显示。</div></div>' +
+      wrapErr(f.errors, 'button', '<div class="form-row"><label>按钮 / Button<span class="req">*</span></label>' +
+        '<select data-field="button">' + optList(['GET_UPDATES', 'OPT_IN'], f.button) + '</select>' +
+        '<div class="field-hint">供应商支持的 CTA 枚举值</div></div>') +
+      wrapErr(f.errors, 'sendingTimeType', '<div class="form-row"><label>发送时间 / Sending Time<span class="req">*</span></label>' +
+        '<div class="radio-row">' +
+        '<label><input type="radio" name="stt" data-field="sendingTimeType" value="立即"' + (f.sendingTimeType === '立即' ? ' checked' : '') + ' /> 立即 / Immediately</label>' +
+        '<label><input type="radio" name="stt" data-field="sendingTimeType" value="定时"' + (f.sendingTimeType === '定时' ? ' checked' : '') + ' /> 定时 / Scheduled</label>' +
+        '</div></div>') +
+      (f.sendingTimeType === '定时' ? wrapErr(f.errors, 'scheduledAt', '<div class="form-row"><label>定时发送时间<span class="req">*</span></label>' +
+        '<input type="datetime-local" step="1" data-field="scheduledAt" value="' + esc(f.scheduledAt) + '" /></div>') : '') +
+      '</div>';
+
+    html += '<div class="preview-card"><div style="font-weight:600;margin-bottom:8px;">消息预览</div>' +
+      '<div class="msgr"><div class="msgr-hd">' + esc(f.facebookPage || 'Facebook Page') + '</div><div class="msgr-bd">';
+    if (f.image) html += '<img class="msgr-img" alt="preview" src="' + f.image + '" />';
+    else html += '<div class="msgr-img ph">未上传图片</div>';
+    html += '<div class="msgr-title">' + esc(f.messageTitle || '消息标题') + '</div>' +
+      '<div class="msgr-body">' + esc(f.messageContent || '消息内容将显示在这里') + '</div>' +
+      '<div class="msgr-cta">' + esc(f.button) + '</div></div></div>' +
+      '<div style="font-weight:600;margin:14px 0 4px;">资格预览</div>' +
+      '<div class="elig-grid">' +
+        eligItem(elig.target, '目标用户数') +
+        eligItem(elig.eligible, '可发送数') +
+        eligItem(elig.subscribed, '已订阅数') +
+        eligItem(elig.noInteraction, '无互动') +
+        eligItem(elig.frequency, '频控') +
+        eligItem(elig.noMessengerId, '无 Messenger 身份') +
+      '</div>' +
+      '<div class="field-hint">Opt-in 任务与 Marketing Message 任务是两个不同流程。成功只表示发送请求被供应商接受，不代表用户已经完成 opt-in。</div>' +
+      '</div></div>';
+    return html;
+  }
+  function openCreateSmModal() {
+    state.createForm = emptyCreateForm();
+    const acc = messengerAccounts().find(a => a.status === '开启');
+    if (acc) {
+      state.createForm.businessAccount = acc.businessAccount;
+      const pages = pagesOfAccount(acc.businessAccount);
+      if (pages[0]) state.createForm.facebookPage = pages[0].name;
+      const types = openTypes(acc.businessAccount);
+      if (types[0]) state.createForm.subscriptionType = types[0].subscriptionType;
+    }
+    state.modal = { type: 'create-sm' };
+    renderModal();
+  }
+  function refreshCreateUi() {
+    if (state.modal && state.modal.type === 'create-sm') renderModal();
+  }
+  function eligItem(n, k) {
+    return '<div class="elig-item"><div class="n">' + n + '</div><div class="k">' + esc(k) + '</div></div>';
+  }
+  function submitCreate() {
+    const f = state.createForm;
+    const errors = {};
+    if (f.platform !== 'messenger') errors.platform = '平台仅支持 messenger';
+    if (!f.businessAccount) errors.businessAccount = '请选择商业账户';
+    if (!f.facebookPage) errors.facebookPage = '请选择 Facebook Page';
+    if (!f.subscriptionType) errors.subscriptionType = '请选择开启中的订阅类型';
+    const tn = (f.taskName || '').trim();
+    if (!tn) errors.taskName = '请填写任务名称';
+    else if (tn.length < 1 || tn.length > 100) errors.taskName = '任务名称需为 1–100 个字符';
+    if (!f.uploadCount && !f.protosTags) errors.target = '请通过 Upload 或 Protos Tags 选择目标用户';
+    if (!(f.messageTitle || '').trim()) errors.messageTitle = '请填写消息标题';
+    if (!(f.messageContent || '').trim()) errors.messageContent = '请填写消息内容';
+    if (!f.button) errors.button = '请选择按钮 CTA';
+    if (f.sendingTimeType === '定时') {
+      const d = parseDt(f.scheduledAt);
+      if (!d) errors.scheduledAt = '请选择定时发送时间';
+      else if (d.getTime() <= Date.now()) errors.scheduledAt = '定时时间必须晚于当前时间';
+    }
+    const typeOk = store.subscriptionTypes.some(t => t.businessAccount === f.businessAccount && t.subscriptionType === f.subscriptionType && t.status === '开启');
+    if (f.subscriptionType && !typeOk) errors.subscriptionType = '该订阅类型已关闭，不能新建订阅消息';
+    f.errors = errors;
+    if (Object.keys(errors).length) {
+      refreshCreateUi();
+      toast('请先修正表单错误', 'err');
+      return;
+    }
+    const elig = calcEligibility(f);
+    const isNow = f.sendingTimeType === '立即';
+    const task = {
+      id: nextId('sm'),
+      platform: 'messenger',
+      businessAccount: f.businessAccount,
+      facebookPage: f.facebookPage,
+      subscriptionType: f.subscriptionType,
+      taskName: tn,
+      targetUsers: elig.target,
+      subscribedUsers: elig.subscribed,
+      sendingTimeType: f.sendingTimeType,
+      sendingTime: isNow ? toDisplayDt(new Date()) : toDisplayDt(f.scheduledAt),
+      status: isNow ? '发送中' : '待发送',
+      messageTitle: f.messageTitle.trim(),
+      messageContent: f.messageContent.trim(),
+      image: f.image,
+      button: f.button,
+      protosTags: f.protosTags,
+      uploadFileName: f.uploadFileName,
+      failReason: ''
+    };
+    store.subscriptionMessages.unshift(task);
+    saveStore();
+    if (isNow) {
+      toast('任务已进入发送中', 'ok');
+      simulateSend(task.id);
+    } else {
+      toast('定时任务已创建，状态为待发送', 'ok');
+    }
+    state.createForm = emptyCreateForm();
+    closeModal();
+    renderPage();
+  }
+  function simulateSend(id, fromRetry) {
+    setTimeout(() => {
+      const t = store.subscriptionMessages.find(x => x.id === id);
+      if (!t || t.status !== '发送中') return;
+      const fail = Math.random() < 0.22;
+      if (fail) {
+        t.status = '失败';
+        t.failReason = fromRetry ? '重试后供应商仍返回失败' : 'mock 供应商返回失败或校验失败';
+        saveStore();
+        toast('任务发送失败：' + t.failReason, 'err');
+      } else {
+        t.status = '成功';
+        t.failReason = '';
+        saveStore();
+        toast('发送请求已被供应商接受，等待用户完成订阅', 'ok');
+      }
+      if (state.route === 'sub-msg-query') renderPage();
+    }, 1100);
+  }
+
+  /* ========== Query subscription messages ========== */
+  function renderQuerySubMsg(el) {
+    const ts = tableState('sub-msg-query');
+    const f = ensureFilters('sub-msg-query', {
+      platform: '', businessAccount: '', subscriptionType: '', taskName: '', sendingTimeType: '', status: ''
+    });
+    const types = Array.from(new Set(store.subscriptionTypes.map(t => t.subscriptionType)));
+    const btns = '<button class="btn" data-act="open-subtype-mgr">订阅类型管理</button>' +
+      '<button class="btn primary" data-act="open-create-sm">Add</button>';
+    let html = pageChrome(btns) + '<div class="filters">' +
+      filterSelect('平台 / Platform', 'platform', [{ value: 'messenger', label: 'messenger' }], f.platform) +
+      filterSelect('商业账户 / Business Account', 'businessAccount', messengerAccounts().map(a => a.businessAccount), f.businessAccount) +
+      filterSelect('订阅类型 / Subscription Type', 'subscriptionType', types, f.subscriptionType) +
+      filterText('任务名称 / Task Name', 'taskName', f.taskName, 100) +
+      filterSelect('发送时间 / Sending Time', 'sendingTimeType', [{ value: '立即', label: '立即 / Immediately' }, { value: '定时', label: '定时 / Scheduled' }], f.sendingTimeType) +
+      filterSelect('状态 / Status', 'status', [
+        { value: '待发送', label: '待发送 / Pending' },
+        { value: '发送中', label: '发送中 / Sending' },
+        { value: '成功', label: '成功 / Success' },
+        { value: '失败', label: '失败 / Failed' }
+      ], f.status) +
+      filterSearchActions() +
+      '</div>';
+    if (state.loading) { el.innerHTML = html + loadingHtml(); return; }
+    let rows = store.subscriptionMessages.filter(t => {
+      if (f.platform && t.platform !== f.platform) return false;
+      if (f.businessAccount && t.businessAccount !== f.businessAccount) return false;
+      if (f.subscriptionType && t.subscriptionType !== f.subscriptionType) return false;
+      if (f.taskName && !(t.taskName || '').toLowerCase().includes(f.taskName.toLowerCase())) return false;
+      if (f.sendingTimeType && t.sendingTimeType !== f.sendingTimeType) return false;
+      if (f.status && t.status !== f.status) return false;
+      return true;
+    });
+    rows = rows.map(function (t) {
+      return Object.assign({}, t, {
+        targetAudience: targetAudienceName(t),
+        subscribedUsers: subscribedCount(t)
+      });
+    });
+    rows = sortRows(rows, ts.sortKey || 'sendingTime', ts.sortDir);
+    const pg = paginate(rows, ts.page);
+    ts.page = pg.page;
+    html += '<div class="tbl-wrap"><table class="tbl"><thead><tr>' +
+      th('平台 / Platform', 'platform', ts) +
+      th('商业账户 / Business Account', 'businessAccount', ts) +
+      th('订阅类型 / Subscription Type', 'subscriptionType', ts) +
+      th('任务名称 / Task Name', 'taskName', ts) +
+      th('目标用户 / Target Users', 'targetAudience', ts) +
+      th('目标用户数 / Target User Count', 'targetUsers', ts) +
+      th('订阅用户数 / Subscribed Users', 'subscribedUsers', ts) +
+      th('发送时间 / Sending Time', 'sendingTime', ts) +
+      th('状态 / Status', 'status', ts) +
+      '<th class="no-sort col-actions">Actions</th></tr></thead><tbody>';
+    if (!pg.rows.length) html += '<tr><td colspan="10">' + emptyHtml('暂无订阅消息任务') + '</td></tr>';
+    pg.rows.forEach(t => {
+      html += '<tr><td>' + esc(t.platform) + '</td><td>' + esc(t.businessAccount) + '</td>' +
+        '<td>' + esc(t.subscriptionType) + '</td><td>' + esc(t.taskName) + '</td>' +
+        '<td>' + esc(targetAudienceName(t)) + '</td>' +
+        '<td>' + t.targetUsers + '</td>' +
+        '<td>' + subscribedCount(t) + '</td>' +
+        '<td>' + esc(t.sendingTimeType) + ' / ' + esc(t.sendingTime) + '</td>' +
+        '<td>' + statusTag(t.status) + '</td><td class="col-actions">' +
+        (t.status === '待发送' ? '<button class="btn sm" data-act="cancel-sm" data-id="' + esc(t.id) + '">Cancel</button>' : '') +
+        (t.status === '失败' ? '<button class="btn sm" data-act="retry-sm" data-id="' + esc(t.id) + '">Retry</button>' : '') +
+        '</td></tr>';
+    });
+    html += '</tbody></table></div>' + pager(pg);
+    el.innerHTML = html;
+  }
+
+  /* ========== Campaign ========== */
+  function renderCampaign(el) {
+    const ts = tableState('campaign');
+    const f = ensureFilters('campaign', { businessAccount: '', status: '' });
+    const btns = '<button class="btn primary" data-act="add">Add</button>';
+    let html = pageChrome(btns) + '<div class="filters">' +
+      filterSelect('Business Account', 'businessAccount', messengerAccounts().map(a => a.businessAccount), f.businessAccount) +
+      filterSelect('Status', 'status', ['草稿', '开启', '关闭', '预算耗尽', '失败', '已删除'], f.status) +
+      filterSearchActions() +
+      '</div>';
+    if (state.loading) { el.innerHTML = html + loadingHtml(); return; }
+    let rows = store.campaigns.filter(c => {
+      if (f.businessAccount && c.businessAccount !== f.businessAccount) return false;
+      if (f.status && c.status !== f.status) return false;
+      return true;
+    });
+    rows = sortRows(rows, ts.sortKey || 'updatedAt', ts.sortDir);
+    const pg = paginate(rows, ts.page);
+    ts.page = pg.page;
+    html += '<div class="tbl-wrap"><table class="tbl"><thead><tr>' +
+      th('Campaign Name', 'campaignName', ts) +
+      th('Campaign ID', 'campaignId', ts) +
+      th('Business Account', 'businessAccount', ts) +
+      '<th class="no-sort">Page Id</th><th class="no-sort">AD Account Id</th>' +
+      th('Budget Type', 'budgetType', ts) +
+      th('Daily Budget', 'dailyBudget', ts) +
+      th('Lifetime Budget', 'lifetimeBudget', ts) +
+      th('Status', 'status', ts) +
+      th('Created At', 'createdAt', ts) +
+      th('Updated At', 'updatedAt', ts) +
+      '<th class="no-sort col-actions">Actions</th></tr></thead><tbody>';
+    if (!pg.rows.length) html += '<tr><td colspan="12">' + emptyHtml('暂无 Campaign') + '</td></tr>';
+    pg.rows.forEach(c => {
+      html += '<tr><td>' + esc(c.campaignName) + '</td><td class="mono">' + esc(c.campaignId) + '</td>' +
+        '<td>' + esc(c.businessAccount) + '</td><td class="mono">' + esc(c.pageId) + '</td>' +
+        '<td class="mono">' + esc(c.adAccountId) + '</td><td>' + esc(c.budgetType) + '</td>' +
+        '<td>' + (c.dailyBudget || '-') + '</td><td>' + (c.lifetimeBudget || '-') + '</td>' +
+        '<td>' + statusTag(c.status) + '</td><td>' + esc(c.createdAt) + '</td><td>' + esc(c.updatedAt) + '</td>' +
+        '<td class="col-actions"><button class="btn sm" data-act="view-cp" data-id="' + esc(c.id) + '">View</button>' +
+        (c.status !== '关闭' && c.status !== '已删除' ? '<button class="btn sm" data-act="close-cp" data-id="' + esc(c.id) + '">Close</button>' : '') +
+        (c.status !== '已删除' ? '<button class="btn sm danger" data-act="del-cp" data-id="' + esc(c.id) + '">Delete</button>' : '') +
+        '</td></tr>';
+    });
+    html += '</tbody></table></div>' + pager(pg);
+    el.innerHTML = html;
+  }
+  function openCampaignModal() {
+    const acc = messengerAccounts().find(a => a.status === '开启') || messengerAccounts()[0];
+    const pages = acc ? pagesOfAccount(acc.businessAccount) : [];
+    state.modal = {
+      type: 'campaign',
+      form: {
+        campaignName: '',
+        businessAccount: acc ? acc.businessAccount : '',
+        pageId: pages[0] ? pages[0].id : '',
+        adAccountId: acc ? acc.adAccountId : '',
+        budgetType: '每日预算',
+        dailyBudget: '',
+        lifetimeBudget: ''
+      },
+      errors: {}
+    };
+    renderModal();
+  }
+  function campaignModalBody() {
+    const m = state.modal;
+    const f = m.form;
+    const pages = pagesOfAccount(f.businessAccount);
+    const ads = adsForPages(f.pageId ? [f.pageId] : []);
+    if (f.adAccountId && ads.length && !ads.some(a => a.id === f.adAccountId)) f.adAccountId = ads[0] ? ads[0].id : '';
+    return wrapErr(m.errors, 'campaignName', '<div class="form-row"><label>Campaign Name<span class="req">*</span></label>' +
+        '<input type="text" data-modal-field="campaignName" maxlength="80" value="' + esc(f.campaignName) + '" /></div>') +
+      wrapErr(m.errors, 'businessAccount', '<div class="form-row"><label>Business Account<span class="req">*</span></label>' +
+        '<select data-modal-field="businessAccount">' + optList(messengerAccounts().map(a => a.businessAccount), f.businessAccount, '请选择') + '</select></div>') +
+      wrapErr(m.errors, 'pageId', '<div class="form-row"><label>Facebook Page<span class="req">*</span></label>' +
+        '<select data-modal-field="pageId">' + optList(pages.map(p => ({ value: p.id, label: p.name })), f.pageId, '请选择') + '</select></div>') +
+      wrapErr(m.errors, 'adAccountId', '<div class="form-row"><label>Ad Account<span class="req">*</span></label>' +
+        '<select data-modal-field="adAccountId">' + optList(ads.map(a => ({ value: a.id, label: a.name })), f.adAccountId, ads.length ? '请选择' : '请先选择 Facebook Page') + '</select>' +
+        '<div class="field-hint">Page 与 Ad Account 必须匹配</div></div>') +
+      wrapErr(m.errors, 'budgetType', '<div class="form-row"><label>Budget Type<span class="req">*</span></label>' +
+        '<select data-modal-field="budgetType">' + optList(['每日预算', '生命周期预算'], f.budgetType) + '</select></div>') +
+      (f.budgetType === '每日预算'
+        ? wrapErr(m.errors, 'dailyBudget', '<div class="form-row"><label>Daily Budget<span class="req">*</span></label>' +
+            '<input type="number" min="1" step="1" data-modal-field="dailyBudget" value="' + esc(f.dailyBudget) + '" />' +
+            '<div class="field-hint">大于 0，单位 cents</div></div>')
+        : wrapErr(m.errors, 'lifetimeBudget', '<div class="form-row"><label>Lifetime Budget<span class="req">*</span></label>' +
+            '<input type="number" min="1" step="1" data-modal-field="lifetimeBudget" value="' + esc(f.lifetimeBudget) + '" />' +
+            '<div class="field-hint">大于 0，单位 cents</div></div>'));
+  }
+  function saveCampaign() {
+    const m = state.modal;
+    const f = m.form;
+    const errors = {};
+    if (!f.campaignName.trim()) errors.campaignName = '请填写 Campaign Name';
+    if (!f.businessAccount) errors.businessAccount = '请选择 Business Account';
+    if (!f.pageId) errors.pageId = '请选择 Facebook Page';
+    if (!f.adAccountId) errors.adAccountId = '请选择 Ad Account';
+    if (f.pageId && f.adAccountId && !pageMatchesAd(f.pageId, f.adAccountId)) errors.adAccountId = 'Page 与 Ad Account 必须匹配';
+    if (f.budgetType === '每日预算') {
+      const n = Number(f.dailyBudget);
+      if (!(n > 0)) errors.dailyBudget = '选择每日预算时 Daily Budget 必填且必须大于 0';
+    } else {
+      const n = Number(f.lifetimeBudget);
+      if (!(n > 0)) errors.lifetimeBudget = '选择生命周期预算时 Lifetime Budget 必填且必须大于 0';
+    }
+    m.errors = errors;
+    if (Object.keys(errors).length) { renderModal(); return; }
+    const now = toDisplayDt(new Date());
+    const cid = String(120300000000 + Math.floor(Math.random() * 899999999));
+    store.campaigns.unshift({
+      id: nextId('cp'),
+      campaignName: f.campaignName.trim(),
+      campaignId: cid,
+      businessAccount: f.businessAccount,
+      pageId: f.pageId,
+      adAccountId: f.adAccountId,
+      budgetType: f.budgetType,
+      dailyBudget: f.budgetType === '每日预算' ? Number(f.dailyBudget) : 0,
+      lifetimeBudget: f.budgetType === '生命周期预算' ? Number(f.lifetimeBudget) : 0,
+      status: '草稿',
+      createdAt: now,
+      updatedAt: now
+    });
+    saveStore();
+    closeModal();
+    toast('Campaign 创建成功，Campaign ID：' + cid, 'ok');
+    renderPage();
+  }
+
+  /* ========== Biz query ========== */
+  function renderBizQuery(el) {
+    const ts = tableState('biz-query');
+    const f = ensureFilters('biz-query', {
+      platform: '', businessAccount: '', campaign: '', messageType: '', status: '', timeFrom: '', timeTo: ''
+    });
+    const camps = Array.from(new Set(store.campaigns.map(c => c.campaignName)));
+    const btns = '<button class="btn" data-act="export">Export</button>';
+    let html = pageChrome(btns) + '<div class="filters">' +
+      filterSelect('Platform', 'platform', [{ value: 'messenger', label: 'Messenger' }, { value: 'viber', label: 'Viber' }], f.platform) +
+      filterSelect('Business Account', 'businessAccount', allBaOpts(), f.businessAccount) +
+      filterSelect('Campaign', 'campaign', camps, f.campaign) +
+      filterSelect('Message Type', 'messageType', ['Image', 'Text', 'Button'], f.messageType) +
+      filterSelect('Status', 'status', [
+        { value: '待发送', label: '待发送 / Pending' },
+        { value: '发送中', label: '发送中 / Sending' },
+        { value: '成功', label: '成功 / Success' },
+        { value: '失败', label: '失败 / Failed' }
+      ], f.status) +
+      filterRange('Sending Time', 'timeFrom', 'timeTo', f.timeFrom, f.timeTo) +
+      filterSearchActions() +
+      '</div>';
+    if (state.loading) { el.innerHTML = html + loadingHtml(); return; }
+    let rows = store.bizMessages.filter(b => {
+      if (f.platform && b.platform !== f.platform) return false;
+      if (f.businessAccount && b.businessAccount !== f.businessAccount) return false;
+      if (f.campaign && b.campaign !== f.campaign) return false;
+      if (f.messageType && b.messageType !== f.messageType) return false;
+      if (f.status && b.status !== f.status) return false;
+      if (!inRange(b.sendingTime, f.timeFrom, f.timeTo)) return false;
+      return true;
+    });
+    rows = sortRows(rows, ts.sortKey || 'sendingTime', ts.sortDir);
+    const pg = paginate(rows, ts.page);
+    ts.page = pg.page;
+    html += '<div class="tbl-wrap"><table class="tbl"><thead><tr>' +
+      th('Campaign', 'campaign', ts) +
+      th('Platform', 'platform', ts) +
+      th('Business Account', 'businessAccount', ts) +
+      th('Task Name', 'taskName', ts) +
+      th('Message Type', 'messageType', ts) +
+      th('Target Users', 'targetUsers', ts) +
+      th('Sending Time', 'sendingTime', ts) +
+      th('Status', 'status', ts) +
+      '</tr></thead><tbody>';
+    if (!pg.rows.length) html += '<tr><td colspan="8">' + emptyHtml('暂无 Biz 消息任务') + '</td></tr>';
+    pg.rows.forEach(b => {
+      html += '<tr><td>' + esc(b.campaign || '-') + '</td><td>' + esc(platformLabel(b.platform)) + '</td>' +
+        '<td>' + esc(b.businessAccount) + '</td><td>' + esc(b.taskName) + '</td>' +
+        '<td>' + esc(b.messageType) + '</td><td>' + b.targetUsers + '</td>' +
+        '<td>' + esc(b.sendingTime) + '</td><td>' + statusTag(b.status) + '</td></tr>';
+    });
+    html += '</tbody></table></div>' + pager(pg);
+    el.innerHTML = html;
+  }
+  function exportBiz() {
+    const f = readFilters('biz-query');
+    const rows = store.bizMessages.filter(b => {
+      if (f.platform && b.platform !== f.platform) return false;
+      if (f.businessAccount && b.businessAccount !== f.businessAccount) return false;
+      if (f.campaign && b.campaign !== f.campaign) return false;
+      if (f.messageType && b.messageType !== f.messageType) return false;
+      if (f.status && b.status !== f.status) return false;
+      if (!inRange(b.sendingTime, f.timeFrom, f.timeTo)) return false;
+      return true;
+    });
+    downloadCSV('biz-message-export.csv',
+      ['Campaign', 'Platform', 'Business Account', 'Task Name', 'Message Type', 'Target Users', 'Sending Time', 'Status'],
+      rows.map(b => [b.campaign, b.platform, b.businessAccount, b.taskName, b.messageType, b.targetUsers, b.sendingTime, b.status])
+    );
+    toast('已导出 CSV（共 ' + rows.length + ' 条）', 'ok');
+  }
+
+  /* ========== Modal renderer ========== */
+  function closeModal() {
+    state.modal = null;
+    state.testing = false;
+    document.getElementById('modal-root').innerHTML = '';
+    renderPage();
+  }
+  function renderModal() {
+    const root = document.getElementById('modal-root');
+    const m = state.modal;
+    if (!m) { root.innerHTML = ''; return; }
+    let title = '', body = '', ft = '', wide = false, xl = false;
+    if (m.type === 'account') {
+      title = m.id ? '编辑 Messenger Business Account' : '新增 Messenger Business Account';
+      body = accountModalBody();
+      ft = '<button class="btn" data-act="test-conn"' + (state.testing ? ' disabled' : '') + '>' + (state.testing ? '测试中…' : 'Test Connection') + '</button>' +
+        '<button class="btn" data-act="modal-cancel">取消</button>' +
+        '<button class="btn primary" data-act="modal-ok">Confirm</button>';
+    } else if (m.type === 'subtype-mgr') {
+      wide = true;
+      title = '订阅类型管理';
+      body = subtypeListHtml();
+      ft = '<button class="btn" data-act="modal-cancel">关闭</button>';
+    } else if (m.type === 'sub-group') {
+      title = '新建订阅组';
+      body = subGroupModalBody();
+      ft = '<button class="btn" data-act="modal-cancel">取消</button><button class="btn primary" data-act="modal-ok">Confirm</button>';
+    } else if (m.type === 'create-sm') {
+      title = '新建订阅消息';
+      xl = true;
+      body = createFormHtml();
+      ft = '<button class="btn" data-act="modal-cancel">取消</button><button class="btn primary" data-act="submit-create">提交发送</button>';
+    } else if (m.type === 'sub-detail') {
+      const user = m.user;
+      const types = m.types || [user];
+      const lastLogin = types.reduce(function (max, t) {
+        return (t.lastLoginTime || '') > max ? t.lastLoginTime : max;
+      }, user.lastLoginTime || '');
+      title = '订阅详情';
+      wide = true;
+      body = '<dl class="detail-dl">' +
+        kv('平台 / Platform', user.platform) +
+        kv('商业账户 / Business Account', user.businessAccount) +
+        kv('用户 / Login Name', user.loginName) +
+        kv('IM用户ID / IM UserId', user.imUserId) +
+        kv('最新登录时间 / Last login time', lastLogin) +
+        '</dl>' +
+        '<div class="field-hint" style="margin:14px 0 8px;">同一用户可订阅多个类型。当前共 ' + types.length + ' 条订阅记录。</div>' +
+        '<div class="sub-type-list">' + types.map(function (s) {
+          return '<div class="sub-type-card">' +
+            '<div class="sub-type-hd"><span>' + esc(s.subscriptionType) + '</span>' + statusTag(s.subscriptionStatus) + '</div>' +
+            '<dl class="detail-dl">' +
+            kv('Facebook Page / Facebook Page', s.facebookPage || '-') +
+            kv('订阅类型 / Subscription Type', s.subscriptionType) +
+            kv('订阅状态 / Subscription Status', null, statusTag(s.subscriptionStatus)) +
+            kv('最新订阅时间 / Latest subscription time', s.latestSubscriptionTime) +
+            kv('Next Eligible Datetime', s.nextEligibleDatetime || '-') +
+            '</dl></div>';
+        }).join('') + '</div>';
+      ft = '<button class="btn" data-act="modal-cancel">关闭</button>';
+    } else if (m.type === 'campaign') {
+      title = '新增 Campaign';
+      body = campaignModalBody();
+      ft = '<button class="btn" data-act="modal-cancel">取消</button><button class="btn primary" data-act="modal-ok">Confirm</button>';
+    } else if (m.type === 'cp-view') {
+      const c = m.data;
+      title = 'Campaign 详情';
+      wide = true;
+      body = '<dl class="detail-dl">' +
+        kv('Campaign Name', c.campaignName) +
+        kv('Campaign ID', c.campaignId) +
+        kv('Business Account', c.businessAccount) +
+        kv('Page Id', c.pageId) +
+        kv('Facebook Page', pageName(c.pageId)) +
+        kv('AD Account Id', c.adAccountId) +
+        kv('Ad Account', adName(c.adAccountId)) +
+        kv('Budget Type', c.budgetType) +
+        kv('Daily Budget', c.dailyBudget ? c.dailyBudget + ' cents' : '-') +
+        kv('Lifetime Budget', c.lifetimeBudget ? c.lifetimeBudget + ' cents' : '-') +
+        kv('Status', null, statusTag(c.status)) +
+        kv('Created At', c.createdAt) +
+        kv('Updated At', c.updatedAt) +
+        '</dl>';
+      ft = '<button class="btn" data-act="modal-cancel">关闭</button>';
+    } else if (m.type === 'confirm') {
+      title = m.title;
+      body = '<p style="margin:0;line-height:1.6;">' + esc(m.message) + '</p>';
+      ft = '<button class="btn" data-act="modal-cancel">取消</button>' +
+        '<button class="btn ' + (m.danger ? 'danger' : 'primary') + '" data-act="modal-ok">' + esc(m.okText || 'Confirm') + '</button>';
+    }
+    root.innerHTML = '<div class="mask" id="mask"><div class="modal' + (xl ? ' xl' : wide ? ' lg' : '') + '" role="dialog" aria-modal="true">' +
+      '<div class="modal-hd"><span>' + esc(title) + '</span><span class="x" data-act="modal-cancel">✕</span></div>' +
+      '<div class="modal-bd">' + body + '</div>' +
+      '<div class="modal-ft">' + ft + '</div></div></div>';
+  }
+  function kv(k, v, html) {
+    return '<dt>' + esc(k) + '</dt><dd>' + (html || esc(v)) + '</dd>';
+  }
+
+  function readSubTypeDraft(e) {
+    const m = state.modal;
+    if (!m || !m.draft) return;
+    const key = e.target.getAttribute('data-draft-field');
+    m.draft[key] = e.target.value;
+    delete m.errors[key];
+    if (key === 'businessAccount') {
+      const pages = pagesOfAccount(m.draft.businessAccount);
+      m.draft.facebookPage = pages[0] ? pages[0].name : '';
+      renderModal();
+    }
+  }
+
+  function readModalFields(e) {
+    const m = state.modal;
+    if (!m || !m.form) return;
+    const el = e.target;
+    const key = el.getAttribute('data-modal-field');
+    if (!key) return;
+    if (key === 'facebookPageIds') {
+      m.form.facebookPageIds = Array.from(document.querySelectorAll('[data-modal-field="facebookPageIds"]:checked')).map(x => x.value);
+      renderModal();
+      return;
+    }
+    if (m.type === 'sub-group' && key === 'upload') {
+      const file = el.files && el.files[0];
+      if (file) {
+        m.form.uploadFileName = file.name;
+        m.form.uploadCount = 200 + Math.floor(Math.random() * 1800);
+        m.form.protosTags = '';
+        delete m.errors.target;
+        toast('已模拟解析上传文件，目标用户 ' + m.form.uploadCount + ' 人', 'ok');
+      }
+      renderModal();
+      return;
+    }
+    if (m.type === 'sub-group' && key === 'protosTags') {
+      m.form.protosTags = el.value;
+      if (m.form.protosTags) { m.form.uploadFileName = ''; m.form.uploadCount = 0; delete m.errors.target; }
+      renderModal();
+      return;
+    }
+    m.form[key] = el.value;
+    if (key === 'platform' || key === 'businessAccount' || key === 'pageId' || key === 'budgetType' || key === 'adAccountId') {
+      if (m.type === 'sub-group') {
+        if (key === 'platform') {
+          const first = store.accounts.find(a => a.platform === m.form.platform);
+          const viberBa = (store.viberAccounts || [])[0];
+          m.form.businessAccount = m.form.platform === 'messenger'
+            ? (first ? first.businessAccount : '')
+            : (viberBa || '');
+        }
+        const pages = pagesOfAccount(m.form.businessAccount);
+        m.form.facebookPage = m.form.platform === 'messenger' && pages[0] ? pages[0].name : '';
+      }
+      if (key === 'businessAccount' && m.type === 'campaign') {
+        const pages = pagesOfAccount(m.form.businessAccount);
+        m.form.pageId = pages[0] ? pages[0].id : '';
+        const acc = store.accounts.find(a => a.businessAccount === m.form.businessAccount);
+        const ads = adsForPages(m.form.pageId ? [m.form.pageId] : []);
+        m.form.adAccountId = (acc && ads.some(a => a.id === acc.adAccountId)) ? acc.adAccountId : (ads[0] ? ads[0].id : '');
+      }
+      renderModal();
+    }
+  }
+
+  function onModalOk() {
+    const m = state.modal;
+    if (!m) return;
+    if (m.type === 'account') saveAccount();
+    else if (m.type === 'create-sm') submitCreate();
+    else if (m.type === 'sub-group') saveSubGroup();
+    else if (m.type === 'campaign') saveCampaign();
+    else if (m.type === 'confirm' && typeof m.onOk === 'function') {
+      const fn = m.onOk;
+      closeModal();
+      fn();
+    } else closeModal();
+  }
+
+  function openConfirm(opts) {
+    state.modal = {
+      type: 'confirm',
+      title: opts.title,
+      message: opts.message,
+      okText: opts.okText,
+      danger: !!opts.danger,
+      onOk: opts.onOk
+    };
+    renderModal();
+  }
+
+  /* ========== Events ========== */
+  document.addEventListener('click', function (e) {
+    const t = e.target.closest('[data-act]');
+    if (!t) {
+      if (e.target.id === 'mask') closeModal();
+      return;
+    }
+    const act = t.getAttribute('data-act');
+    const id = t.getAttribute('data-id');
+    if (act === 'nav') navigate(t.getAttribute('data-route'));
+    else if (act === 'toggle-side') document.getElementById('sidebar').classList.toggle('open');
+    else if (act === 'sub-tab') {
+      const tab = t.getAttribute('data-tab');
+      if (tab === state.subTab) return;
+      state.subTab = tab;
+      renderPage();
+    } else if (act === 'search') {
+      readFilters(pageDataKey());
+      tableState(pageDataKey()).page = 1;
+      withLoading();
+    } else if (act === 'reset') {
+      const key = pageDataKey();
+      if (key === 'subscription') state.filters.subscription = defaultSubFilters();
+      else if (key === 'subscription-group') state.filters['subscription-group'] = defaultSubGroupFilters();
+      else state.filters[key] = {};
+      tableState(key).page = 1;
+      withLoading();
+    } else if (act === 'add') {
+      if (state.route === 'account') openAccountModal(null);
+      else if (state.route === 'campaign') openCampaignModal();
+    } else if (act === 'open-subtype-mgr') openSubTypeMgr();
+    else if (act === 'subtype-add') startSubTypeDraft();
+    else if (act === 'subtype-save') saveSubType();
+    else if (act === 'subtype-cancel') {
+      state.modal.draft = null;
+      state.modal.errors = {};
+      renderModal();
+    } else if (act === 'open-create-group') openCreateGroupModal();
+    else if (act === 'open-create-sm') openCreateSmModal(); else if (act === 'edit') openAccountModal(id);
+    else if (act === 'detail') openSubDetail(id);
+    else if (act === 'export') {
+      if (state.route === 'subscription') exportSubscriptions();
+      else if (state.route === 'biz-query') exportBiz();
+    } else if (act === 'sort') {
+      if (t.classList.contains('no-sort')) return;
+      const tableKey = (state.modal && state.modal.type === 'subtype-mgr') ? 'subscription-type' : pageDataKey();
+      const ts = tableState(tableKey);
+      const key = t.getAttribute('data-key');
+      if (ts.sortKey === key) ts.sortDir = ts.sortDir === 'asc' ? 'desc' : 'asc';
+      else { ts.sortKey = key; ts.sortDir = 'asc'; }
+      if (state.modal && state.modal.type === 'subtype-mgr') renderModal();
+      else renderPage();
+    } else if (act === 'page') {
+      const tableKey = (state.modal && state.modal.type === 'subtype-mgr') ? 'subscription-type' : pageDataKey();
+      tableState(tableKey).page = Number(t.getAttribute('data-page'));
+      if (state.modal && state.modal.type === 'subtype-mgr') renderModal();
+      else renderPage();
+    } else if (act === 'modal-cancel') closeModal();
+    else if (act === 'modal-ok') onModalOk();
+    else if (act === 'test-conn') testConnection();
+    else if (act === 'toggle-type') {
+      const rec = store.subscriptionTypes.find(x => x.id === id);
+      if (!rec) return;
+      rec.status = rec.status === '开启' ? '关闭' : '开启';
+      saveStore();
+      toast('状态已切换为' + rec.status, 'ok');
+      if (state.modal && state.modal.type === 'subtype-mgr') renderModal();
+      else renderPage();
+    } else if (act === 'submit-create') submitCreate();
+    else if (act === 'cancel-sm') {
+      openConfirm({
+        title: '取消任务',
+        message: '仅待发送任务可取消。取消后该任务将从列表移除。',
+        okText: 'Cancel Task',
+        danger: true,
+        onOk: function () {
+          const idx = store.subscriptionMessages.findIndex(x => x.id === id && x.status === '待发送');
+          if (idx < 0) { toast('只能取消待发送任务', 'err'); return; }
+          store.subscriptionMessages.splice(idx, 1);
+          saveStore();
+          toast('任务已取消', 'ok');
+          renderPage();
+        }
+      });
+    } else if (act === 'retry-sm') {
+      const rec = store.subscriptionMessages.find(x => x.id === id);
+      if (!rec || rec.status !== '失败') { toast('仅失败任务可重试', 'err'); return; }
+      rec.status = '发送中';
+      rec.failReason = '';
+      saveStore();
+      toast('已重新提交，状态为发送中', 'ok');
+      renderPage();
+      simulateSend(id, true);
+    } else if (act === 'view-cp') {
+      const c = store.campaigns.find(x => x.id === id);
+      if (!c) return;
+      state.modal = { type: 'cp-view', data: c };
+      renderModal();
+    } else if (act === 'close-cp') {
+      openConfirm({
+        title: '关闭 Campaign',
+        message: '关闭后 Status 将变为「关闭」。',
+        okText: 'Close',
+        onOk: function () {
+          const c = store.campaigns.find(x => x.id === id);
+          if (!c) return;
+          c.status = '关闭';
+          c.updatedAt = toDisplayDt(new Date());
+          saveStore();
+          toast('Campaign 已关闭', 'ok');
+          renderPage();
+        }
+      });
+    } else if (act === 'del-cp') {
+      openConfirm({
+        title: '删除 Campaign',
+        message: '删除后 Status 将变为「已删除」，记录保留便于追溯。',
+        okText: 'Delete',
+        danger: true,
+        onOk: function () {
+          const c = store.campaigns.find(x => x.id === id);
+          if (!c) return;
+          c.status = '已删除';
+          c.updatedAt = toDisplayDt(new Date());
+          saveStore();
+          toast('Campaign 已删除', 'ok');
+          renderPage();
+        }
+      });
+    }
+  });
+
+  document.addEventListener('change', function (e) {
+    if (e.target.getAttribute('data-draft-field')) {
+      readSubTypeDraft(e);
+      return;
+    }
+    if (e.target.getAttribute('data-modal-field')) {
+      readModalFields(e);
+      return;
+    }
+    const field = e.target.getAttribute('data-field');
+    if (!field) return;
+    const f = state.createForm;
+    if (field === 'upload') {
+      const file = e.target.files && e.target.files[0];
+      if (file) {
+        f.uploadFileName = file.name;
+        f.uploadCount = 200 + Math.floor(Math.random() * 1800);
+        f.protosTags = '';
+        toast('已模拟解析上传文件，目标用户 ' + f.uploadCount + ' 人', 'ok');
+      }
+      refreshCreateUi();
+      return;
+    }
+    if (field === 'image') {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function () {
+        f.image = reader.result;
+        refreshCreateUi();
+      };
+      reader.readAsDataURL(file);
+      return;
+    }
+    if (field === 'protosTags') {
+      f.protosTags = e.target.value;
+      if (f.protosTags) { f.uploadFileName = ''; f.uploadCount = 0; }
+      refreshCreateUi();
+      return;
+    }
+    if (field === 'businessAccount') {
+      f.businessAccount = e.target.value;
+      const pages = pagesOfAccount(f.businessAccount);
+      f.facebookPage = pages[0] ? pages[0].name : '';
+      const types = openTypes(f.businessAccount);
+      f.subscriptionType = types[0] ? types[0].subscriptionType : '';
+      refreshCreateUi();
+      return;
+    }
+    f[field] = e.target.value;
+    if (field === 'sendingTimeType' || field === 'button' || field === 'facebookPage' || field === 'subscriptionType') refreshCreateUi();
+  });
+
+  document.addEventListener('input', function (e) {
+    const modalKey = e.target.getAttribute('data-modal-field');
+    if (modalKey && state.modal && state.modal.form && modalKey !== 'facebookPageIds') {
+      state.modal.form[modalKey] = e.target.value;
+      return;
+    }
+    const field = e.target.getAttribute('data-field');
+    if (!field) return;
+    if (field === 'upload' || field === 'image') return;
+    state.createForm[field] = e.target.value;
+    if (field === 'messageTitle' || field === 'messageContent') {
+      const titleEl = document.querySelector('.msgr-title');
+      const bodyEl = document.querySelector('.msgr-body');
+      if (titleEl) titleEl.textContent = state.createForm.messageTitle || '消息标题';
+      if (bodyEl) bodyEl.textContent = state.createForm.messageContent || '消息内容将显示在这里';
+    }
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && state.modal) closeModal();
+  });
+
+  window.addEventListener('hashchange', function () {
+    const h = location.hash.replace(/^#/, '');
+    if (h && ROUTES[h] && h !== state.route) navigate(h);
+  });
+
+  const initHash = location.hash.replace(/^#/, '');
+  state.route = ROUTES[initHash] ? initHash : 'account';
+  renderAll();
+})();
+</script>
+</body>
+</html>
