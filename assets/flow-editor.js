@@ -12,23 +12,24 @@ let menuDirty = false;
 let btnCtx = null;
 let btnDraft = null;
 let btnDirty = false;
-let btnTagDraft = [];
 let previewPageId = '';
 
-function emptyFlow(pl, bot, type) {
-  const menus = menusByScope(pl, bot);
-  const t = type === 'bind' || type === 'fallback' ? type : 'normal';
+function emptyFlow(pl, bot, type, platform) {
+  const plat = platform || defaultPlatform();
+  const menus = menusByScope(pl, bot, plat);
+  const t = type === 'fallback' ? 'fallback' : 'normal';
   return {
     id: '',
     name: t === 'normal' ? '' : fixedFlowLabel(t),
     productLineId: pl || defaultProductLine(),
-    botId: bot || defaultBot(pl),
+    platform: plat,
+    botId: bot || defaultBot(pl, plat),
     type: t,
     status: 'draft',
-    purpose: t === 'bind' ? '未绑定用户显示' : t === 'fallback' ? '所有策略都没匹配上时显示' : '',
+    purpose: t === 'fallback' ? '所有策略都没匹配上时显示' : '',
     mainMenuId: menus[0]?.id || '',
     firstPageId: '',
-    remark: t === 'bind' ? '用于未绑定用户显示' : t === 'fallback' ? '用于所有策略都没匹配上' : '',
+    remark: t === 'fallback' ? '用于所有策略都没匹配上' : '',
     updatedAt: nowTs(),
     pages: []
   };
@@ -38,11 +39,12 @@ function emptyPage(order) {
   return makePage('', '', '首页', { order: order || 0, status: 'active' });
 }
 
-function emptyMenu(pl, bot) {
+function emptyMenu(pl, bot, platform) {
   return {
     id: '',
     name: '',
     productLineId: pl,
+    platform: platform || draft?.platform || defaultPlatform(),
     botId: bot,
     status: 'active',
     buttons: []
@@ -244,6 +246,7 @@ function syncHeaderFields() {
   if (!draft) return;
   if (isNew) draft.id = (document.getElementById('f-id')?.value || '').trim();
   draft.name = (document.getElementById('f-name')?.value || '').trim();
+  draft.platform = document.getElementById('f-platform')?.value || draft.platform || defaultPlatform();
   draft.botId = document.getElementById('f-bot')?.value || draft.botId;
   draft.mainMenuId = document.getElementById('f-menu')?.value || '';
   draft.firstPageId = document.getElementById('f-first')?.value || '';
@@ -253,8 +256,17 @@ function syncHeaderFields() {
 function onEditorBotChange() {
   dirty = true;
   draft.botId = document.getElementById('f-bot').value;
-  const menus = menusByScope(draft.productLineId, draft.botId);
+  const menus = menusByScope(draft.productLineId, draft.botId, draft.platform);
   if (!menus.some(m => m.id === draft.mainMenuId)) draft.mainMenuId = menus[0]?.id || '';
+  renderEditor();
+}
+
+function onEditorPlatformChange() {
+  dirty = true;
+  draft.platform = document.getElementById('f-platform').value;
+  draft.botId = defaultBot(draft.productLineId, draft.platform);
+  const menus = menusByScope(draft.productLineId, draft.botId, draft.platform);
+  draft.mainMenuId = menus[0]?.id || '';
   renderEditor();
 }
 
@@ -268,12 +280,12 @@ function renderEditor() {
     <div class="flow-editor-head">
       <div>
         <h1>${isFixedFlow(draft) ? fixedPinHtml() : ''}对话流编辑${draft.name ? ` · ${esc(draft.name)}` : ''}</h1>
-        <p class="page-desc" style="margin:4px 0 0">${statusTag(draft.status)} ${statusTag(draft.type)}${isFixedFlow(draft) ? ` · ${esc(draft.type === 'bind' ? '未绑定用户显示' : '所有策略都没匹配上时显示')}` : ''}</p>
+        <p class="page-desc" style="margin:4px 0 0">${statusTag(draft.status)} ${statusTag(draft.type)}${isFixedFlow(draft) ? ' · 所有策略都没匹配上时显示' : ''}</p>
       </div>
       <div class="page-header-actions">
         <button class="btn btn-outline" type="button" onclick="goBack()">返回列表</button>
         <button class="btn btn-outline" type="button" onclick="saveFlow(false)">保存</button>
-        <button class="btn btn-primary" type="button" onclick="saveFlow(true)">发布</button>
+        <button class="btn btn-primary" type="button" onclick="saveFlow(true)">启用</button>
       </div>
     </div>
     <div class="flow-editor-grid">
@@ -285,8 +297,12 @@ function renderEditor() {
     <section class="card">
       <h4 class="card-title">基本信息</h4>
       <div class="field">
+        <label class="field-label">平台<span class="req">*</span></label>
+        <select class="select" id="f-platform" ${isFixedFlow(draft) ? 'disabled' : ''} onchange="onEditorPlatformChange()">${platformOptions(draft.platform || defaultPlatform())}</select>
+      </div>
+      <div class="field">
         <label class="field-label">Bot<span class="req">*</span></label>
-        <select class="select" id="f-bot" ${isFixedFlow(draft) ? 'disabled' : ''} onchange="onEditorBotChange()">${botOptions(draft.productLineId, draft.botId)}</select>
+        <select class="select" id="f-bot" ${isFixedFlow(draft) ? 'disabled' : ''} onchange="onEditorBotChange()">${botOptions(draft.productLineId, draft.botId, draft.platform)}</select>
       </div>
       <div class="field">
         <label class="field-label">对话流 ID<span class="req">*</span></label>
@@ -303,7 +319,7 @@ function renderEditor() {
           <option value="">请选择首屏页面</option>
           ${firstOpts}
         </select>
-        <div class="field-hint">发布前须指定首屏；默认可取第一页</div>
+        <div class="field-hint">启用前须指定首屏；默认可取第一页</div>
       </div>
       <div class="field">
         <label class="field-label">备注</label>
@@ -317,7 +333,7 @@ function renderEditor() {
       <div class="menu-toolbar">
         <select class="select" id="f-menu">
           <option value="">请选择默认主菜单</option>
-          ${menuOptions(draft.productLineId, draft.botId, draft.mainMenuId)}
+          ${menuOptions(draft.productLineId, draft.botId, draft.mainMenuId, draft.platform)}
         </select>
         <button class="btn btn-outline" type="button" onclick="openMenuEdit(null)">新建菜单</button>
         <button class="btn btn-outline" type="button" onclick="editCurrentMenu()">编辑当前菜单</button>
@@ -383,7 +399,7 @@ function saveFlow(publish) {
     return;
   }
   if (isFixedFlow(draft)) {
-    const dup = findFixedFlow(draft.productLineId, draft.botId, draft.type);
+    const dup = findFixedFlow(draft.productLineId, draft.botId, draft.type, draft.platform);
     if (dup && dup.id !== draft.id) {
       showToast(`当前 Bot 已有${fixedFlowLabel(draft.type)}`, 'err');
       return;
@@ -396,7 +412,7 @@ function saveFlow(publish) {
   if (publish) {
     if (!draft.firstPageId && sortedPages(draft)[0]) draft.firstPageId = sortedPages(draft)[0].id;
     if (!canPublishDraft()) {
-      showToast('发布前需至少 1 个页面、1 个主菜单按钮，并指定首屏', 'err');
+      showToast('启用前需至少 1 个页面、1 个主菜单按钮，并指定首屏', 'err');
       return;
     }
     draft.status = 'published';
@@ -407,7 +423,7 @@ function saveFlow(publish) {
   }
   dirty = false;
   if (isNew) isNew = false;
-  showToast(publish ? '已发布' : '保存成功');
+  showToast(publish ? '已启用' : '保存成功');
   if (publish) location.href = 'flows.html';
   else {
     history.replaceState(null, '', `flow-editor.html?id=${encodeURIComponent(draft.id)}`);
@@ -529,7 +545,7 @@ function renderPageDrawer() {
       <label class="field-label">主菜单覆盖</label>
       <select class="select" id="pg-menu">
         <option value="">使用对话流默认主菜单</option>
-        ${menuOptions(draft.productLineId, draft.botId, p.mainMenuOverrideId)}
+        ${menuOptions(draft.productLineId, draft.botId, p.mainMenuOverrideId, draft.platform)}
       </select>
     </div>
     <div class="field">
@@ -640,7 +656,7 @@ function openMenuEdit(id) {
   syncHeaderFields();
   menuIsNew = !id;
   menuDirty = false;
-  menuDraft = id ? clone(menuById(id)) : emptyMenu(draft.productLineId, draft.botId);
+  menuDraft = id ? clone(menuById(id)) : emptyMenu(draft.productLineId, draft.botId, draft.platform);
   if (!menuDraft) {
     showToast('未找到该主菜单', 'err');
     return;
@@ -670,7 +686,7 @@ function renderMenuDrawer() {
     <div class="detail-main" id="menu-form-host">
     <div class="field">
       <label class="field-label">Bot<span class="req">*</span></label>
-      <select class="select" id="mn-bot">${botOptions(m.productLineId || draft.productLineId, m.botId)}</select>
+      <select class="select" id="mn-bot">${botOptions(m.productLineId || draft.productLineId, m.botId, m.platform || draft.platform)}</select>
     </div>
     <div class="field">
       <label class="field-label">主菜单 ID<span class="req">*</span></label>
@@ -725,6 +741,7 @@ function syncMenuForm() {
   if (menuIsNew) menuDraft.id = (document.getElementById('mn-id')?.value || '').trim();
   menuDraft.name = (document.getElementById('mn-name')?.value || '').trim();
   menuDraft.productLineId = menuDraft.productLineId || draft.productLineId;
+  menuDraft.platform = menuDraft.platform || draft.platform || defaultPlatform();
   menuDraft.botId = document.getElementById('mn-bot')?.value || menuDraft.botId;
   menuDraft.status = document.querySelector('input[name="mn-status"]:checked')?.value || 'active';
 }
@@ -804,7 +821,6 @@ function openButtonEdit(source, index, newStyle) {
   const fallbackStyle = source === 'card' ? 'primary' : (newStyle || 'primary');
   btnDraft = index == null ? emptyButton(fallbackStyle, list.length + 1) : clone(list[index]);
   if (source === 'card') btnDraft.style = 'primary';
-  btnTagDraft = clone(btnDraft.displayTags || []);
   document.getElementById('buttonDrawerTitle').textContent = '按钮编辑';
   renderButtonDrawer();
   openDrawer('buttonDrawer');
@@ -833,35 +849,11 @@ function renderButtonDrawer() {
       </div>
     </div>` : ''}
     <div class="field">
-      <label class="field-label">显示条件</label>
-      <div class="field-hint">多选 AND；不选表示始终显示</div>
-      <div id="bt-tags">${renderBtnTagChips()}</div>
-    </div>
-    <div class="field">
       <label class="field-label">排序<span class="req">*</span></label>
       <input class="input" id="bt-sort" type="number" min="0" max="99" value="${esc(b.sort || 1)}" />
     </div>`;
   document.getElementById('buttonDrawerBody').oninput = () => { btnDirty = true; };
   document.getElementById('buttonDrawerBody').onchange = () => { btnDirty = true; };
-}
-
-function renderBtnTagChips() {
-  return TAG_GROUPS.map(g => `
-    <div class="chip-group-label">${esc(g.category)}</div>
-    <div class="chip-group">
-      ${g.tags.map(t => {
-        const on = btnTagDraft.includes(t);
-        return `<button type="button" class="chip${on ? ' selected' : ''}" onclick="toggleBtnTag('${t}')">${esc(tagLabel(t))}</button>`;
-      }).join('')}
-    </div>`).join('');
-}
-
-function toggleBtnTag(t) {
-  btnDirty = true;
-  if (btnTagDraft.includes(t)) btnTagDraft = btnTagDraft.filter(x => x !== t);
-  else btnTagDraft.push(t);
-  const host = document.getElementById('bt-tags');
-  if (host) host.innerHTML = renderBtnTagChips();
 }
 
 function renderEventParams(ev) {
@@ -894,7 +886,7 @@ function renderEventParams(ev) {
       <label class="field-label">对话流<span class="req">*</span></label>
       <select class="select" id="bt-flow">
         <option value="">请选择对话流</option>
-        ${publishedFlowOptions(draft.productLineId, draft.botId, b.flowId)}
+        ${publishedFlowOptions(draft.productLineId, draft.botId, b.flowId, draft.platform)}
       </select>
     </div>`;
   }
@@ -930,7 +922,6 @@ function readButtonForm() {
     flowId: document.getElementById('bt-flow')?.value || '',
     eventType: document.getElementById('bt-builtin')?.value || '',
     style,
-    displayTags: clone(btnTagDraft),
     sort: Number(document.getElementById('bt-sort')?.value || 1)
   };
 }
@@ -1005,16 +996,18 @@ document.addEventListener('DOMContentLoaded', () => {
     isNew = false;
   } else {
     const pl = qs('pl') || defaultProductLine();
-    const bot = qs('bot') || defaultBot(qs('pl'));
-    const type = qs('type') || 'normal';
-    if ((type === 'bind' || type === 'fallback') && findFixedFlow(pl, bot, type)) {
+    const platform = qs('platform') || defaultPlatform();
+    const bot = qs('bot') || defaultBot(pl, platform);
+    const type = qs('type') === 'fallback' ? 'fallback' : 'normal';
+    if (type === 'fallback' && findFixedFlow(pl, bot, type, platform)) {
       showToast(`当前 Bot 已有${fixedFlowLabel(type)}`, 'err');
       location.href = 'flows.html';
       return;
     }
-    draft = emptyFlow(pl, bot, type);
+    draft = emptyFlow(pl, bot, type, platform);
     isNew = true;
   }
+  if (!draft.platform) draft.platform = defaultPlatform();
   previewPageId = draft.firstPageId || sortedPages(draft)[0]?.id || '';
   bindDrawerClose({
     beforeClose: async drawerId => {

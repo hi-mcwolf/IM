@@ -2,15 +2,18 @@
 
 const PAGE_SIZE = 20;
 let page = 1;
-let filters = readQueryFilters(['pl', 'bot', 'kw', 'status']);
+let filters = readQueryFilters(['pl', 'platform', 'bot', 'flowId', 'flowName', 'status']);
 
 if (!filters.pl) filters.pl = defaultProductLine();
-if (!filters.bot) filters.bot = defaultBot(filters.pl);
+if (!filters.platform) filters.platform = defaultPlatform();
+if (!filters.bot) filters.bot = defaultBot(filters.pl, filters.platform);
 
 function applyQuery() {
   filters.pl = document.getElementById('f-pl')?.value || '';
+  filters.platform = document.getElementById('f-platform')?.value || '';
   filters.bot = document.getElementById('f-bot')?.value || '';
-  filters.kw = (document.getElementById('f-kw')?.value || '').trim();
+  filters.flowId = document.getElementById('f-flow-id')?.value || '';
+  filters.flowName = document.getElementById('f-flow-name')?.value || '';
   filters.status = document.getElementById('f-status')?.value || '';
   page = 1;
   writeQueryFilters(filters);
@@ -19,8 +22,19 @@ function applyQuery() {
 
 function onPlChange() {
   filters.pl = document.getElementById('f-pl').value;
-  filters.bot = defaultBot(filters.pl);
-  document.getElementById('f-bot').innerHTML = botOptions(filters.pl, filters.bot);
+  filters.bot = defaultBot(filters.pl, filters.platform);
+  filters.flowId = '';
+  filters.flowName = '';
+  document.getElementById('f-bot').innerHTML = botOptions(filters.pl, filters.bot, filters.platform);
+  applyQuery();
+}
+
+function onPlatformChange() {
+  filters.platform = document.getElementById('f-platform').value;
+  filters.bot = defaultBot(filters.pl, filters.platform);
+  filters.flowId = '';
+  filters.flowName = '';
+  document.getElementById('f-bot').innerHTML = botOptions(filters.pl, filters.bot, filters.platform);
   applyQuery();
 }
 
@@ -29,18 +43,24 @@ function gotoPage(p) {
   render();
 }
 
+function scopedFlows() {
+  return normalFlows().filter(f =>
+    (!filters.pl || f.productLineId === filters.pl) &&
+    (!filters.bot || f.botId === filters.bot) &&
+    (!filters.platform || f.platform === filters.platform || !f.platform)
+  );
+}
+
 function filteredFlows() {
-  const kw = (filters.kw || '').toLowerCase();
-  return normalFlows()
+  return scopedFlows()
     .filter(f => {
-      if (filters.pl && f.productLineId !== filters.pl) return false;
-      if (filters.bot && f.botId !== filters.bot) return false;
-      if (kw && !f.id.toLowerCase().includes(kw) && !f.name.toLowerCase().includes(kw)) return false;
+      if (filters.flowId && f.id !== filters.flowId) return false;
+      if (filters.flowName && f.id !== filters.flowName) return false;
       if (filters.status && f.status !== filters.status) return false;
       return true;
     })
     .sort((a, b) => {
-      const rank = f => (f.type === 'bind' ? 0 : f.type === 'fallback' ? 1 : 2);
+      const rank = f => (f.type === 'fallback' ? 0 : 1);
       return rank(a) - rank(b) || b.updatedAt.localeCompare(a.updatedAt);
     });
 }
@@ -57,17 +77,15 @@ function render() {
   const all = filteredFlows();
   const start = (page - 1) * PAGE_SIZE;
   const list = all.slice(start, start + PAGE_SIZE);
+  const scope = scopedFlows();
   document.getElementById('content').innerHTML = `
     <div class="page-header">
       <div>
         <h1 class="page-title">对话流</h1>
-        <p class="page-desc">配置主菜单 + 多页面承接结构；未绑定用户走绑定对话流，策略未命中走兜底对话流</p>
+        <p class="page-desc">配置主菜单 + 多页面承接结构；策略未命中走兜底对话流</p>
       </div>
       <div class="page-header-actions">
-        <button class="btn btn-outline" type="button" ${findFixedFlow(filters.pl, filters.bot, 'bind') ? 'disabled title="当前 Bot 已有绑定对话流"' : ''} onclick="goNew('bind')">
-          <i data-lucide="plus"></i>新建绑定对话流
-        </button>
-        <button class="btn btn-outline" type="button" ${findFixedFlow(filters.pl, filters.bot, 'fallback') ? 'disabled title="当前 Bot 已有兜底对话流"' : ''} onclick="goNew('fallback')">
+        <button class="btn btn-outline" type="button" ${findFixedFlow(filters.pl, filters.bot, 'fallback', filters.platform) ? 'disabled title="当前 Bot 已有兜底对话流"' : ''} onclick="goNew('fallback')">
           <i data-lucide="plus"></i>新建兜底对话流
         </button>
         <button class="btn btn-primary" type="button" onclick="goNew()">
@@ -82,20 +100,34 @@ function render() {
           <select class="select" id="f-pl" onchange="onPlChange()">${productLineOptions(filters.pl)}</select>
         </div>
         <div class="filter-item">
-          <span class="filter-label">Bot</span>
-          <select class="select" id="f-bot" onchange="applyQuery()">${botOptions(filters.pl, filters.bot)}</select>
+          <span class="filter-label">平台</span>
+          <select class="select" id="f-platform" onchange="onPlatformChange()">${platformOptions(filters.platform)}</select>
         </div>
         <div class="filter-item">
-          <span class="filter-label">关键字</span>
-          <input class="input" id="f-kw" maxlength="50" placeholder="输入对话流 ID 或名称模糊搜索" value="${esc(filters.kw)}" />
+          <span class="filter-label">Bot</span>
+          <select class="select" id="f-bot" onchange="applyQuery()">${botOptions(filters.pl, filters.bot, filters.platform)}</select>
+        </div>
+        <div class="filter-item">
+          <span class="filter-label">对话流 ID</span>
+          <select class="select" id="f-flow-id" onchange="applyQuery()">
+            <option value="">全部</option>
+            ${scope.map(f => optionHtml(f.id, f.id, filters.flowId)).join('')}
+          </select>
+        </div>
+        <div class="filter-item">
+          <span class="filter-label">对话流名称</span>
+          <select class="select" id="f-flow-name" onchange="applyQuery()">
+            <option value="">全部</option>
+            ${scope.map(f => optionHtml(f.id, f.name, filters.flowName)).join('')}
+          </select>
         </div>
         <div class="filter-item">
           <span class="filter-label">状态</span>
           <select class="select" id="f-status" onchange="applyQuery()">
             <option value="">全部</option>
             <option value="draft"${filters.status === 'draft' ? ' selected' : ''}>草稿</option>
-            <option value="published"${filters.status === 'published' ? ' selected' : ''}>已发布</option>
-            <option value="offline"${filters.status === 'offline' ? ' selected' : ''}>下线</option>
+            <option value="published"${filters.status === 'published' ? ' selected' : ''}>启用</option>
+            <option value="offline"${filters.status === 'offline' ? ' selected' : ''}>禁用</option>
           </select>
         </div>
         <div class="filter-actions">
@@ -122,7 +154,7 @@ function render() {
             ${list.length ? list.map(f => {
               const menu = menuById(f.mainMenuId);
               const published = f.status === 'published';
-              const canPub = (f.status === 'draft' || f.status === 'offline') && canPublish(f);
+              const canEnable = (f.status === 'draft' || f.status === 'offline') && canPublish(f);
               return `<tr>
                 <td>${esc(f.id)}</td>
                 <td>${isFixedFlow(f) ? fixedPinHtml() : ''}${esc(f.name)}</td>
@@ -133,8 +165,8 @@ function render() {
                 <td class="col-ops">
                   <button class="link-btn" type="button" onclick="location.href='flow-editor.html?id=${encodeURIComponent(f.id)}'">编辑</button>
                   <button class="link-btn" type="button" onclick="copyFlow('${esc(f.id)}')">复制</button>
-                  ${!published ? `<button class="link-btn" type="button" ${canPub ? '' : 'disabled'} onclick="publishFlow('${esc(f.id)}')">发布</button>` : ''}
-                  ${published && !isFixedFlow(f) ? `<button class="link-btn" type="button" onclick="offlineFlow('${esc(f.id)}')">下线</button>` : ''}
+                  ${!published ? `<button class="link-btn" type="button" ${canEnable ? '' : 'disabled'} onclick="enableFlow('${esc(f.id)}')">启用</button>` : ''}
+                  ${published && !isFixedFlow(f) ? `<button class="link-btn" type="button" onclick="disableFlow('${esc(f.id)}')">禁用</button>` : ''}
                 </td>
               </tr>`;
             }).join('') : `<tr><td colspan="7"><div class="table-empty">暂无数据</div></td></tr>`}
@@ -152,11 +184,11 @@ function goNew(type) {
     return;
   }
   const t = type || 'normal';
-  if ((t === 'bind' || t === 'fallback') && findFixedFlow(filters.pl, filters.bot, t)) {
+  if (t === 'fallback' && findFixedFlow(filters.pl, filters.bot, t, filters.platform)) {
     showToast(`当前 Bot 已有${fixedFlowLabel(t)}`, 'err');
     return;
   }
-  const q = `pl=${encodeURIComponent(filters.pl)}&bot=${encodeURIComponent(filters.bot)}${t !== 'normal' ? `&type=${encodeURIComponent(t)}` : ''}`;
+  const q = `pl=${encodeURIComponent(filters.pl)}&platform=${encodeURIComponent(filters.platform)}&bot=${encodeURIComponent(filters.bot)}${t !== 'normal' ? `&type=${encodeURIComponent(t)}` : ''}`;
   location.href = `flow-editor.html?${q}`;
 }
 
@@ -184,29 +216,29 @@ async function copyFlow(id) {
   location.href = `flow-editor.html?id=${encodeURIComponent(newId)}`;
 }
 
-function publishFlow(id) {
+function enableFlow(id) {
   const f = flowById(id);
   if (!f) return;
   if (!canPublish(f)) {
-    showToast('发布前需至少 1 个页面、1 个主菜单按钮，并指定首屏', 'err');
+    showToast('启用前需至少 1 个页面、1 个主菜单按钮，并指定首屏', 'err');
     return;
   }
   f.status = 'published';
   f.updatedAt = nowTs();
   saveStore();
-  showToast('已发布');
+  showToast('已启用');
   render();
 }
 
-async function offlineFlow(id) {
+async function disableFlow(id) {
   const f = flowById(id);
   if (!f) return;
-  const ok = await confirmModal({ title: `确认下线对话流 ${f.name}？`, confirmText: '确认下线', danger: false });
+  const ok = await confirmModal({ title: `确认禁用对话流 ${f.name}？`, confirmText: '确认禁用', danger: false });
   if (!ok) return;
   f.status = 'offline';
   f.updatedAt = nowTs();
   saveStore();
-  showToast('已下线');
+  showToast('已禁用');
   render();
 }
 

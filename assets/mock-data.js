@@ -1,18 +1,37 @@
 /* IM Bot 用户分层 v0.4 — 内存 + sessionStorage mock */
 
-const STORE_KEY = 'im-bot-layering-v05';
+const STORE_KEY = 'im-bot-layering-v08';
 
 const PRODUCT_LINES = [
   { id: 'digiplus', name: 'digiplus' },
   { id: 'BingoPlus', name: 'BingoPlus' }
 ];
 
-const TAG_GROUPS = [
-  { category: '用户等级', tags: ['V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V8'] },
-  { category: '生命周期', tags: ['rd', 'fd'] }
+const PLATFORMS = [
+  { id: 'viber', name: 'viber' },
+  { id: 'telegram', name: 'telegram' }
 ];
 
-const TAG_LABELS = { rd: 'rd', fd: 'fd' };
+const PLATFORM_BOT_KEYS = { viber: 'vb', telegram: 'tg' };
+
+const PROTOS_TAGS = [
+  {
+    id: 'user_level',
+    name: 'User Level',
+    children: [
+      { id: 'V1', name: 'V1' }, { id: 'V2', name: 'V2' }, { id: 'V3', name: 'V3' }, { id: 'V4', name: 'V4' },
+      { id: 'V5', name: 'V5' }, { id: 'V6', name: 'V6' }, { id: 'V7', name: 'V7' }, { id: 'V8', name: 'V8' }
+    ]
+  },
+  {
+    id: 'lifecycle',
+    name: 'Lifecycle',
+    children: [
+      { id: 'rd', name: 'rd' },
+      { id: 'fd', name: 'fd' }
+    ]
+  }
+];
 
 const PAGE_TYPES = ['首页', '列表', '状态', '分类菜单', '过渡', '收尾'];
 
@@ -58,7 +77,6 @@ function makeBtn(id, text, event, extra = {}) {
     flowId: extra.flowId || '',
     eventType: extra.eventType || '',
     style: extra.style || 'primary',
-    displayTags: extra.displayTags || [],
     sort: extra.sort || 1
   };
 }
@@ -125,6 +143,7 @@ const SEED = {
       id: 'menu_main',
       name: '主菜单',
       productLineId: 'BingoPlus',
+      platform: 'viber',
       botId: 'bot_1',
       status: 'active',
       buttons: [
@@ -138,6 +157,7 @@ const SEED = {
       id: 'menu_support',
       name: '客服菜单',
       productLineId: 'BingoPlus',
+      platform: 'viber',
       botId: 'bot_1',
       status: 'active',
       buttons: [
@@ -145,22 +165,13 @@ const SEED = {
         makeBtn('msb_2', '回首页', 'Flow', { flowId: 'flow_vip_home', style: 'secondary', sort: 2 })
       ]
     },
-    {
-      id: 'menu_bind',
-      name: '绑定菜单',
-      productLineId: 'BingoPlus',
-      botId: 'bot_1',
-      status: 'active',
-      buttons: [
-        makeBtn('mbb_1', '分享手机号', 'Event', { eventType: 'SharePhone', style: 'primary', sort: 1 })
-      ]
-    }
   ],
   flows: [
     {
       id: 'flow_vip_home',
       name: 'VIP大客首页',
       productLineId: 'BingoPlus',
+      platform: 'viber',
       botId: 'bot_1',
       type: 'normal',
       status: 'published',
@@ -199,6 +210,7 @@ const SEED = {
       id: 'flow_member',
       name: '普通会员首页',
       productLineId: 'BingoPlus',
+      platform: 'viber',
       botId: 'bot_1',
       type: 'normal',
       status: 'published',
@@ -228,6 +240,7 @@ const SEED = {
       id: 'flow_cs',
       name: '客服入口',
       productLineId: 'BingoPlus',
+      platform: 'viber',
       botId: 'bot_1',
       type: 'normal',
       status: 'published',
@@ -249,6 +262,7 @@ const SEED = {
       id: 'flow_promo',
       name: '活动草稿',
       productLineId: 'BingoPlus',
+      platform: 'viber',
       botId: 'bot_1',
       type: 'normal',
       status: 'draft',
@@ -259,31 +273,10 @@ const SEED = {
       pages: []
     },
     {
-      id: 'sys_bind',
-      name: '绑定对话流',
-      productLineId: 'BingoPlus',
-      botId: 'bot_1',
-      type: 'bind',
-      status: 'published',
-      purpose: '未绑定用户显示',
-      mainMenuId: 'menu_bind',
-      firstPageId: 'page_bind',
-      remark: '用于未绑定用户显示',
-      updatedAt: '2026-09-01 00:00:00',
-      pages: [
-        makePage('page_bind', '绑定引导', '首页', {
-          order: 0,
-          text: '请先绑定账号，绑定后即可享受个性化承接',
-          cardButtons: [
-            makeBtn('cb_b1', '分享手机号', 'Event', { eventType: 'SharePhone', sort: 1 })
-          ]
-        })
-      ]
-    },
-    {
       id: 'sys_default',
       name: '兜底对话流',
       productLineId: 'BingoPlus',
+      platform: 'viber',
       botId: 'bot_1',
       type: 'fallback',
       status: 'published',
@@ -306,6 +299,7 @@ const SEED = {
       id: 'sys_offline',
       name: '离线留单',
       productLineId: 'BingoPlus',
+      platform: 'viber',
       botId: 'bot_1',
       type: 'system',
       status: 'published',
@@ -325,6 +319,7 @@ const SEED = {
       id: 'sys_finish',
       name: '收尾',
       productLineId: 'BingoPlus',
+      platform: 'viber',
       botId: 'bot_1',
       type: 'system',
       status: 'published',
@@ -348,11 +343,8 @@ const SEED = {
       id: 'scene_vip',
       name: 'VIP大客',
       productLineId: 'BingoPlus',
+      platform: 'viber',
       botId: 'bot_1',
-      entryFlowId: '',
-      useStrategy: true,
-      effectiveStart: '2026-09-01 00:00:00',
-      effectiveEnd: '2026-12-31 23:59:59',
       status: 'active',
       remark: 'deeplink source=scene_vip',
       createdAt: '2026-09-10 10:00:00',
@@ -362,11 +354,8 @@ const SEED = {
       id: 'scene_member',
       name: '普通会员',
       productLineId: 'BingoPlus',
+      platform: 'viber',
       botId: 'bot_1',
-      entryFlowId: '',
-      useStrategy: true,
-      effectiveStart: '',
-      effectiveEnd: '',
       status: 'active',
       remark: '',
       createdAt: '2026-09-10 10:05:00',
@@ -376,13 +365,10 @@ const SEED = {
       id: 'scene_cs',
       name: '客服',
       productLineId: 'BingoPlus',
+      platform: 'viber',
       botId: 'bot_1',
-      entryFlowId: 'flow_cs',
-      useStrategy: false,
-      effectiveStart: '',
-      effectiveEnd: '',
       status: 'active',
-      remark: '专属客服入口，不走策略',
+      remark: '客服入口',
       createdAt: '2026-09-10 10:10:00',
       updatedAt: '2026-09-14 09:00:00'
     }
@@ -390,9 +376,12 @@ const SEED = {
   strategies: [
     {
       id: 'strategy_vip68',
-      sceneId: 'scene_vip',
+      name: 'VIP6-8 专属',
+      sceneIds: ['scene_vip'],
       productLineId: 'BingoPlus',
+      platform: 'viber',
       botId: 'bot_1',
+      protosTagIds: ['user_level'],
       tags: ['V6', 'V7', 'V8'],
       flowId: 'flow_vip_home',
       priority: 10,
@@ -404,9 +393,12 @@ const SEED = {
     },
     {
       id: 'strategy_rd',
-      sceneId: 'scene_vip',
+      name: 'VIP 回流',
+      sceneIds: ['scene_vip'],
       productLineId: 'BingoPlus',
+      platform: 'viber',
       botId: 'bot_1',
+      protosTagIds: ['lifecycle'],
       tags: ['rd'],
       flowId: 'flow_member',
       priority: 20,
@@ -418,9 +410,12 @@ const SEED = {
     },
     {
       id: 'strategy_member_default',
-      sceneId: 'scene_member',
+      name: '普通会员默认',
+      sceneIds: ['scene_member'],
       productLineId: 'BingoPlus',
+      platform: 'viber',
       botId: 'bot_1',
+      protosTagIds: ['user_level'],
       tags: ['V1', 'V2', 'V3', 'V4', 'V5'],
       flowId: 'flow_member',
       priority: 10,
@@ -429,6 +424,24 @@ const SEED = {
       status: 'active',
       remark: '',
       createdAt: '2026-09-11 09:30:00'
+    },
+    {
+      id: 'strategy_fallback',
+      type: 'fallback',
+      name: '兜底策略',
+      sceneIds: [],
+      productLineId: 'BingoPlus',
+      platform: 'viber',
+      botId: 'bot_1',
+      protosTagIds: [],
+      tags: [],
+      flowId: 'sys_default',
+      priority: 999,
+      effectiveStart: '',
+      effectiveEnd: '',
+      status: 'active',
+      remark: '所有策略都没匹配上时走此策略',
+      createdAt: '2026-09-01 00:00:00'
     }
   ]
 };
@@ -466,7 +479,11 @@ function builtinEventLabel(v) {
 }
 
 function tagLabel(t) {
-  return TAG_LABELS[t] || t;
+  for (const p of PROTOS_TAGS) {
+    const child = (p.children || []).find(c => c.id === t);
+    if (child) return child.name;
+  }
+  return t;
 }
 
 function formatTags(tags) {
@@ -474,34 +491,84 @@ function formatTags(tags) {
   return tags.map(tagLabel).join(' / ');
 }
 
+function protosParentById(id) {
+  return PROTOS_TAGS.find(p => p.id === id);
+}
+
+function protosChildIds(parentIds) {
+  const set = new Set();
+  (parentIds || []).forEach(pid => {
+    const p = protosParentById(pid);
+    (p?.children || []).forEach(c => set.add(c.id));
+  });
+  return [...set];
+}
+
+function strategySceneIds(s) {
+  if (!s) return [];
+  if (Array.isArray(s.sceneIds) && s.sceneIds.length) return s.sceneIds;
+  if (s.sceneId) return [s.sceneId];
+  return [];
+}
+
 function productLineById(id) {
   return PRODUCT_LINES.find(p => p.id === id);
+}
+
+function defaultPlatform() {
+  return PLATFORMS[0].id;
+}
+
+function platformBotKey(platform) {
+  return PLATFORM_BOT_KEYS[platform] || '';
 }
 
 function botsByProductLine(pl) {
   return DB.bots.filter(b => !pl || b.productLineId === pl);
 }
 
+function botsByScope(pl, platform) {
+  const key = platformBotKey(platform);
+  return botsByProductLine(pl).filter(b => !key || (b.platforms || []).includes(key));
+}
+
 function defaultProductLine() {
   return PRODUCT_LINES[1]?.id || PRODUCT_LINES[0].id;
 }
 
-function defaultBot(pl) {
-  return botsByProductLine(pl)[0]?.id || '';
+function defaultBot(pl, platform) {
+  return botsByScope(pl, platform || defaultPlatform())[0]?.id || '';
 }
 
 function isFixedFlow(f) {
-  return !!f && (f.type === 'bind' || f.type === 'fallback');
+  return !!f && f.type === 'fallback';
 }
 
 function fixedFlowLabel(type) {
-  if (type === 'bind') return '绑定对话流';
   if (type === 'fallback') return '兜底对话流';
   return '';
 }
 
-function findFixedFlow(pl, botId, type) {
-  return DB.flows.find(f => f.productLineId === pl && f.botId === botId && f.type === type);
+function findFixedFlow(pl, botId, type, platform) {
+  return DB.flows.find(f =>
+    f.productLineId === pl &&
+    f.botId === botId &&
+    f.type === type &&
+    (!platform || f.platform === platform || !f.platform)
+  );
+}
+
+function isFallbackStrategy(s) {
+  return !!s && s.type === 'fallback';
+}
+
+function findFallbackStrategy(pl, botId, platform) {
+  return DB.strategies.find(s =>
+    isFallbackStrategy(s) &&
+    s.productLineId === pl &&
+    s.botId === botId &&
+    (!platform || !s.platform || s.platform === platform)
+  );
 }
 
 function normalFlows() {
@@ -512,12 +579,18 @@ function systemFlows() {
   return DB.flows.filter(f => f.type === 'system');
 }
 
-function publishedFlows(pl, botId) {
-  return DB.flows.filter(f => f.status === 'published' && f.type !== 'system' && (!pl || f.productLineId === pl) && (!botId || f.botId === botId));
+function publishedFlows(pl, botId, platform) {
+  return DB.flows.filter(f =>
+    f.status === 'published' &&
+    f.type !== 'system' &&
+    (!pl || f.productLineId === pl) &&
+    (!botId || f.botId === botId) &&
+    (!platform || f.platform === platform || !f.platform)
+  );
 }
 
-function publishedMatchFlows(pl, botId) {
-  return publishedFlows(pl, botId).filter(f => f.type === 'normal' || !f.type);
+function publishedMatchFlows(pl, botId, platform) {
+  return publishedFlows(pl, botId, platform).filter(f => f.type === 'normal' || !f.type);
 }
 
 function flowById(id) {
@@ -528,16 +601,24 @@ function menuById(id) {
   return (DB.menus || []).find(m => m.id === id);
 }
 
-function menusByScope(pl, botId) {
-  return (DB.menus || []).filter(m => (!pl || m.productLineId === pl) && (!botId || m.botId === botId));
+function menusByScope(pl, botId, platform) {
+  return (DB.menus || []).filter(m =>
+    (!pl || m.productLineId === pl) &&
+    (!botId || m.botId === botId) &&
+    (!platform || m.platform === platform || !m.platform)
+  );
 }
 
 function sceneById(id) {
   return DB.scenes.find(s => s.id === id);
 }
 
-function scenesByScope(pl, botId) {
-  return DB.scenes.filter(s => (!pl || s.productLineId === pl) && (!botId || s.botId === botId));
+function scenesByScope(pl, botId, platform) {
+  return DB.scenes.filter(s =>
+    (!pl || s.productLineId === pl) &&
+    (!botId || s.botId === botId) &&
+    (!platform || s.platform === platform || !s.platform)
+  );
 }
 
 function strategyById(id) {
@@ -549,13 +630,11 @@ function pageById(flow, pageId) {
 }
 
 function sceneRefCount(sceneId) {
-  return DB.strategies.filter(s => s.sceneId === sceneId).length;
+  return DB.strategies.filter(s => strategySceneIds(s).includes(sceneId)).length;
 }
 
 function flowRefCount(flowId) {
-  const fromS = DB.strategies.filter(s => s.flowId === flowId).length;
-  const fromSc = DB.scenes.filter(s => s.entryFlowId === flowId).length;
-  return fromS + fromSc;
+  return DB.strategies.filter(s => s.flowId === flowId).length;
 }
 
 function menuButtonCount(menuId) {
@@ -566,22 +645,46 @@ function productLineOptions(selected) {
   return PRODUCT_LINES.map(p => optionHtml(p.id, p.name, selected)).join('');
 }
 
-function botOptions(pl, selected) {
-  return botsByProductLine(pl).map(b => optionHtml(b.id, b.botName, selected)).join('');
+function platformOptions(selected) {
+  return PLATFORMS.map(p => optionHtml(p.id, p.name, selected)).join('');
 }
 
-function sceneOptions(pl, botId, selected) {
-  return scenesByScope(pl, botId).map(s => optionHtml(s.id, `${s.name} (${s.id})`, selected)).join('');
+function botOptions(pl, selected, platform) {
+  return botsByScope(pl, platform || defaultPlatform()).map(b => optionHtml(b.id, b.botName, selected)).join('');
 }
 
-function publishedFlowOptions(pl, botId, selected) {
-  return publishedFlows(pl, botId).map(f => optionHtml(f.id, `${f.name} (${f.id})`, selected)).join('');
+function sceneOptions(pl, botId, selected, platform) {
+  return scenesByScope(pl, botId, platform).map(s => optionHtml(s.id, `${s.name} (${s.id})`, selected)).join('');
 }
 
-function publishedMatchFlowOptions(pl, botId, selected) {
-  return publishedMatchFlows(pl, botId).map(f => optionHtml(f.id, `${f.name} (${f.id})`, selected)).join('');
+function sceneCodeOptions(pl, botId, selected, platform) {
+  return scenesByScope(pl, botId, platform).map(s => optionHtml(s.id, s.id, selected)).join('');
 }
 
-function menuOptions(pl, botId, selected) {
-  return menusByScope(pl, botId).map(m => optionHtml(m.id, `${m.name} (${m.id})`, selected)).join('');
+function sceneNameOptions(pl, botId, selected, platform) {
+  return scenesByScope(pl, botId, platform).map(s => optionHtml(s.id, s.name, selected)).join('');
+}
+
+function flowIdOptions(pl, botId, selected, platform) {
+  return normalFlows()
+    .filter(f => (!pl || f.productLineId === pl) && (!botId || f.botId === botId) && (!platform || f.platform === platform || !f.platform))
+    .map(f => optionHtml(f.id, f.id, selected)).join('');
+}
+
+function flowNameOptions(pl, botId, selected, platform) {
+  return normalFlows()
+    .filter(f => (!pl || f.productLineId === pl) && (!botId || f.botId === botId) && (!platform || f.platform === platform || !f.platform))
+    .map(f => optionHtml(f.id, f.name, selected)).join('');
+}
+
+function publishedFlowOptions(pl, botId, selected, platform) {
+  return publishedFlows(pl, botId, platform).map(f => optionHtml(f.id, `${f.name} (${f.id})`, selected)).join('');
+}
+
+function publishedMatchFlowOptions(pl, botId, selected, platform) {
+  return publishedMatchFlows(pl, botId, platform).map(f => optionHtml(f.id, `${f.name} (${f.id})`, selected)).join('');
+}
+
+function menuOptions(pl, botId, selected, platform) {
+  return menusByScope(pl, botId, platform).map(m => optionHtml(m.id, `${m.name} (${m.id})`, selected)).join('');
 }

@@ -198,11 +198,10 @@ function statusTag(status) {
     enabled: { label: '启用', cls: 'tag-success' },
     disabled: { label: '停用', cls: 'tag-gray' },
     draft: { label: '草稿', cls: 'tag-info' },
-    published: { label: '已发布', cls: 'tag-success' },
-    offline: { label: '下线', cls: 'tag-gray' },
+    published: { label: '启用', cls: 'tag-success' },
+    offline: { label: '禁用', cls: 'tag-gray' },
     SUCCESS: { label: 'SUCCESS', cls: 'tag-success' },
     normal: { label: '普通', cls: 'tag-info' },
-    bind: { label: '绑定', cls: 'tag-warning' },
     fallback: { label: '兜底', cls: 'tag-warning' },
     system: { label: '系统保留', cls: 'tag-warning' }
   };

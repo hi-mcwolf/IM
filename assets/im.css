@@ -162,6 +162,8 @@ html, body { height: 100%; }
   vertical-align: -2px;
 }
 .fixed-mark .lucide { width: 14px; height: 14px; }
+.fallback-row { background: #FAFBFC; }
+.fallback-row td { color: var(--text-2); }
 .flow-editor-grid {
   display: grid;
   grid-template-columns: 340px minmax(0, 1fr);
@@ -387,6 +389,22 @@ html, body { height: 100%; }
   margin: 10px 0 6px;
 }
 .chip-group-label:first-child { margin-top: 0; }
+
+.protos-rows { display: flex; flex-direction: column; gap: 12px; }
+.protos-row {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  padding: 12px;
+  background: var(--bg);
+}
+.protos-row-head {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.protos-row-head .select { flex: 1; min-width: 0; }
+.protos-row-children { margin-top: 10px; }
+.protos-add-btn { margin-top: 8px; }
 
 .menu-toolbar {
   display: flex;
