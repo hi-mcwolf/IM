@@ -1,6 +1,6 @@
 /* IM Bot 用户分层 v0.4 — 内存 + sessionStorage mock */
 
-const STORE_KEY = 'im-bot-layering-v08';
+const STORE_KEY = 'im-bot-layering-v11';
 
 const PRODUCT_LINES = [
   { id: 'digiplus', name: 'digiplus' },
@@ -56,6 +56,16 @@ const IMAGE_PRESETS = [
   { value: 'https://cdn.example.com/vip.jpg', label: 'VIP 图' }
 ];
 
+const BROWSER_TARGETS = [
+  { value: 'internal', label: '内部浏览器' },
+  { value: 'external', label: '外部浏览器' }
+];
+
+const SHARE_AFTER_ACTIONS = [
+  { value: 'Page', label: '页面' },
+  { value: 'Flow', label: '对话流' }
+];
+
 function clone(obj) {
   return JSON.parse(JSON.stringify(obj));
 }
@@ -73,10 +83,12 @@ function makeBtn(id, text, event, extra = {}) {
     event,
     pageId: extra.pageId || '',
     url: extra.url || '',
-    autoLogin: extra.autoLogin || false,
+    browser: extra.browser || (extra.autoLogin ? 'internal' : (extra.url ? 'external' : '')),
     flowId: extra.flowId || '',
     eventType: extra.eventType || '',
+    shareAfter: extra.shareAfter || '',
     style: extra.style || 'primary',
+    image: extra.image || '',
     sort: extra.sort || 1
   };
 }
@@ -147,10 +159,10 @@ const SEED = {
       botId: 'bot_1',
       status: 'active',
       buttons: [
-        makeBtn('mb_1', '首页', 'Page', { pageId: 'page_welcome', style: 'primary', sort: 1 }),
-        makeBtn('mb_2', '活动', 'Page', { pageId: 'page_offer', style: 'primary', sort: 2 }),
-        makeBtn('mb_3', '客服', 'Event', { eventType: 'Support', style: 'secondary', sort: 3 }),
-        makeBtn('mb_4', '回首页', 'Home', { style: 'secondary', sort: 4 })
+        makeBtn('mb_1', '首页', 'Page', { pageId: 'page_welcome', sort: 1 }),
+        makeBtn('mb_2', '活动', 'Page', { pageId: 'page_offer', sort: 2 }),
+        makeBtn('mb_3', '客服', 'Event', { eventType: 'Support', sort: 3 }),
+        makeBtn('mb_4', '回首页', 'Home', { sort: 4 })
       ]
     },
     {
@@ -161,8 +173,8 @@ const SEED = {
       botId: 'bot_1',
       status: 'active',
       buttons: [
-        makeBtn('msb_1', '联系客服', 'Event', { eventType: 'Support', style: 'primary', sort: 1 }),
-        makeBtn('msb_2', '回首页', 'Flow', { flowId: 'flow_vip_home', style: 'secondary', sort: 2 })
+        makeBtn('msb_1', '联系客服', 'Event', { eventType: 'Support', sort: 1 }),
+        makeBtn('msb_2', '回首页', 'Flow', { flowId: 'flow_vip_home', sort: 2 })
       ]
     },
   ],
@@ -185,8 +197,8 @@ const SEED = {
           image: 'https://cdn.example.com/vip.jpg',
           text: '尊贵的 VIP，欢迎回来 {nickname}',
           cardButtons: [
-            makeBtn('cb_w1', '查看活动详情', 'Page', { pageId: 'page_offer', sort: 1 }),
-            makeBtn('cb_w2', '去充值', 'Url', { url: 'https://bp.com/deposit?mid={memberId}', autoLogin: true, sort: 2 })
+            makeBtn('cb_w1', '查看活动详情', 'Page', { pageId: 'page_offer', style: 'primary', sort: 1 }),
+            makeBtn('cb_w2', '去充值', 'Url', { url: 'https://bp.com/deposit?mid={memberId}', browser: 'internal', style: 'secondary', sort: 2 })
           ]
         }),
         makePage('page_offer', '活动详情', '列表', {
@@ -194,7 +206,7 @@ const SEED = {
           image: 'https://cdn.example.com/offer.jpg',
           text: '本周精选活动，充值即送',
           cardButtons: [
-            makeBtn('cb_o1', '去充值', 'Url', { url: 'https://bp.com/deposit?mid={memberId}', autoLogin: true, sort: 1 })
+            makeBtn('cb_o1', '去充值', 'Url', { url: 'https://bp.com/deposit?mid={memberId}', browser: 'internal', sort: 1 })
           ]
         }),
         makePage('page_wifi', 'Wifi', '过渡', {
@@ -231,7 +243,7 @@ const SEED = {
           order: 1,
           text: '完成任务可获得奖励',
           cardButtons: [
-            makeBtn('cb_m2', '分享手机号', 'Event', { eventType: 'SharePhone', sort: 1 })
+            makeBtn('cb_m2', '分享手机号', 'Event', { eventType: 'SharePhone', shareAfter: 'Page', pageId: 'page_member_hi', sort: 1 })
           ]
         })
       ]
@@ -274,16 +286,16 @@ const SEED = {
     },
     {
       id: 'sys_default',
-      name: '兜底对话流',
+      name: '默认欢迎',
       productLineId: 'BingoPlus',
       platform: 'viber',
       botId: 'bot_1',
-      type: 'fallback',
+      type: 'normal',
       status: 'published',
-      purpose: '所有策略都没匹配上时显示',
+      purpose: '',
       mainMenuId: 'menu_main',
       firstPageId: 'page_sys_hi',
-      remark: '用于所有策略都没匹配上',
+      remark: '',
       updatedAt: '2026-09-01 00:00:00',
       pages: [
         makePage('page_sys_hi', '默认欢迎', '首页', {
@@ -470,6 +482,14 @@ function isIdToken(s, max = 50) {
   return /^[a-z][a-z0-9_]{0,49}$/.test(s) && s.length <= max;
 }
 
+function buttonImageLabel(url) {
+  return imagePresetLabel(url);
+}
+
+function imagePresetLabel(url) {
+  return IMAGE_PRESETS.find(i => i.value === url)?.label || (url ? '图片' : '');
+}
+
 function eventLabel(v) {
   return BUTTON_EVENTS.find(e => e.value === v)?.label || v || '-';
 }
@@ -540,37 +560,6 @@ function defaultBot(pl, platform) {
   return botsByScope(pl, platform || defaultPlatform())[0]?.id || '';
 }
 
-function isFixedFlow(f) {
-  return !!f && f.type === 'fallback';
-}
-
-function fixedFlowLabel(type) {
-  if (type === 'fallback') return '兜底对话流';
-  return '';
-}
-
-function findFixedFlow(pl, botId, type, platform) {
-  return DB.flows.find(f =>
-    f.productLineId === pl &&
-    f.botId === botId &&
-    f.type === type &&
-    (!platform || f.platform === platform || !f.platform)
-  );
-}
-
-function isFallbackStrategy(s) {
-  return !!s && s.type === 'fallback';
-}
-
-function findFallbackStrategy(pl, botId, platform) {
-  return DB.strategies.find(s =>
-    isFallbackStrategy(s) &&
-    s.productLineId === pl &&
-    s.botId === botId &&
-    (!platform || !s.platform || s.platform === platform)
-  );
-}
-
 function normalFlows() {
   return DB.flows.filter(f => f.type !== 'system');
 }
@@ -590,7 +579,7 @@ function publishedFlows(pl, botId, platform) {
 }
 
 function publishedMatchFlows(pl, botId, platform) {
-  return publishedFlows(pl, botId, platform).filter(f => f.type === 'normal' || !f.type);
+  return publishedFlows(pl, botId, platform);
 }
 
 function flowById(id) {

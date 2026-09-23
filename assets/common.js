@@ -202,7 +202,6 @@ function statusTag(status) {
     offline: { label: '禁用', cls: 'tag-gray' },
     SUCCESS: { label: 'SUCCESS', cls: 'tag-success' },
     normal: { label: '普通', cls: 'tag-info' },
-    fallback: { label: '兜底', cls: 'tag-warning' },
     system: { label: '系统保留', cls: 'tag-warning' }
   };
   const item = map[status] || { label: status || '-', cls: 'tag-gray' };
@@ -233,7 +232,7 @@ function fieldError(id, msg) {
 }
 
 function fixedPinHtml() {
-  return `<span class="fixed-mark" title="固定"><i data-lucide="pin"></i></span>`;
+  return `<span class="fixed-mark" title="兜底"><i data-lucide="pin"></i></span>`;
 }
 
 function optionHtml(value, label, selected) {

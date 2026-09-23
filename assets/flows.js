@@ -59,10 +59,7 @@ function filteredFlows() {
       if (filters.status && f.status !== filters.status) return false;
       return true;
     })
-    .sort((a, b) => {
-      const rank = f => (f.type === 'fallback' ? 0 : 1);
-      return rank(a) - rank(b) || b.updatedAt.localeCompare(a.updatedAt);
-    });
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 
 function canPublish(flow) {
@@ -82,12 +79,9 @@ function render() {
     <div class="page-header">
       <div>
         <h1 class="page-title">对话流</h1>
-        <p class="page-desc">配置主菜单 + 多页面承接结构；策略未命中走兜底对话流</p>
+        <p class="page-desc">配置底部菜单 + 多页面承接结构</p>
       </div>
       <div class="page-header-actions">
-        <button class="btn btn-outline" type="button" ${findFixedFlow(filters.pl, filters.bot, 'fallback', filters.platform) ? 'disabled title="当前 Bot 已有兜底对话流"' : ''} onclick="goNew('fallback')">
-          <i data-lucide="plus"></i>新建兜底对话流
-        </button>
         <button class="btn btn-primary" type="button" onclick="goNew()">
           <i data-lucide="plus"></i>新建对话流
         </button>
@@ -145,7 +139,6 @@ function render() {
               <th>名称</th>
               <th>默认主菜单</th>
               <th>页面数</th>
-              <th>类型</th>
               <th>状态</th>
               <th class="col-ops">操作</th>
             </tr>
@@ -157,19 +150,18 @@ function render() {
               const canEnable = (f.status === 'draft' || f.status === 'offline') && canPublish(f);
               return `<tr>
                 <td>${esc(f.id)}</td>
-                <td>${isFixedFlow(f) ? fixedPinHtml() : ''}${esc(f.name)}</td>
+                <td>${esc(f.name)}</td>
                 <td>${esc(menu ? menu.name : '-')}</td>
                 <td>${(f.pages || []).length}</td>
-                <td>${statusTag(f.type)}</td>
                 <td>${statusTag(f.status)}</td>
                 <td class="col-ops">
                   <button class="link-btn" type="button" onclick="location.href='flow-editor.html?id=${encodeURIComponent(f.id)}'">编辑</button>
                   <button class="link-btn" type="button" onclick="copyFlow('${esc(f.id)}')">复制</button>
                   ${!published ? `<button class="link-btn" type="button" ${canEnable ? '' : 'disabled'} onclick="enableFlow('${esc(f.id)}')">启用</button>` : ''}
-                  ${published && !isFixedFlow(f) ? `<button class="link-btn" type="button" onclick="disableFlow('${esc(f.id)}')">禁用</button>` : ''}
+                  ${published ? `<button class="link-btn" type="button" onclick="disableFlow('${esc(f.id)}')">禁用</button>` : ''}
                 </td>
               </tr>`;
-            }).join('') : `<tr><td colspan="7"><div class="table-empty">暂无数据</div></td></tr>`}
+            }).join('') : `<tr><td colspan="6"><div class="table-empty">暂无数据</div></td></tr>`}
           </tbody>
         </table>
       </div>
@@ -178,17 +170,12 @@ function render() {
   refreshIcons();
 }
 
-function goNew(type) {
+function goNew() {
   if (!filters.pl || !filters.bot) {
     showToast('请先选择产品线与 Bot', 'err');
     return;
   }
-  const t = type || 'normal';
-  if (t === 'fallback' && findFixedFlow(filters.pl, filters.bot, t, filters.platform)) {
-    showToast(`当前 Bot 已有${fixedFlowLabel(t)}`, 'err');
-    return;
-  }
-  const q = `pl=${encodeURIComponent(filters.pl)}&platform=${encodeURIComponent(filters.platform)}&bot=${encodeURIComponent(filters.bot)}${t !== 'normal' ? `&type=${encodeURIComponent(t)}` : ''}`;
+  const q = `pl=${encodeURIComponent(filters.pl)}&platform=${encodeURIComponent(filters.platform)}&bot=${encodeURIComponent(filters.bot)}`;
   location.href = `flow-editor.html?${q}`;
 }
 

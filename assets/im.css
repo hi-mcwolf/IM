@@ -157,7 +157,7 @@ html, body { height: 100%; }
 .fixed-mark {
   display: inline-flex;
   align-items: center;
-  margin-right: 6px;
+  margin-left: 6px;
   color: var(--warning);
   vertical-align: -2px;
 }
@@ -286,6 +286,10 @@ html, body { height: 100%; }
   cursor: pointer;
   border-top: 1px solid var(--line);
 }
+.viber-card-btn.secondary {
+  color: #6B6F80;
+  font-weight: 500;
+}
 .viber-card-btn:first-child { border-top: none; }
 .viber-card-btn:hover { background: #F7F5FF; }
 .viber-keyboard {
@@ -307,12 +311,37 @@ html, body { height: 100%; }
   background: #fff;
   color: var(--text-1);
   font-size: 12px;
-  padding: 10px 8px;
+  padding: 8px 8px;
   border-radius: 8px;
   cursor: pointer;
   line-height: 1.3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
-.viber-kb-btn.primary { font-weight: 600; color: #5B4FD6; }
+.viber-kb-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  background: #EEEAF8;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex: none;
+  position: relative;
+  font-size: 10px;
+  color: #7360F2;
+  font-weight: 600;
+}
+.viber-kb-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: absolute;
+  inset: 0;
+}
 .viber-kb-btn:hover { background: #F7F5FF; }
 .page-list-item { cursor: pointer; }
 .page-list-item.selected {
@@ -413,6 +442,39 @@ html, body { height: 100%; }
   flex-wrap: wrap;
 }
 .menu-toolbar .select { flex: 1; min-width: 220px; }
+.menu-pick-table .main-menu-mark {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  vertical-align: middle;
+  color: var(--primary);
+}
+.menu-pick-table .main-menu-mark .lucide { width: 16px; height: 16px; }
+.drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  color: var(--text-3);
+  cursor: grab;
+  flex: none;
+}
+.drag-handle .lucide { width: 16px; height: 16px; }
+.page-list-item.dragging,
+.btn-row.dragging {
+  opacity: 0.55;
+  border-style: dashed;
+}
+.flow-editor-page .upload-preview {
+  cursor: pointer;
+  min-height: 72px;
+}
+.flow-editor-page .upload-preview img {
+  max-height: 80px;
+  max-width: 100%;
+  object-fit: contain;
+  border-radius: 6px;
+}
 
 .page-list { display: flex; flex-direction: column; gap: 8px; }
 .page-list-item {

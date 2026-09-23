@@ -1,4 +1,4 @@
-/* 对话流编辑器：默认主菜单 + 多页面 + 自动跳转关系 */
+/* 对话流编辑器：默认主菜单列表 + 多页面 + 点击后操作 */
 
 let draft = null;
 let isNew = false;
@@ -14,22 +14,21 @@ let btnDraft = null;
 let btnDirty = false;
 let previewPageId = '';
 
-function emptyFlow(pl, bot, type, platform) {
+function emptyFlow(pl, bot, platform) {
   const plat = platform || defaultPlatform();
   const menus = menusByScope(pl, bot, plat);
-  const t = type === 'fallback' ? 'fallback' : 'normal';
   return {
     id: '',
-    name: t === 'normal' ? '' : fixedFlowLabel(t),
+    name: '',
     productLineId: pl || defaultProductLine(),
     platform: plat,
     botId: bot || defaultBot(pl, plat),
-    type: t,
+    type: 'normal',
     status: 'draft',
-    purpose: t === 'fallback' ? '所有策略都没匹配上时显示' : '',
+    purpose: '',
     mainMenuId: menus[0]?.id || '',
     firstPageId: '',
-    remark: t === 'fallback' ? '用于所有策略都没匹配上' : '',
+    remark: '',
     updatedAt: nowTs(),
     pages: []
   };
@@ -52,7 +51,7 @@ function emptyMenu(pl, bot, platform) {
 }
 
 function emptyButton(style = 'primary', sort = 1) {
-  return makeBtn('', '', 'Page', { style, sort });
+  return makeBtn(nextId('btn'), '', 'Page', { style, sort });
 }
 
 function sortedPages(flow) {
@@ -93,7 +92,13 @@ function jumpTargetLabel(btn) {
     const f = flowById(btn.flowId);
     return f ? f.name : (btn.flowId || '对话流');
   }
-  if (btn.event === 'Event') return builtinEventLabel(btn.eventType) || '事件';
+  if (btn.event === 'Event') {
+    const ev = builtinEventLabel(btn.eventType) || '事件';
+    if (btn.eventType === 'SharePhone' && btn.shareAfter) {
+      return `${ev} → ${btn.shareAfter === 'Flow' ? jumpTargetLabel({ event: 'Flow', flowId: btn.flowId }) : jumpTargetLabel({ event: 'Page', pageId: btn.pageId })}`;
+    }
+    return ev;
+  }
   if (btn.event === 'Home') return '回主菜单';
   return eventLabel(btn.event);
 }
@@ -101,11 +106,11 @@ function jumpTargetLabel(btn) {
 function collectJumps() {
   const jumps = [];
   sortedPages(draft).forEach(p => {
-    (p.cardButtons || []).slice().sort((a, b) => a.sort - b.sort).forEach((b, i) => {
+    (p.cardButtons || []).slice().sort((a, b) => (a.sort || 0) - (b.sort || 0)).forEach((b, i) => {
       jumps.push(`${p.name || p.id} → ${jumpTargetLabel(b)}（卡片按钮${i + 1}）`);
     });
     const menu = menuById(p.mainMenuOverrideId || draft.mainMenuId);
-    (menu?.buttons || []).slice().sort((a, b) => a.sort - b.sort).forEach((b, i) => {
+    (menu?.buttons || []).slice().sort((a, b) => (a.sort || 0) - (b.sort || 0)).forEach((b, i) => {
       jumps.push(`${p.name || p.id} → ${jumpTargetLabel(b)}（菜单按钮${i + 1}）`);
     });
   });
@@ -117,7 +122,7 @@ function pageMeta(p) {
   const menu = menuById(p.mainMenuOverrideId || draft.mainMenuId);
   const parts = [n ? `${n} 个卡片按钮` : '无卡片按钮'];
   if (p.image) parts.push('含图');
-  if (p.mainMenuOverrideId) parts.push(`覆盖菜单：${menu ? menu.name : p.mainMenuOverrideId}`);
+  if (p.mainMenuOverrideId) parts.push(`底部菜单：${menu ? menu.name : p.mainMenuOverrideId}`);
   return parts.join(' · ');
 }
 
@@ -132,7 +137,7 @@ function interpolatePreview(text) {
 }
 
 function imagePresetLabel(url) {
-  return IMAGE_PRESETS.find(i => i.value === url)?.label || '图片';
+  return IMAGE_PRESETS.find(i => i.value === url)?.label || (url ? '图片' : '');
 }
 
 function ensurePreviewPage() {
@@ -151,17 +156,14 @@ function viberPreviewHtml(page, menu) {
   const botName = botDisplayName();
   const kb = menu || resolvePreviewMenu(page);
   const kbBtns = (kb?.buttons || []).slice().sort((a, b) => (a.sort || 0) - (b.sort || 0));
-  const primary = kbBtns.filter(b => (b.style || 'primary') === 'primary');
-  const secondary = kbBtns.filter(b => b.style === 'secondary');
   const cards = (page?.cardButtons || []).slice().sort((a, b) => (a.sort || 0) - (b.sort || 0));
   const text = interpolatePreview(page?.text || '');
   const imgLabel = page?.image ? imagePresetLabel(page.image) : '';
   const pageName = page?.name || page?.id || '未命名页面';
 
-  const kbHtml = [...primary, ...secondary].length
+  const kbHtml = kbBtns.length
     ? `<div class="viber-keyboard">
-        ${primary.length ? `<div class="viber-kb-row${primary.length === 1 ? ' single' : ''}">${primary.map(b => viberKbBtn(b, true)).join('')}</div>` : ''}
-        ${chunkButtons(secondary, 2).map(row => `<div class="viber-kb-row${row.length === 1 ? ' single' : ''}">${row.map(b => viberKbBtn(b, false)).join('')}</div>`).join('')}
+        ${chunkButtons(kbBtns, 2).map(row => `<div class="viber-kb-row${row.length === 1 ? ' single' : ''}">${row.map(b => viberKbBtn(b)).join('')}</div>`).join('')}
       </div>`
     : '';
 
@@ -189,13 +191,17 @@ function viberPreviewHtml(page, menu) {
 }
 
 function viberCardBtn(b) {
+  const isPrimary = (b.style || 'primary') === 'primary';
   const jump = b.event === 'Page' && b.pageId ? `onclick="previewGoPage('${esc(b.pageId)}')"` : '';
-  return `<button class="viber-card-btn" type="button" ${jump}>${esc(b.text || '按钮')}</button>`;
+  return `<button class="viber-card-btn ${isPrimary ? 'primary' : 'secondary'}" type="button" ${jump}>${esc(b.text || '按钮')}</button>`;
 }
 
-function viberKbBtn(b, primary) {
+function viberKbBtn(b) {
   const jump = b.event === 'Page' && b.pageId ? `onclick="previewGoPage('${esc(b.pageId)}')"` : '';
-  return `<button class="viber-kb-btn${primary ? ' primary' : ''}" type="button" ${jump}>${esc(b.text || '按钮')}</button>`;
+  if (b.image) {
+    return `<button class="viber-kb-btn" type="button" ${jump}><span class="viber-kb-icon"><img src="${esc(b.image)}" alt="" onerror="this.style.display='none'"><span>图</span></span></button>`;
+  }
+  return `<button class="viber-kb-btn" type="button" ${jump}><span>${esc(b.text || '按钮')}</span></button>`;
 }
 
 function chunkButtons(list, size) {
@@ -248,7 +254,6 @@ function syncHeaderFields() {
   draft.name = (document.getElementById('f-name')?.value || '').trim();
   draft.platform = document.getElementById('f-platform')?.value || draft.platform || defaultPlatform();
   draft.botId = document.getElementById('f-bot')?.value || draft.botId;
-  draft.mainMenuId = document.getElementById('f-menu')?.value || '';
   draft.firstPageId = document.getElementById('f-first')?.value || '';
   draft.remark = (document.getElementById('f-remark')?.value || '').trim();
 }
@@ -270,17 +275,135 @@ function onEditorPlatformChange() {
   renderEditor();
 }
 
+function scopedMenus() {
+  return menusByScope(draft.productLineId, draft.botId, draft.platform);
+}
+
+function setMainMenu(id) {
+  syncHeaderFields();
+  draft.mainMenuId = id;
+  dirty = true;
+  renderEditor();
+}
+
+function bindSortableList(containerSel, itemSel, onReorder) {
+  const container = document.querySelector(containerSel);
+  if (!container) return;
+  let dragEl = null;
+  container.querySelectorAll(itemSel).forEach(el => {
+    el.draggable = true;
+    el.addEventListener('dragstart', e => {
+      if (e.target.closest('button, a, input, select, textarea')) {
+        e.preventDefault();
+        return;
+      }
+      dragEl = el;
+      el.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', el.dataset.id || '');
+    });
+    el.addEventListener('dragend', () => {
+      if (dragEl) dragEl.classList.remove('dragging');
+      const ids = [...container.querySelectorAll(itemSel)].map(x => x.dataset.id).filter(Boolean);
+      dragEl = null;
+      if (typeof onReorder === 'function') onReorder(ids);
+    });
+    el.addEventListener('dragover', e => {
+      e.preventDefault();
+      const over = e.currentTarget;
+      if (!dragEl || over === dragEl) return;
+      const rect = over.getBoundingClientRect();
+      const before = e.clientY < rect.top + rect.height / 2;
+      over.parentNode.insertBefore(dragEl, before ? over : over.nextSibling);
+    });
+    el.addEventListener('drop', e => e.preventDefault());
+  });
+}
+
+function sameIds(a, b) {
+  return a.length === b.length && a.every((id, i) => id === b[i]);
+}
+
+function reorderMenuButtons(ids) {
+  const current = menuButtons().map(b => b.id);
+  if (sameIds(ids, current)) return;
+  const map = Object.fromEntries((menuDraft.buttons || []).map(b => [b.id, b]));
+  menuDraft.buttons = ids.map((id, i) => {
+    const b = map[id];
+    if (b) b.sort = i + 1;
+    return b;
+  }).filter(Boolean);
+  menuDirty = true;
+  renderMenuDrawer();
+}
+
+function uploadFieldHtml(inputId, value) {
+  const has = !!value;
+  return `<div class="upload-field">
+    <input type="file" id="${inputId}" accept="image/jpeg,image/png" hidden onchange="onImageFileChange('${inputId}')" />
+    <button type="button" class="upload-preview${has ? ' has-file' : ''}" onclick="document.getElementById('${inputId}').click()">
+      ${has ? `<img src="${esc(value)}" alt="">` : '<span>点击上传 JPEG/PNG ≤500KB</span>'}
+    </button>
+    ${has ? `<button type="button" class="link-btn" onclick="clearUploadedImage('${inputId}')">移除</button>` : ''}
+  </div>`;
+}
+
+function readImageFile(file, done) {
+  if (!file) return;
+  if (!/^image\/(jpeg|png)$/.test(file.type)) {
+    showToast('仅支持 JPEG/PNG', 'err');
+    return;
+  }
+  if (file.size > 500 * 1024) {
+    showToast('图片需 ≤500KB', 'err');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = () => done(reader.result);
+  reader.readAsDataURL(file);
+}
+
+function onImageFileChange(inputId) {
+  const input = document.getElementById(inputId);
+  const file = input?.files?.[0];
+  readImageFile(file, dataUrl => {
+    if (inputId === 'pg-image') {
+      pageDraft.image = dataUrl;
+      pageDirty = true;
+      renderPageDrawer();
+    } else if (inputId === 'bt-image') {
+      btnDraft.image = dataUrl;
+      btnDraft.text = '';
+      btnDirty = true;
+      renderButtonDrawer();
+    }
+  });
+}
+
+function clearUploadedImage(inputId) {
+  if (inputId === 'pg-image') {
+    pageDraft.image = '';
+    pageDirty = true;
+    renderPageDrawer();
+  } else if (inputId === 'bt-image') {
+    btnDraft.image = '';
+    btnDirty = true;
+    renderButtonDrawer();
+  }
+}
+
 function renderEditor() {
   const idLocked = !isNew && !!draft.id;
   const pages = sortedPages(draft);
   const jumps = collectJumps();
+  const menus = scopedMenus();
   const firstOpts = pages.map(p => optionHtml(p.id, `${p.name} (${p.id})`, draft.firstPageId)).join('');
   ensurePreviewPage();
   document.getElementById('content').innerHTML = `
     <div class="flow-editor-head">
       <div>
-        <h1>${isFixedFlow(draft) ? fixedPinHtml() : ''}对话流编辑${draft.name ? ` · ${esc(draft.name)}` : ''}</h1>
-        <p class="page-desc" style="margin:4px 0 0">${statusTag(draft.status)} ${statusTag(draft.type)}${isFixedFlow(draft) ? ' · 所有策略都没匹配上时显示' : ''}</p>
+        <h1>对话流编辑${draft.name ? ` · ${esc(draft.name)}` : ''}</h1>
+        <p class="page-desc" style="margin:4px 0 0">${statusTag(draft.status)}</p>
       </div>
       <div class="page-header-actions">
         <button class="btn btn-outline" type="button" onclick="goBack()">返回列表</button>
@@ -298,11 +421,11 @@ function renderEditor() {
       <h4 class="card-title">基本信息</h4>
       <div class="field">
         <label class="field-label">平台<span class="req">*</span></label>
-        <select class="select" id="f-platform" ${isFixedFlow(draft) ? 'disabled' : ''} onchange="onEditorPlatformChange()">${platformOptions(draft.platform || defaultPlatform())}</select>
+        <select class="select" id="f-platform" onchange="onEditorPlatformChange()">${platformOptions(draft.platform || defaultPlatform())}</select>
       </div>
       <div class="field">
         <label class="field-label">Bot<span class="req">*</span></label>
-        <select class="select" id="f-bot" ${isFixedFlow(draft) ? 'disabled' : ''} onchange="onEditorBotChange()">${botOptions(draft.productLineId, draft.botId, draft.platform)}</select>
+        <select class="select" id="f-bot" onchange="onEditorBotChange()">${botOptions(draft.productLineId, draft.botId, draft.platform)}</select>
       </div>
       <div class="field">
         <label class="field-label">对话流 ID<span class="req">*</span></label>
@@ -328,15 +451,31 @@ function renderEditor() {
     </section>
     <section class="card">
       <div class="section-toolbar">
-        <h4 class="card-title" style="margin:0">默认主菜单</h4>
+        <h4 class="card-title" style="margin:0">底部菜单</h4>
+        <button class="btn btn-outline" type="button" onclick="openMenuEdit(null)">
+          <i data-lucide="plus"></i>新建底部菜单
+        </button>
       </div>
-      <div class="menu-toolbar">
-        <select class="select" id="f-menu">
-          <option value="">请选择默认主菜单</option>
-          ${menuOptions(draft.productLineId, draft.botId, draft.mainMenuId, draft.platform)}
-        </select>
-        <button class="btn btn-outline" type="button" onclick="openMenuEdit(null)">新建菜单</button>
-        <button class="btn btn-outline" type="button" onclick="editCurrentMenu()">编辑当前菜单</button>
+      <div class="table-scroll">
+        <table class="table table-nowrap menu-pick-table">
+          <thead>
+            <tr>
+              <th>菜单名称</th>
+              <th>编辑</th>
+              <th>设为主菜单</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${menus.length ? menus.map(m => {
+              const isMain = m.id === draft.mainMenuId;
+              return `<tr>
+                <td>${esc(m.name || m.id)}${isMain ? '<span class="main-menu-mark" title="当前主菜单"><i data-lucide="house"></i></span>' : ''}</td>
+                <td><button class="link-btn" type="button" onclick="openMenuEdit('${esc(m.id)}')">编辑</button></td>
+                <td><button class="link-btn" type="button" ${isMain ? 'disabled' : ''} onclick="setMainMenu('${esc(m.id)}')">设为主菜单</button></td>
+              </tr>`;
+            }).join('') : `<tr><td colspan="3"><div class="table-empty">暂无底部菜单</div></td></tr>`}
+          </tbody>
+        </table>
       </div>
     </section>
     <section class="card">
@@ -347,15 +486,13 @@ function renderEditor() {
         </button>
       </div>
       <div class="page-list">
-        ${pages.length ? pages.map((p, idx) => `
+        ${pages.length ? pages.map(p => `
           <div class="page-list-item${p.id === previewPageId ? ' selected' : ''}" data-page-id="${esc(p.id)}" onclick="selectPreviewPage('${esc(p.id)}')">
             <div class="grow">
               <div class="title">${p.id === draft.firstPageId ? '<span class="tag tag-primary">首屏</span> ' : ''}${esc(p.name || p.id)} <span class="tag tag-gray">${esc(p.id)}</span></div>
               <div class="meta">${esc(pageMeta(p))}</div>
             </div>
             <div class="page-list-ops" onclick="event.stopPropagation()">
-              <button class="link-btn" type="button" ${idx <= 0 ? 'disabled' : ''} onclick="movePage('${esc(p.id)}',-1)">上移</button>
-              <button class="link-btn" type="button" ${idx >= pages.length - 1 ? 'disabled' : ''} onclick="movePage('${esc(p.id)}',1)">下移</button>
               <button class="link-btn" type="button" onclick="openPageEdit('${esc(p.id)}')">编辑</button>
               <button class="link-btn" type="button" onclick="copyPage('${esc(p.id)}')">复制</button>
               <button class="link-btn link-btn-danger" type="button" ${pages.length <= 1 ? 'disabled' : ''} onclick="deletePage('${esc(p.id)}')">删除</button>
@@ -365,7 +502,7 @@ function renderEditor() {
     </section>
     <section class="card">
       <h4 class="card-title">页面跳转关系（自动生成）</h4>
-      ${jumps.length ? `<ul class="jump-list">${jumps.map(j => `<li>${esc(j)}</li>`).join('')}</ul>` : '<div class="table-empty">配置页面按钮或主菜单后自动生成</div>'}
+      ${jumps.length ? `<ul class="jump-list">${jumps.map(j => `<li>${esc(j)}</li>`).join('')}</ul>` : '<div class="table-empty">配置页面按钮或底部菜单后自动生成</div>'}
     </section>
       </div>
     </div>`;
@@ -397,13 +534,6 @@ function saveFlow(publish) {
   if (!draft.botId) {
     showToast('请选择 Bot', 'err');
     return;
-  }
-  if (isFixedFlow(draft)) {
-    const dup = findFixedFlow(draft.productLineId, draft.botId, draft.type, draft.platform);
-    if (dup && dup.id !== draft.id) {
-      showToast(`当前 Bot 已有${fixedFlowLabel(draft.type)}`, 'err');
-      return;
-    }
   }
   if (isNew && flowById(draft.id)) {
     fieldError('err-id', '该对话流 ID 已存在');
@@ -440,18 +570,6 @@ async function goBack() {
   location.href = 'flows.html';
 }
 
-function movePage(id, dir) {
-  const pages = sortedPages(draft);
-  const idx = pages.findIndex(p => p.id === id);
-  const swap = pages[idx + dir];
-  if (!swap) return;
-  const tmp = pages[idx].order;
-  pages[idx].order = swap.order;
-  swap.order = tmp;
-  dirty = true;
-  renderEditor();
-}
-
 function copyPage(id) {
   const src = pageById(draft, id);
   if (!src) return;
@@ -464,12 +582,13 @@ function copyPage(id) {
   }
   copy.id = newId;
   copy.name = `${src.name} 副本`;
-  copy.order = Math.max(0, ...sortedPages(draft).map(p => p.order || 0)) + 1;
+  copy.order = Math.max(-1, ...sortedPages(draft).map(p => p.order || 0)) + 1;
   copy.cardButtons = (copy.cardButtons || []).map((b, i) => ({ ...b, id: nextId('cb') || `cb_${Date.now()}_${i}` }));
   draft.pages.push(copy);
   dirty = true;
+  previewPageId = copy.id;
   renderEditor();
-  showToast('已复制页面');
+  showToast('页面已复制到草稿');
 }
 
 async function deletePage(id) {
@@ -477,11 +596,11 @@ async function deletePage(id) {
     showToast('至少保留 1 个页面', 'err');
     return;
   }
-  const p = pageById(draft, id);
-  const ok = await confirmModal({ title: `确认删除页面 ${p?.name || id}？`, confirmText: '确认删除' });
+  const ok = await confirmModal({ title: '确认删除该页面？', confirmText: '确认删除' });
   if (!ok) return;
-  draft.pages = draft.pages.filter(x => x.id !== id);
+  draft.pages = draft.pages.filter(p => p.id !== id);
   if (draft.firstPageId === id) draft.firstPageId = sortedPages(draft)[0]?.id || '';
+  if (previewPageId === id) previewPageId = draft.firstPageId;
   dirty = true;
   renderEditor();
 }
@@ -527,24 +646,21 @@ function renderPageDrawer() {
     </div>
     <div class="field">
       <label class="field-label">图片</label>
-      <select class="select" id="pg-image">
-        ${IMAGE_PRESETS.map(img => optionHtml(img.value, img.label, p.image)).join('')}
-      </select>
-      <div class="field-hint">原型使用预设图，实际上传 JPEG/PNG ≤500KB</div>
+      ${uploadFieldHtml('pg-image', p.image)}
     </div>
     <div class="field">
       <label class="field-label">文本</label>
       <textarea class="textarea" id="pg-text" maxlength="2000" placeholder="请输入页面文本内容，支持 {nickname} 等占位符">${esc(p.text || '')}</textarea>
     </div>
     <div class="field">
-      <label class="field-label">卡片按钮（≤2）</label>
+      <label class="field-label">卡片按钮（≤2，文案 / 主次 / 点击后操作）</label>
       <div class="btn-list" id="pg-cards">${renderCardRows()}</div>
       <button class="btn btn-outline" type="button" ${(p.cardButtons || []).length >= 2 ? 'disabled' : ''} onclick="addCardButton()">添加卡片按钮</button>
     </div>
     <div class="field">
-      <label class="field-label">主菜单覆盖</label>
+      <label class="field-label">底部菜单</label>
       <select class="select" id="pg-menu">
-        <option value="">使用对话流默认主菜单</option>
+        <option value="">使用对话流默认底部菜单</option>
         ${menuOptions(draft.productLineId, draft.botId, p.mainMenuOverrideId, draft.platform)}
       </select>
     </div>
@@ -564,15 +680,22 @@ function renderPageDrawer() {
   refreshIcons();
 }
 
+function cardStyleLabel(style) {
+  return style === 'secondary' ? '次' : '主';
+}
+
 function renderCardRows() {
-  const list = (pageDraft.cardButtons || []).slice().sort((a, b) => a.sort - b.sort);
+  const list = (pageDraft.cardButtons || []).slice().sort((a, b) => (a.sort || 0) - (b.sort || 0));
   if (!list.length) return '<div class="table-empty" style="padding:12px">暂无卡片按钮</div>';
-  return list.map((b, i) => `
+  return list.map(b => {
+    const idx = pageDraft.cardButtons.indexOf(b);
+    return `
     <div class="btn-row">
-      <div class="grow">${esc(b.text || '未命名')} · ${esc(eventLabel(b.event))}${b.event === 'Event' ? ' / ' + esc(builtinEventLabel(b.eventType)) : ''}</div>
-      <button class="link-btn" type="button" onclick="openButtonEdit('card', ${i})">编辑</button>
-      <button class="link-btn link-btn-danger" type="button" onclick="deleteCardButton(${i})">删除</button>
-    </div>`).join('');
+      <div class="grow">${esc(b.text || '未命名')} · ${esc(cardStyleLabel(b.style))} · ${esc(eventLabel(b.event))}</div>
+      <button class="link-btn" type="button" onclick="openButtonEdit('card', ${idx})">编辑</button>
+      <button class="link-btn link-btn-danger" type="button" onclick="deleteCardButton(${idx})">删除</button>
+    </div>`;
+  }).join('');
 }
 
 function syncPageForm() {
@@ -580,7 +703,6 @@ function syncPageForm() {
   if (pageIsNew) pageDraft.id = (document.getElementById('pg-id')?.value || '').trim();
   pageDraft.name = (document.getElementById('pg-name')?.value || '').trim();
   pageDraft.pageType = pageDraft.pageType || '首页';
-  pageDraft.image = document.getElementById('pg-image')?.value || '';
   pageDraft.text = document.getElementById('pg-text')?.value || '';
   pageDraft.mainMenuOverrideId = document.getElementById('pg-menu')?.value || '';
   pageDraft.status = document.querySelector('input[name="pg-status"]:checked')?.value || 'active';
@@ -642,39 +764,27 @@ async function maybeClosePage() {
   return confirmModal({ title: '确认取消？', message: '页面有未保存的改动', confirmText: '确认离开', danger: false });
 }
 
-function editCurrentMenu() {
-  syncHeaderFields();
-  const id = document.getElementById('f-menu')?.value || draft.mainMenuId;
-  if (!id) {
-    showToast('请先选择默认主菜单', 'err');
-    return;
-  }
-  openMenuEdit(id);
-}
-
 function openMenuEdit(id) {
   syncHeaderFields();
   menuIsNew = !id;
   menuDirty = false;
   menuDraft = id ? clone(menuById(id)) : emptyMenu(draft.productLineId, draft.botId, draft.platform);
   if (!menuDraft) {
-    showToast('未找到该主菜单', 'err');
+    showToast('未找到该底部菜单', 'err');
     return;
   }
-  document.getElementById('menuDrawerTitle').textContent = id ? '编辑主菜单' : '新建主菜单';
+  document.getElementById('menuDrawerTitle').textContent = id ? '编辑底部菜单' : '新建底部菜单';
   renderMenuDrawer();
   openDrawer('menuDrawer');
 }
 
-function menuButtons(style) {
-  return (menuDraft.buttons || []).filter(b => (b.style || 'primary') === style).sort((a, b) => a.sort - b.sort);
+function menuButtons() {
+  return (menuDraft.buttons || []).slice().sort((a, b) => (a.sort || 0) - (b.sort || 0));
 }
 
 function renderMenuDrawer() {
   const m = menuDraft;
-  const locked = !menuIsNew && !!m.id;
-  const prim = menuButtons('primary');
-  const sec = menuButtons('secondary');
+  const btns = menuButtons();
   const page = pageById(draft, previewPageId) || sortedPages(draft)[0] || emptyPage(0);
   const body = document.getElementById('menuDrawerBody');
   body.className = 'drawer-body drawer-body--split';
@@ -689,13 +799,8 @@ function renderMenuDrawer() {
       <select class="select" id="mn-bot">${botOptions(m.productLineId || draft.productLineId, m.botId, m.platform || draft.platform)}</select>
     </div>
     <div class="field">
-      <label class="field-label">主菜单 ID<span class="req">*</span></label>
-      <input class="input" id="mn-id" maxlength="50" ${locked ? 'disabled' : ''} placeholder="请输入主菜单 ID" value="${esc(m.id)}" />
-      <div class="field-error" id="err-mn-id"></div>
-    </div>
-    <div class="field">
-      <label class="field-label">主菜单名称<span class="req">*</span></label>
-      <input class="input" id="mn-name" maxlength="30" placeholder="请输入主菜单名称" value="${esc(m.name)}" />
+      <label class="field-label">底部菜单名称<span class="req">*</span></label>
+      <input class="input" id="mn-name" maxlength="30" placeholder="请输入底部菜单名称" value="${esc(m.name)}" />
     </div>
     <div class="field">
       <label class="field-label">状态<span class="req">*</span></label>
@@ -705,14 +810,9 @@ function renderMenuDrawer() {
       </div>
     </div>
     <div class="field">
-      <label class="field-label">主按钮（≤2）</label>
-      <div class="btn-list">${renderMenuRows('primary')}</div>
-      <button class="btn btn-outline" type="button" ${prim.length >= 2 ? 'disabled' : ''} onclick="addMenuButton('primary')">添加主按钮</button>
-    </div>
-    <div class="field">
-      <label class="field-label">次按钮（≤4）</label>
-      <div class="btn-list">${renderMenuRows('secondary')}</div>
-      <button class="btn btn-outline" type="button" ${sec.length >= 4 ? 'disabled' : ''} onclick="addMenuButton('secondary')">添加次按钮</button>
+      <label class="field-label">菜单按钮（≤6，文案或图片）</label>
+      <div class="btn-list" id="menu-btn-sort-list">${renderMenuRows()}</div>
+      <button class="btn btn-outline" type="button" ${btns.length >= 6 ? 'disabled' : ''} onclick="addMenuButton()">添加菜单按钮</button>
     </div>
     </div>`;
   const form = document.getElementById('menu-form-host');
@@ -720,16 +820,19 @@ function renderMenuDrawer() {
     form.oninput = () => { menuDirty = true; refreshMenuPreview(); };
     form.onchange = () => { menuDirty = true; refreshMenuPreview(); };
   }
+  bindSortableList('#menu-btn-sort-list', '.btn-row[data-id]', reorderMenuButtons);
   refreshIcons();
 }
 
-function renderMenuRows(style) {
-  const list = menuButtons(style);
+function renderMenuRows() {
+  const list = menuButtons();
   if (!list.length) return '<div class="table-empty" style="padding:12px">暂无按钮</div>';
   return list.map(b => {
     const idx = menuDraft.buttons.indexOf(b);
-    return `<div class="btn-row">
-      <div class="grow">${esc(b.text || '未命名')} · ${esc(eventLabel(b.event))}${b.event === 'Event' ? ' / ' + esc(builtinEventLabel(b.eventType)) : ''}</div>
+    const show = b.image ? '图片' : (b.text || '未命名');
+    return `<div class="btn-row" data-id="${esc(b.id)}">
+      <span class="drag-handle" title="拖动排序"><i data-lucide="grip-vertical"></i></span>
+      <div class="grow">${esc(show)} · ${esc(eventLabel(b.event))}${b.event === 'Event' ? ' / ' + esc(builtinEventLabel(b.eventType)) : ''}</div>
       <button class="link-btn" type="button" onclick="openButtonEdit('menu', ${idx})">编辑</button>
       <button class="link-btn link-btn-danger" type="button" onclick="deleteMenuButton(${idx})">删除</button>
     </div>`;
@@ -738,7 +841,6 @@ function renderMenuRows(style) {
 
 function syncMenuForm() {
   if (!menuDraft) return;
-  if (menuIsNew) menuDraft.id = (document.getElementById('mn-id')?.value || '').trim();
   menuDraft.name = (document.getElementById('mn-name')?.value || '').trim();
   menuDraft.productLineId = menuDraft.productLineId || draft.productLineId;
   menuDraft.platform = menuDraft.platform || draft.platform || defaultPlatform();
@@ -746,19 +848,14 @@ function syncMenuForm() {
   menuDraft.status = document.querySelector('input[name="mn-status"]:checked')?.value || 'active';
 }
 
-function addMenuButton(style) {
+function addMenuButton() {
   syncMenuForm();
-  const limit = style === 'primary' ? 2 : 4;
-  if (menuButtons(style).length >= limit) {
-    showToast(style === 'primary' ? '主按钮最多 2 个' : '次按钮最多 4 个', 'err');
-    return;
-  }
   if ((menuDraft.buttons || []).length >= 6) {
     showToast('菜单按钮最多 6 个', 'err');
     return;
   }
   menuDraft.buttons = menuDraft.buttons || [];
-  openButtonEdit('menu', null, style);
+  openButtonEdit('menu', null);
 }
 
 async function deleteMenuButton(i) {
@@ -772,86 +869,99 @@ async function deleteMenuButton(i) {
 
 function saveMenu() {
   syncMenuForm();
-  fieldError('err-mn-id', '');
-  if (!menuDraft.id || !isIdToken(menuDraft.id)) {
-    fieldError('err-mn-id', '必须以字母开头，仅小写字母/数字/下划线，长度 1-50');
-    return;
-  }
   if (!menuDraft.name) {
-    showToast('请填写主菜单名称', 'err');
+    showToast('请填写底部菜单名称', 'err');
     return;
   }
-  const prim = menuButtons('primary').length;
-  const sec = menuButtons('secondary').length;
-  if (prim > 2 || sec > 4 || (menuDraft.buttons || []).length > 6) {
-    showToast('主按钮 ≤2、次按钮 ≤4、合计 ≤6', 'err');
+  if ((menuDraft.buttons || []).length > 6) {
+    showToast('菜单按钮最多 6 个', 'err');
     return;
   }
-  if (menuIsNew && menuById(menuDraft.id)) {
-    fieldError('err-mn-id', '该主菜单 ID 已存在');
-    return;
-  }
-  if (menuIsNew) DB.menus.push(clone(menuDraft));
-  else {
+  if (menuIsNew) {
+    menuDraft.id = nextId('menu');
+    DB.menus.push(clone(menuDraft));
+    if (!draft.mainMenuId) draft.mainMenuId = menuDraft.id;
+  } else {
     const idx = DB.menus.findIndex(x => x.id === menuDraft.id);
     if (idx >= 0) DB.menus[idx] = clone(menuDraft);
     else DB.menus.push(clone(menuDraft));
   }
   saveStore();
-  draft.mainMenuId = menuDraft.id;
   menuDirty = false;
   dirty = true;
   closeDrawer('menuDrawer');
   renderEditor();
-  showToast('主菜单已保存');
+  showToast('底部菜单已保存');
 }
 
 async function maybeCloseMenu() {
   if (document.getElementById('buttonDrawer')?.classList.contains('open')) return false;
   if (!menuDirty) return true;
-  return confirmModal({ title: '确认取消？', message: '主菜单有未保存的改动', confirmText: '确认离开', danger: false });
+  return confirmModal({ title: '确认取消？', message: '底部菜单有未保存的改动', confirmText: '确认离开', danger: false });
 }
 
-function openButtonEdit(source, index, newStyle) {
+function openButtonEdit(source, index) {
   if (source === 'card') syncPageForm();
   if (source === 'menu') syncMenuForm();
   btnCtx = { source, index };
   btnDirty = false;
   const list = source === 'card' ? (pageDraft.cardButtons || []) : (menuDraft.buttons || []);
-  const fallbackStyle = source === 'card' ? 'primary' : (newStyle || 'primary');
+  const fallbackStyle = source === 'card' && list.every(x => (x.style || 'primary') === 'primary')
+    ? (list.length ? 'secondary' : 'primary')
+    : 'primary';
   btnDraft = index == null ? emptyButton(fallbackStyle, list.length + 1) : clone(list[index]);
-  if (source === 'card') btnDraft.style = 'primary';
-  document.getElementById('buttonDrawerTitle').textContent = '按钮编辑';
+  if (source === 'card') btnDraft.image = '';
+  if (!btnDraft.browser && btnDraft.autoLogin) btnDraft.browser = 'internal';
+  document.getElementById('buttonDrawerTitle').textContent = source === 'card' ? '卡片按钮' : '菜单按钮';
   renderButtonDrawer();
   openDrawer('buttonDrawer');
+}
+
+function actionFieldsHtml(b) {
+  return `
+    <div class="field">
+      <label class="field-label">点击后操作<span class="req">*</span></label>
+      <select class="select" id="bt-event" onchange="onBtnEventChange()">
+        ${BUTTON_EVENTS.map(e => optionHtml(e.value, e.label, b.event)).join('')}
+      </select>
+    </div>
+    <div class="event-params" id="bt-params">${renderEventParams(b.event)}</div>`;
 }
 
 function renderButtonDrawer() {
   const b = btnDraft;
   const isMenu = btnCtx.source === 'menu';
-  document.getElementById('buttonDrawerBody').innerHTML = `
+  const display = b.image ? 'image' : 'text';
+  const cardFields = `
     <div class="field">
       <label class="field-label">按钮文案<span class="req">*</span></label>
       <input class="input" id="bt-text" maxlength="25" placeholder="请输入按钮文案" value="${esc(b.text)}" />
     </div>
     <div class="field">
-      <label class="field-label">事件类型<span class="req">*</span></label>
-      <select class="select" id="bt-event" onchange="onBtnEventChange()">
-        ${BUTTON_EVENTS.map(e => optionHtml(e.value, e.label, b.event)).join('')}
-      </select>
-    </div>
-    <div class="event-params" id="bt-params">${renderEventParams(b.event)}</div>
-    ${isMenu ? `<div class="field">
       <label class="field-label">样式<span class="req">*</span></label>
       <div class="radio-group">
         <label><input type="radio" name="bt-style" value="primary"${b.style !== 'secondary' ? ' checked' : ''}> 主</label>
         <label><input type="radio" name="bt-style" value="secondary"${b.style === 'secondary' ? ' checked' : ''}> 次</label>
       </div>
-    </div>` : ''}
+    </div>
+    ${actionFieldsHtml(b)}`;
+  const menuFields = `
     <div class="field">
-      <label class="field-label">排序<span class="req">*</span></label>
-      <input class="input" id="bt-sort" type="number" min="0" max="99" value="${esc(b.sort || 1)}" />
-    </div>`;
+      <label class="field-label">展示方式<span class="req">*</span></label>
+      <div class="radio-group">
+        <label><input type="radio" name="bt-display" value="text"${display !== 'image' ? ' checked' : ''} onchange="onBtnDisplayChange()"> 文案</label>
+        <label><input type="radio" name="bt-display" value="image"${display === 'image' ? ' checked' : ''} onchange="onBtnDisplayChange()"> 图片</label>
+      </div>
+    </div>
+    ${display === 'image' ? `<div class="field">
+      <label class="field-label">图片<span class="req">*</span></label>
+      ${uploadFieldHtml('bt-image', b.image)}
+    </div>` : `<div class="field">
+      <label class="field-label">按钮文案<span class="req">*</span></label>
+      <input class="input" id="bt-text" maxlength="25" placeholder="请输入按钮文案" value="${esc(b.text)}" />
+    </div>`}
+    ${actionFieldsHtml(b)}`;
+  document.getElementById('buttonDrawerBody').innerHTML = isMenu ? menuFields : cardFields;
   document.getElementById('buttonDrawerBody').oninput = () => { btnDirty = true; };
   document.getElementById('buttonDrawerBody').onchange = () => { btnDirty = true; };
 }
@@ -859,7 +969,7 @@ function renderButtonDrawer() {
 function renderEventParams(ev) {
   const b = btnDraft;
   if (ev === 'Page') {
-    const pages = sortedPages(draft).filter(p => p.id && (!pageDraft || p.id !== pageDraft.id));
+    const pages = sortedPages(draft).filter(p => p.id);
     return `<div class="field" style="margin:0">
       <label class="field-label">跳转页面<span class="req">*</span></label>
       <select class="select" id="bt-page">
@@ -869,15 +979,15 @@ function renderEventParams(ev) {
     </div>`;
   }
   if (ev === 'Url') {
+    const browser = b.browser || (b.autoLogin ? 'internal' : 'external');
     return `<div class="field">
       <label class="field-label">URL<span class="req">*</span></label>
       <input class="input" id="bt-url" placeholder="请输入 URL" value="${esc(b.url)}" />
     </div>
     <div class="field" style="margin:0">
-      <label class="field-label">自动登录</label>
+      <label class="field-label">浏览器<span class="req">*</span></label>
       <div class="radio-group">
-        <label><input type="radio" name="bt-al" value="1"${b.autoLogin ? ' checked' : ''}> 是</label>
-        <label><input type="radio" name="bt-al" value="0"${b.autoLogin ? '' : ' checked'}> 否</label>
+        ${BROWSER_TARGETS.map(t => `<label><input type="radio" name="bt-browser" value="${t.value}"${browser === t.value ? ' checked' : ''}> ${t.label}</label>`).join('')}
       </div>
     </div>`;
   }
@@ -891,77 +1001,174 @@ function renderEventParams(ev) {
     </div>`;
   }
   if (ev === 'Event') {
-    return `<div class="field" style="margin:0">
-      <label class="field-label">内置事件<span class="req">*</span></label>
-      <select class="select" id="bt-builtin">
+    return `<div class="field">
+      <label class="field-label">事件<span class="req">*</span></label>
+      <select class="select" id="bt-builtin" onchange="onBuiltinChange()">
         <option value="">请选择事件</option>
         ${BUILTIN_EVENTS.map(e => optionHtml(e.value, e.label, b.eventType)).join('')}
       </select>
-    </div>`;
+    </div>${b.eventType === 'SharePhone' ? renderShareAfter(b) : ''}`;
   }
   return '<div class="field-hint">回主菜单无需额外参数</div>';
 }
 
-function onBtnEventChange() {
+function renderShareAfter(b) {
+  const after = b.shareAfter || '';
+  const pages = sortedPages(draft).filter(p => p.id);
+  return `<div class="field">
+      <label class="field-label">分享后操作<span class="req">*</span></label>
+      <select class="select" id="bt-share-after" onchange="onShareAfterChange()">
+        <option value="">请选择</option>
+        ${SHARE_AFTER_ACTIONS.map(e => optionHtml(e.value, e.label, after)).join('')}
+      </select>
+    </div>
+    ${after === 'Page' ? `<div class="field" style="margin:0">
+      <label class="field-label">页面<span class="req">*</span></label>
+      <select class="select" id="bt-page">
+        <option value="">请选择页面</option>
+        ${pages.map(p => optionHtml(p.id, `${p.name} (${p.id})`, b.pageId)).join('')}
+      </select>
+    </div>` : ''}
+    ${after === 'Flow' ? `<div class="field" style="margin:0">
+      <label class="field-label">对话流<span class="req">*</span></label>
+      <select class="select" id="bt-flow">
+        <option value="">请选择对话流</option>
+        ${publishedFlowOptions(draft.productLineId, draft.botId, b.flowId, draft.platform)}
+      </select>
+    </div>` : ''}`;
+}
+
+function onBtnDisplayChange() {
+  const mode = document.querySelector('input[name="bt-display"]:checked')?.value || 'text';
+  syncBtnDraftFromForm();
+  if (mode === 'text') btnDraft.image = '';
+  else btnDraft.text = '';
   btnDirty = true;
+  renderButtonDrawer();
+}
+
+function onBtnEventChange() {
+  syncBtnDraftFromForm();
   btnDraft.event = document.getElementById('bt-event').value;
-  document.getElementById('bt-params').innerHTML = renderEventParams(btnDraft.event);
+  btnDirty = true;
+  const host = document.getElementById('bt-params');
+  if (host) host.innerHTML = renderEventParams(btnDraft.event);
+}
+
+function onBuiltinChange() {
+  syncBtnDraftFromForm();
+  btnDraft.eventType = document.getElementById('bt-builtin')?.value || '';
+  btnDirty = true;
+  const host = document.getElementById('bt-params');
+  if (host) host.innerHTML = renderEventParams(btnDraft.event);
+}
+
+function onShareAfterChange() {
+  syncBtnDraftFromForm();
+  btnDraft.shareAfter = document.getElementById('bt-share-after')?.value || '';
+  btnDirty = true;
+  const host = document.getElementById('bt-params');
+  if (host) host.innerHTML = renderEventParams(btnDraft.event);
+}
+
+function syncBtnDraftFromForm() {
+  if (!btnDraft) return;
+  const textEl = document.getElementById('bt-text');
+  if (textEl) btnDraft.text = textEl.value.trim();
+  const ev = document.getElementById('bt-event')?.value;
+  if (ev) btnDraft.event = ev;
+  if (document.getElementById('bt-page')) btnDraft.pageId = document.getElementById('bt-page').value || '';
+  if (document.getElementById('bt-url')) btnDraft.url = document.getElementById('bt-url').value.trim();
+  const browser = document.querySelector('input[name="bt-browser"]:checked')?.value;
+  if (browser) btnDraft.browser = browser;
+  if (document.getElementById('bt-flow')) btnDraft.flowId = document.getElementById('bt-flow').value || '';
+  if (document.getElementById('bt-builtin')) btnDraft.eventType = document.getElementById('bt-builtin').value || '';
+  if (document.getElementById('bt-share-after')) btnDraft.shareAfter = document.getElementById('bt-share-after').value || '';
+  const style = document.querySelector('input[name="bt-style"]:checked')?.value;
+  if (style) btnDraft.style = style;
 }
 
 function readButtonForm() {
-  const ev = document.getElementById('bt-event')?.value || 'Page';
-  const style = document.querySelector('input[name="bt-style"]:checked')?.value
-    || (btnCtx.source === 'card' ? 'primary' : (btnDraft.style || 'primary'));
+  syncBtnDraftFromForm();
+  const isMenu = btnCtx.source === 'menu';
+  const display = isMenu
+    ? (document.querySelector('input[name="bt-display"]:checked')?.value || (btnDraft.image ? 'image' : 'text'))
+    : 'text';
+  const ev = btnDraft.event || 'Page';
   return {
     id: btnDraft.id || nextId('btn'),
-    text: (document.getElementById('bt-text')?.value || '').trim(),
+    text: display === 'image' ? '' : (btnDraft.text || '').trim(),
     event: ev,
-    pageId: document.getElementById('bt-page')?.value || '',
-    url: (document.getElementById('bt-url')?.value || '').trim(),
-    autoLogin: document.querySelector('input[name="bt-al"]:checked')?.value === '1',
-    flowId: document.getElementById('bt-flow')?.value || '',
-    eventType: document.getElementById('bt-builtin')?.value || '',
-    style,
-    sort: Number(document.getElementById('bt-sort')?.value || 1)
+    pageId: ev === 'Page' || (ev === 'Event' && btnDraft.eventType === 'SharePhone' && btnDraft.shareAfter === 'Page')
+      ? (btnDraft.pageId || '')
+      : '',
+    url: ev === 'Url' ? (btnDraft.url || '').trim() : '',
+    browser: ev === 'Url' ? (btnDraft.browser || 'external') : '',
+    flowId: ev === 'Flow' || (ev === 'Event' && btnDraft.eventType === 'SharePhone' && btnDraft.shareAfter === 'Flow')
+      ? (btnDraft.flowId || '')
+      : '',
+    eventType: ev === 'Event' ? (btnDraft.eventType || '') : '',
+    shareAfter: ev === 'Event' && btnDraft.eventType === 'SharePhone' ? (btnDraft.shareAfter || '') : '',
+    style: btnCtx.source === 'card'
+      ? (document.querySelector('input[name="bt-style"]:checked')?.value || 'primary')
+      : (btnDraft.style || 'primary'),
+    image: isMenu && display === 'image' ? (btnDraft.image || '') : '',
+    sort: Number(btnDraft.sort || 1)
   };
+}
+
+function validateButtonAction(b) {
+  if (!b.event) {
+    showToast('请选择点击后操作', 'err');
+    return false;
+  }
+  if (b.event === 'Page' && !b.pageId) {
+    showToast('请选择跳转页面', 'err');
+    return false;
+  }
+  if (b.event === 'Url' && !b.url) {
+    showToast('请填写 URL', 'err');
+    return false;
+  }
+  if (b.event === 'Flow' && !b.flowId) {
+    showToast('请选择对话流', 'err');
+    return false;
+  }
+  if (b.event === 'Event' && !b.eventType) {
+    showToast('请选择事件', 'err');
+    return false;
+  }
+  if (b.event === 'Event' && b.eventType === 'SharePhone') {
+    if (!b.shareAfter) {
+      showToast('请选择分享后操作', 'err');
+      return false;
+    }
+    if (b.shareAfter === 'Page' && !b.pageId) {
+      showToast('请选择分享后页面', 'err');
+      return false;
+    }
+    if (b.shareAfter === 'Flow' && !b.flowId) {
+      showToast('请选择分享后对话流', 'err');
+      return false;
+    }
+  }
+  return true;
 }
 
 function saveButton() {
   const b = readButtonForm();
-  if (!b.text) {
-    showToast('请填写按钮文案', 'err');
-    return;
-  }
-  if (!b.event) {
-    showToast('请选择事件类型', 'err');
-    return;
-  }
-  if (b.event === 'Page' && !b.pageId) {
-    showToast('请选择跳转页面', 'err');
-    return;
-  }
-  if (b.event === 'Url' && !b.url) {
-    showToast('请填写 URL', 'err');
-    return;
-  }
-  if (b.event === 'Flow' && !b.flowId) {
-    showToast('请选择对话流', 'err');
-    return;
-  }
-  if (b.event === 'Event' && !b.eventType) {
-    showToast('请选择内置事件', 'err');
-    return;
-  }
-  if (!Number.isInteger(b.sort) || b.sort < 0 || b.sort > 99) {
-    showToast('排序须为 0-99 的整数', 'err');
-    return;
-  }
   if (btnCtx.source === 'menu') {
-    const others = (menuDraft.buttons || []).filter((_, i) => i !== btnCtx.index);
-    const prim = others.filter(x => (x.style || 'primary') === 'primary').length + (b.style === 'primary' ? 1 : 0);
-    const sec = others.filter(x => x.style === 'secondary').length + (b.style === 'secondary' ? 1 : 0);
-    if (prim > 2 || sec > 4) {
-      showToast('主按钮 ≤2、次按钮 ≤4', 'err');
+    if (!b.image && !b.text) {
+      showToast('请填写按钮文案或上传图片', 'err');
+      return;
+    }
+    if (b.image && b.text) {
+      showToast('文案与图片只能选其一', 'err');
+      return;
+    }
+    if (!validateButtonAction(b)) return;
+    if (btnCtx.index == null && (menuDraft.buttons || []).length >= 6) {
+      showToast('菜单按钮最多 6 个', 'err');
       return;
     }
     if (btnCtx.index == null) menuDraft.buttons.push(b);
@@ -969,6 +1176,15 @@ function saveButton() {
     menuDirty = true;
     renderMenuDrawer();
   } else {
+    if (!b.text) {
+      showToast('请填写按钮文案', 'err');
+      return;
+    }
+    if (!validateButtonAction(b)) return;
+    if (btnCtx.index == null && (pageDraft.cardButtons || []).length >= 2) {
+      showToast('卡片按钮最多 2 个', 'err');
+      return;
+    }
     if (btnCtx.index == null) pageDraft.cardButtons.push(b);
     else pageDraft.cardButtons[btnCtx.index] = b;
     pageDirty = true;
@@ -998,13 +1214,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const pl = qs('pl') || defaultProductLine();
     const platform = qs('platform') || defaultPlatform();
     const bot = qs('bot') || defaultBot(pl, platform);
-    const type = qs('type') === 'fallback' ? 'fallback' : 'normal';
-    if (type === 'fallback' && findFixedFlow(pl, bot, type, platform)) {
-      showToast(`当前 Bot 已有${fixedFlowLabel(type)}`, 'err');
-      location.href = 'flows.html';
-      return;
-    }
-    draft = emptyFlow(pl, bot, type, platform);
+    draft = emptyFlow(pl, bot, platform);
     isNew = true;
   }
   if (!draft.platform) draft.platform = defaultPlatform();
