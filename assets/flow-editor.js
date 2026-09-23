@@ -286,6 +286,14 @@ function setMainMenu(id) {
   renderEditor();
 }
 
+function setFirstPage(id) {
+  syncHeaderFields();
+  if (!pageById(draft, id)) return;
+  draft.firstPageId = id;
+  dirty = true;
+  renderEditor();
+}
+
 function bindSortableList(containerSel, itemSel, onReorder) {
   const container = document.querySelector(containerSel);
   if (!container) return;
@@ -494,6 +502,7 @@ function renderEditor() {
             </div>
             <div class="page-list-ops" onclick="event.stopPropagation()">
               <button class="link-btn" type="button" onclick="openPageEdit('${esc(p.id)}')">编辑</button>
+              <button class="link-btn" type="button" ${p.id === draft.firstPageId ? 'disabled' : ''} onclick="setFirstPage('${esc(p.id)}')">设为首屏</button>
               <button class="link-btn" type="button" onclick="copyPage('${esc(p.id)}')">复制</button>
               <button class="link-btn link-btn-danger" type="button" ${pages.length <= 1 ? 'disabled' : ''} onclick="deletePage('${esc(p.id)}')">删除</button>
             </div>
