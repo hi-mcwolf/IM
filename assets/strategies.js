@@ -6,6 +6,8 @@ let filters = readQueryFilters(['pl', 'platform', 'bot', 'strategyId', 'strategy
 let editingId = null;
 let dirty = false;
 let sceneDraft = [];
+let sceneQuery = '';
+let sceneOpen = false;
 let protosRows = [{ parentId: '', childIds: [] }];
 
 if (!filters.pl) filters.pl = defaultProductLine();
@@ -280,6 +282,8 @@ function openStrategyEdit(id) {
   };
   if (!s.platform) s.platform = filters.platform || defaultPlatform();
   sceneDraft = strategySceneIds(s);
+  sceneQuery = '';
+  sceneOpen = false;
   protosRows = buildProtosRows(s);
   const scopeLocked = !!id;
   const isFallback = isFallbackStrategy(s);
@@ -306,7 +310,7 @@ function openStrategyEdit(id) {
     <div class="field">
       <label class="field-label">来源</label>
       <div class="field-hint">非必填，可多选；不选表示不限来源</div>
-      <div id="scene-chips">${renderSceneChips(s.productLineId, s.botId, s.platform)}</div>
+      <div id="scene-msel-host">${renderSceneSelect(s.productLineId, s.botId, s.platform)}</div>
     </div>
     <div class="field">
       <label class="field-label">星灵标签 / Protos Tags<span class="req">*</span></label>
@@ -356,24 +360,136 @@ function openStrategyEdit(id) {
   refreshIcons();
 }
 
-function renderSceneChips(pl, bot, platform) {
+function currentSceneScope() {
+  return {
+    pl: document.getElementById('st-pl')?.value || '',
+    bot: document.getElementById('st-bot')?.value || '',
+    platform: document.getElementById('st-platform')?.value || ''
+  };
+}
+
+function sceneTagHtml(list) {
+  return sceneDraft.map(id => {
+    const s = list.find(x => x.id === id) || sceneById(id);
+    return `<span class="msel-tag"><span class="msel-tag-text">${esc(s?.name || id)}</span><button type="button" class="msel-tag-remove" onclick="removeScene(event, '${esc(id)}')">×</button></span>`;
+  }).join('');
+}
+
+function sceneOptionHtml(list) {
+  const q = sceneQuery.trim().toLowerCase();
+  const filtered = list.filter(s => !q || s.name.toLowerCase().includes(q) || s.id.toLowerCase().includes(q));
+  if (!list.length) return '<div class="msel-empty">当前范围暂无来源</div>';
+  if (!filtered.length) return '<div class="msel-empty">无匹配来源</div>';
+  return filtered.map(s => `<label class="msel-option" onclick="event.stopPropagation()">
+    <input type="checkbox" data-id="${esc(s.id)}" ${sceneDraft.includes(s.id) ? 'checked' : ''} onchange="toggleScene(this.dataset.id)" />
+    <span class="msel-option-body">
+      <span class="msel-option-label">${esc(s.name)}</span>
+      <span class="msel-option-desc">${esc(s.id)}</span>
+    </span>
+  </label>`).join('');
+}
+
+function renderSceneSelect(pl, bot, platform) {
   const list = scenesByScope(pl, bot, platform);
-  if (!list.length) return '<div class="cell-muted">当前范围暂无来源</div>';
-  return `<div class="chip-group">${list.map(s => {
-    const on = sceneDraft.includes(s.id);
-    return `<button type="button" class="chip${on ? ' selected' : ''}" onclick="toggleScene('${esc(s.id)}')">${esc(s.name)} (${esc(s.id)})</button>`;
-  }).join('')}</div>`;
+  const tags = sceneTagHtml(list);
+  return `<div class="msel${sceneOpen ? ' open' : ''}" id="scene-msel">
+    <div class="msel-trigger" tabindex="0" onclick="toggleScenePanel(event)">
+      ${tags ? `<span class="msel-tags">${tags}</span>` : '<span class="msel-placeholder">请选择来源</span>'}
+      <i data-lucide="chevron-down" class="msel-chevron"></i>
+    </div>
+    ${sceneOpen ? `<div class="msel-dropdown" id="scene-msel-drop">
+      <input class="input msel-search" id="scene-search" placeholder="搜索来源名称或 code" value="${esc(sceneQuery)}" oninput="onSceneSearch(this.value)" onclick="event.stopPropagation()" />
+      <div class="msel-list">${sceneOptionHtml(list)}</div>
+    </div>` : ''}
+  </div>`;
+}
+
+function placeSceneDropdown() {
+  const trigger = document.querySelector('#scene-msel .msel-trigger');
+  const drop = document.getElementById('scene-msel-drop');
+  if (!trigger || !drop) return;
+  if (drop.parentElement !== document.body) document.body.appendChild(drop);
+  const r = trigger.getBoundingClientRect();
+  drop.style.position = 'fixed';
+  drop.style.top = `${r.bottom + 4}px`;
+  drop.style.left = `${r.left}px`;
+  drop.style.width = `${r.width}px`;
+  drop.style.right = 'auto';
+  drop.style.zIndex = '400';
+}
+
+function refreshSceneSelect(keepFocus) {
+  document.getElementById('scene-msel-drop')?.remove();
+  const host = document.getElementById('scene-msel-host');
+  if (!host) return;
+  const { pl, bot, platform } = currentSceneScope();
+  host.innerHTML = renderSceneSelect(pl, bot, platform);
+  refreshIcons();
+  if (sceneOpen) requestAnimationFrame(() => placeSceneDropdown());
+  if (keepFocus) {
+    const input = document.getElementById('scene-search');
+    if (input) {
+      input.focus();
+      const len = input.value.length;
+      input.setSelectionRange(len, len);
+    }
+  }
+}
+
+function paintSceneSelection() {
+  const trigger = document.querySelector('#scene-msel .msel-trigger');
+  if (!trigger) return;
+  const { pl, bot, platform } = currentSceneScope();
+  const list = scenesByScope(pl, bot, platform);
+  const tags = sceneTagHtml(list);
+  const tagsEl = trigger.querySelector('.msel-tags');
+  const placeholder = trigger.querySelector('.msel-placeholder');
+  if (tags) {
+    if (tagsEl) tagsEl.innerHTML = tags;
+    else {
+      placeholder?.remove();
+      trigger.insertAdjacentHTML('afterbegin', `<span class="msel-tags">${tags}</span>`);
+    }
+  } else {
+    tagsEl?.remove();
+    if (!trigger.querySelector('.msel-placeholder')) {
+      trigger.insertAdjacentHTML('afterbegin', '<span class="msel-placeholder">请选择来源</span>');
+    }
+  }
+  document.querySelectorAll('#scene-msel-drop .msel-option input').forEach(input => {
+    input.checked = sceneDraft.includes(input.dataset.id);
+  });
+  requestAnimationFrame(() => placeSceneDropdown());
+}
+
+function toggleScenePanel(e) {
+  e.stopPropagation();
+  sceneOpen = !sceneOpen;
+  if (!sceneOpen) sceneQuery = '';
+  refreshSceneSelect(sceneOpen);
+}
+
+function onSceneSearch(v) {
+  sceneQuery = v;
+  const { pl, bot, platform } = currentSceneScope();
+  const listEl = document.querySelector('#scene-msel-drop .msel-list');
+  if (listEl) listEl.innerHTML = sceneOptionHtml(scenesByScope(pl, bot, platform));
 }
 
 function toggleScene(id) {
   dirty = true;
   if (sceneDraft.includes(id)) sceneDraft = sceneDraft.filter(x => x !== id);
   else sceneDraft.push(id);
-  const pl = document.getElementById('st-pl')?.value;
-  const bot = document.getElementById('st-bot')?.value;
-  const platform = document.getElementById('st-platform')?.value;
-  const host = document.getElementById('scene-chips');
-  if (host) host.innerHTML = renderSceneChips(pl, bot, platform);
+  paintSceneSelection();
+  syncSaveBtn();
+}
+
+function removeScene(e, id) {
+  e.stopPropagation();
+  e.preventDefault();
+  dirty = true;
+  sceneDraft = sceneDraft.filter(x => x !== id);
+  paintSceneSelection();
   syncSaveBtn();
 }
 
@@ -474,8 +590,8 @@ function onStBotChange() {
   const bot = document.getElementById('st-bot').value;
   const platform = document.getElementById('st-platform').value;
   sceneDraft = sceneDraft.filter(id => scenesByScope(pl, bot, platform).some(s => s.id === id));
-  const host = document.getElementById('scene-chips');
-  if (host) host.innerHTML = renderSceneChips(pl, bot, platform);
+  sceneQuery = '';
+  refreshSceneSelect(false);
   document.getElementById('st-flow').innerHTML = `<option value="">请选择对话流</option>${publishedMatchFlowOptions(pl, bot, '', platform)}`;
   syncSaveBtn();
 }
@@ -583,6 +699,8 @@ function saveStrategy() {
   }
   saveStore();
   dirty = false;
+  sceneOpen = false;
+  document.getElementById('scene-msel-drop')?.remove();
   closeDrawer('strategyDrawer');
   showToast('保存成功');
   render();
@@ -608,13 +726,40 @@ async function deleteStrategy(id) {
   render();
 }
 
+document.addEventListener('click', e => {
+  if (!sceneOpen) return;
+  if (e.target.closest('#scene-msel') || e.target.closest('#scene-msel-drop')) return;
+  sceneOpen = false;
+  sceneQuery = '';
+  refreshSceneSelect(false);
+});
+document.addEventListener('scroll', () => {
+  if (sceneOpen) placeSceneDropdown();
+}, true);
+window.addEventListener('resize', () => {
+  if (sceneOpen) placeSceneDropdown();
+});
+
+const closeDrawerBase = closeDrawer;
+closeDrawer = function (id) {
+  if (id === 'strategyDrawer') {
+    sceneOpen = false;
+    document.getElementById('scene-msel-drop')?.remove();
+  }
+  closeDrawerBase(id);
+};
+
 document.addEventListener('DOMContentLoaded', () => {
   initShell('strategies');
   writeQueryFilters(filters);
   bindDrawerClose({ beforeClose: maybeClose });
   document.getElementById('strategySaveBtn').addEventListener('click', saveStrategy);
   document.getElementById('strategyCancelBtn').addEventListener('click', async () => {
-    if (await maybeClose()) closeDrawer('strategyDrawer');
+    if (await maybeClose()) {
+      sceneOpen = false;
+      document.getElementById('scene-msel-drop')?.remove();
+      closeDrawer('strategyDrawer');
+    }
   });
   render();
 });

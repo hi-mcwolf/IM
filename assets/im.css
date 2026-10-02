@@ -132,6 +132,24 @@ html, body { height: 100%; }
   margin-top: 8px;
 }
 .cond-row:first-of-type { margin-top: 12px; }
+.msel { width: 100%; }
+.msel-trigger {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  align-items: center;
+}
+.msel-tag-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.msel-option { align-items: center; }
+.msel-dropdown {
+  box-sizing: border-box;
+}
 .msel-fake {
   min-height: 32px;
   border: 1px solid var(--line);

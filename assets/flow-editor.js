@@ -109,7 +109,7 @@ function collectJumps() {
     (p.cardButtons || []).slice().sort((a, b) => (a.sort || 0) - (b.sort || 0)).forEach((b, i) => {
       jumps.push(`${p.name || p.id} → ${jumpTargetLabel(b)}（卡片按钮${i + 1}）`);
     });
-    const menu = menuById(p.mainMenuOverrideId || draft.mainMenuId);
+    const menu = p.mainMenuOverrideId === 'none' ? null : menuById(p.mainMenuOverrideId || draft.mainMenuId);
     (menu?.buttons || []).slice().sort((a, b) => (a.sort || 0) - (b.sort || 0)).forEach((b, i) => {
       jumps.push(`${p.name || p.id} → ${jumpTargetLabel(b)}（菜单按钮${i + 1}）`);
     });
@@ -119,10 +119,11 @@ function collectJumps() {
 
 function pageMeta(p) {
   const n = (p.cardButtons || []).length;
-  const menu = menuById(p.mainMenuOverrideId || draft.mainMenuId);
+  const menu = p.mainMenuOverrideId === 'none' ? null : menuById(p.mainMenuOverrideId || draft.mainMenuId);
   const parts = [n ? `${n} 个卡片按钮` : '无卡片按钮'];
   if (p.image) parts.push('含图');
-  if (p.mainMenuOverrideId) parts.push(`底部菜单：${menu ? menu.name : p.mainMenuOverrideId}`);
+  if (p.mainMenuOverrideId === 'none') parts.push('不使用底部菜单');
+  else if (p.mainMenuOverrideId) parts.push(`底部菜单：${menu ? menu.name : p.mainMenuOverrideId}`);
   return parts.join(' · ');
 }
 
@@ -148,6 +149,7 @@ function ensurePreviewPage() {
 }
 
 function resolvePreviewMenu(page) {
+  if (page?.mainMenuOverrideId === 'none') return null;
   if (menuDraft && document.getElementById('menuDrawer')?.classList.contains('open')) return menuDraft;
   return menuById(page?.mainMenuOverrideId || draft.mainMenuId);
 }
@@ -252,10 +254,21 @@ function syncHeaderFields() {
   if (!draft) return;
   if (isNew) draft.id = (document.getElementById('f-id')?.value || '').trim();
   draft.name = (document.getElementById('f-name')?.value || '').trim();
+  draft.productLineId = document.getElementById('f-pl')?.value || draft.productLineId;
   draft.platform = document.getElementById('f-platform')?.value || draft.platform || defaultPlatform();
   draft.botId = document.getElementById('f-bot')?.value || draft.botId;
   draft.firstPageId = document.getElementById('f-first')?.value || '';
   draft.remark = (document.getElementById('f-remark')?.value || '').trim();
+}
+
+function onEditorPlChange() {
+  if (!isNew) return;
+  dirty = true;
+  draft.productLineId = document.getElementById('f-pl').value;
+  draft.botId = defaultBot(draft.productLineId, draft.platform);
+  const menus = menusByScope(draft.productLineId, draft.botId, draft.platform);
+  draft.mainMenuId = menus[0]?.id || '';
+  renderEditor();
 }
 
 function onEditorBotChange() {
@@ -268,6 +281,7 @@ function onEditorBotChange() {
 
 function onEditorPlatformChange() {
   dirty = true;
+  if (isNew) draft.productLineId = document.getElementById('f-pl')?.value || draft.productLineId;
   draft.platform = document.getElementById('f-platform').value;
   draft.botId = defaultBot(draft.productLineId, draft.platform);
   const menus = menusByScope(draft.productLineId, draft.botId, draft.platform);
@@ -428,6 +442,10 @@ function renderEditor() {
     <section class="card">
       <h4 class="card-title">基本信息</h4>
       <div class="field">
+        <label class="field-label">产品线<span class="req">*</span></label>
+        <select class="select" id="f-pl" ${isNew ? '' : 'disabled'} onchange="onEditorPlChange()">${productLineOptions(draft.productLineId)}</select>
+      </div>
+      <div class="field">
         <label class="field-label">平台<span class="req">*</span></label>
         <select class="select" id="f-platform" onchange="onEditorPlatformChange()">${platformOptions(draft.platform || defaultPlatform())}</select>
       </div>
@@ -538,6 +556,10 @@ function saveFlow(publish) {
   }
   if (!draft.name) {
     showToast('请填写对话流名称', 'err');
+    return;
+  }
+  if (!draft.productLineId) {
+    showToast('请选择产品线', 'err');
     return;
   }
   if (!draft.botId) {
@@ -670,6 +692,7 @@ function renderPageDrawer() {
       <label class="field-label">底部菜单</label>
       <select class="select" id="pg-menu">
         <option value="">使用对话流默认底部菜单</option>
+        <option value="none"${p.mainMenuOverrideId === 'none' ? ' selected' : ''}>不使用底部菜单</option>
         ${menuOptions(draft.productLineId, draft.botId, p.mainMenuOverrideId, draft.platform)}
       </select>
     </div>
