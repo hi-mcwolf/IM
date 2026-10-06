@@ -5,6 +5,7 @@ let page = 1;
 let filters = readQueryFilters(['pl', 'platform', 'bot', 'strategyId', 'strategyName', 'sceneCode', 'sceneName', 'status']);
 let editingId = null;
 let dirty = false;
+let fallbackDraft = 'no';
 let sceneDraft = [];
 let sceneQuery = '';
 let sceneOpen = false;
@@ -94,6 +95,60 @@ function isFallbackStrategy(s) {
   return !!s && s.type === 'fallback';
 }
 
+function scopeHasFallback(pl, platform, bot) {
+  return DB.strategies.some(s =>
+    isFallbackStrategy(s) &&
+    s.productLineId === pl &&
+    s.botId === bot &&
+    (!s.platform || s.platform === platform)
+  );
+}
+
+function creatingFallback() {
+  if (editingId) return false;
+  const field = document.getElementById('st-fallback-field');
+  if (!field || field.hidden) return false;
+  return (document.querySelector('input[name="st-fallback"]:checked')?.value || fallbackDraft) === 'yes';
+}
+
+function applyFallbackVisibility() {
+  const yes = creatingFallback();
+  const box = document.getElementById('st-nonfallback-fields');
+  if (box) box.hidden = yes;
+  const req = document.getElementById('st-tags-req');
+  if (req) req.hidden = yes;
+}
+
+function onStFallbackChange() {
+  fallbackDraft = document.querySelector('input[name="st-fallback"]:checked')?.value || 'no';
+  applyFallbackVisibility();
+  dirty = true;
+  syncSaveBtn();
+}
+
+function syncFallbackField() {
+  if (editingId) return;
+  const field = document.getElementById('st-fallback-field');
+  if (!field) return;
+  const pl = document.getElementById('st-pl')?.value || '';
+  const platform = document.getElementById('st-platform')?.value || '';
+  const bot = document.getElementById('st-bot')?.value || '';
+  const show = !scopeHasFallback(pl, platform, bot);
+  field.hidden = !show;
+  if (!show) {
+    fallbackDraft = 'no';
+    const no = document.querySelector('input[name="st-fallback"][value="no"]');
+    if (no) no.checked = true;
+  }
+  applyFallbackVisibility();
+  syncSaveBtn();
+}
+
+function formatEffectiveTime(s) {
+  if (isFallbackStrategy(s) || (!s.effectiveStart && !s.effectiveEnd)) return '-';
+  return `<span class="strategy-time"><span>${esc(s.effectiveStart || '-')}</span><span>${esc(s.effectiveEnd || '-')}</span></span>`;
+}
+
 function formatSceneNames(s) {
   const ids = strategySceneIds(s);
   if (!ids.length) return '不限';
@@ -176,18 +231,18 @@ function render() {
     <section class="card table-card">
       <h4 class="card-title">策略列表</h4>
       <div class="table-scroll">
-        <table class="table table-nowrap">
+        <table class="table strategy-table">
           <thead>
             <tr>
-              <th>优先级</th>
+              <th class="col-nowrap">优先级</th>
               <th>策略 ID</th>
               <th>策略名称</th>
               <th>来源</th>
               <th>星灵标签</th>
               <th>对话流</th>
               <th>生效时间</th>
-              <th>状态</th>
-              <th class="col-ops">操作</th>
+              <th class="col-nowrap">状态</th>
+              <th class="col-ops col-nowrap">操作</th>
             </tr>
           </thead>
           <tbody>
@@ -195,15 +250,15 @@ function render() {
               const flow = flowById(s.flowId);
               const fb = isFallbackStrategy(s);
               return `<tr${fb ? ' class="fallback-row"' : ''}>
-                <td>${fb ? '-' : esc(s.priority)}</td>
+                <td class="col-nowrap">${fb ? '-' : esc(s.priority)}</td>
                 <td>${esc(s.id)}</td>
                 <td>${esc(s.name || '-')}${fb ? fixedPinHtml() : ''}</td>
                 <td>${esc(formatSceneNames(s))}</td>
                 <td>${esc(formatTags(s.tags))}</td>
                 <td>${esc(flow ? `${flow.name} (${flow.id})` : s.flowId)}</td>
-                <td>${fb ? '-' : esc((s.effectiveStart || s.effectiveEnd) ? `${s.effectiveStart || '-'} ~ ${s.effectiveEnd || '-'}` : '-')}</td>
-                <td>${statusTag(s.status)}</td>
-                <td class="col-ops">
+                <td>${formatEffectiveTime(s)}</td>
+                <td class="col-nowrap">${statusTag(s.status)}</td>
+                <td class="col-ops col-nowrap">
                   <button class="link-btn" type="button" onclick="openStrategyEdit('${esc(s.id)}')">编辑</button>
                   ${fb ? '' : `<button class="link-btn link-btn-danger" type="button" onclick="deleteStrategy('${esc(s.id)}')">删除</button>`}
                 </td>
@@ -263,6 +318,7 @@ function collectProtosFromRows() {
 function openStrategyEdit(id) {
   editingId = id;
   dirty = false;
+  fallbackDraft = 'no';
   const existing = id ? strategyById(id) : null;
   const s = id ? clone(existing) : {
     id: '',
@@ -313,7 +369,7 @@ function openStrategyEdit(id) {
       <div id="scene-msel-host">${renderSceneSelect(s.productLineId, s.botId, s.platform)}</div>
     </div>
     <div class="field">
-      <label class="field-label">星灵标签 / Protos Tags<span class="req">*</span></label>
+      <label class="field-label">星灵标签 / Protos Tags<span class="req" id="st-tags-req"${isFallback ? ' hidden' : ''}>*</span></label>
       <div class="field-hint">默认 1 个标签下拉，可选后展示子标签；最多添加 10 个</div>
       <div id="protos-rows">${renderProtosRows()}</div>
       <button type="button" class="btn btn-outline protos-add-btn" id="protos-add-btn" ${protosRows.length >= 10 ? 'disabled' : ''} onclick="addProtosRow()">
@@ -328,7 +384,8 @@ function openStrategyEdit(id) {
         ${publishedMatchFlowOptions(s.productLineId, s.botId, s.flowId, s.platform)}
       </select>
     </div>
-    ${isFallback ? '' : `<div class="field">
+    ${isFallback ? '' : `<div id="st-nonfallback-fields">
+    <div class="field">
       <label class="field-label">优先级<span class="req">*</span></label>
       <input class="input" id="st-priority" type="number" min="0" max="999" value="${esc(s.priority)}" />
       <div class="field-error" id="err-priority"></div>
@@ -347,6 +404,14 @@ function openStrategyEdit(id) {
       <div class="radio-group">
         <label><input type="radio" name="st-status" value="active"${s.status === 'active' ? ' checked' : ''}> 启用</label>
         <label><input type="radio" name="st-status" value="disabled"${s.status === 'disabled' ? ' checked' : ''}> 停用</label>
+      </div>
+    </div>
+    </div>`}
+    ${id ? '' : `<div class="field" id="st-fallback-field"${scopeHasFallback(s.productLineId, s.platform, s.botId) ? ' hidden' : ''}>
+      <label class="field-label">是否兜底<span class="req">*</span></label>
+      <div class="radio-group">
+        <label><input type="radio" name="st-fallback" value="no" checked onchange="onStFallbackChange()"> 否</label>
+        <label><input type="radio" name="st-fallback" value="yes" onchange="onStFallbackChange()"> 是</label>
       </div>
     </div>`}
     <div class="field">
@@ -593,6 +658,7 @@ function onStBotChange() {
   sceneQuery = '';
   refreshSceneSelect(false);
   document.getElementById('st-flow').innerHTML = `<option value="">请选择对话流</option>${publishedMatchFlowOptions(pl, bot, '', platform)}`;
+  syncFallbackField();
   syncSaveBtn();
 }
 
@@ -606,7 +672,7 @@ function editingFallback() {
 
 function readForm() {
   const { protosTagIds, tags } = collectProtosFromRows();
-  const fallback = editingFallback();
+  const fallback = editingFallback() || creatingFallback();
   return {
     name: (document.getElementById('st-name')?.value || '').trim(),
     sceneIds: clone(sceneDraft),
@@ -626,7 +692,7 @@ function readForm() {
 
 function syncSaveBtn() {
   const d = readForm();
-  if (editingFallback()) {
+  if (editingFallback() || creatingFallback()) {
     document.getElementById('strategySaveBtn').disabled = !d.flowId || !d.name;
     return;
   }
@@ -636,7 +702,7 @@ function syncSaveBtn() {
 
 function saveStrategy() {
   const d = readForm();
-  const fallback = editingFallback();
+  const fallback = editingFallback() || creatingFallback();
   ['err-name', 'err-tags', 'err-priority', 'err-date'].forEach(id => fieldError(id, ''));
 
   if (!d.name) {
@@ -695,7 +761,15 @@ function saveStrategy() {
     }
     delete target.sceneId;
   } else {
-    DB.strategies.push({ ...payload, id: nextId('strategy'), createdAt: nowTs() });
+    const row = { ...payload, id: nextId('strategy'), createdAt: nowTs() };
+    if (fallback) {
+      row.type = 'fallback';
+      row.status = 'active';
+      row.priority = 999;
+      row.effectiveStart = '';
+      row.effectiveEnd = '';
+    }
+    DB.strategies.push(row);
   }
   saveStore();
   dirty = false;

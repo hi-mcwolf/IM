@@ -197,7 +197,6 @@ function statusTag(status) {
     active: { label: '启用', cls: 'tag-success' },
     enabled: { label: '启用', cls: 'tag-success' },
     disabled: { label: '停用', cls: 'tag-gray' },
-    draft: { label: '草稿', cls: 'tag-info' },
     published: { label: '启用', cls: 'tag-success' },
     offline: { label: '禁用', cls: 'tag-gray' },
     SUCCESS: { label: 'SUCCESS', cls: 'tag-success' },

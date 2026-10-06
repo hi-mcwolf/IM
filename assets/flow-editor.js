@@ -13,6 +13,8 @@ let btnCtx = null;
 let btnDraft = null;
 let btnDirty = false;
 let previewPageId = '';
+let editorTab = 'basic';
+const BASIC_SAVE_HINT = '请先保存基本信息，再配置页面与底部菜单';
 
 function emptyFlow(pl, bot, platform) {
   const plat = platform || defaultPlatform();
@@ -24,7 +26,7 @@ function emptyFlow(pl, bot, platform) {
     platform: plat,
     botId: bot || defaultBot(pl, plat),
     type: 'normal',
-    status: 'draft',
+    status: 'offline',
     purpose: '',
     mainMenuId: menus[0]?.id || '',
     firstPageId: '',
@@ -99,7 +101,11 @@ function jumpTargetLabel(btn) {
     }
     return ev;
   }
-  if (btn.event === 'Home') return '回主菜单';
+  if (btn.event === 'Home') {
+    const menu = menuById(btn.menuId);
+    const name = menu?.name || btn.menuId;
+    return name ? `切换菜单：${name}` : '切换菜单';
+  }
   return eventLabel(btn.event);
 }
 
@@ -252,13 +258,32 @@ function refreshMenuPreview() {
 
 function syncHeaderFields() {
   if (!draft) return;
-  if (isNew) draft.id = (document.getElementById('f-id')?.value || '').trim();
-  draft.name = (document.getElementById('f-name')?.value || '').trim();
-  draft.productLineId = document.getElementById('f-pl')?.value || draft.productLineId;
-  draft.platform = document.getElementById('f-platform')?.value || draft.platform || defaultPlatform();
-  draft.botId = document.getElementById('f-bot')?.value || draft.botId;
-  draft.firstPageId = document.getElementById('f-first')?.value || '';
-  draft.remark = (document.getElementById('f-remark')?.value || '').trim();
+  const idEl = document.getElementById('f-id');
+  if (isNew && idEl) draft.id = idEl.value.trim();
+  const nameEl = document.getElementById('f-name');
+  if (nameEl) draft.name = nameEl.value.trim();
+  const plEl = document.getElementById('f-pl');
+  if (plEl) draft.productLineId = plEl.value || draft.productLineId;
+  const platEl = document.getElementById('f-platform');
+  if (platEl) draft.platform = platEl.value || draft.platform || defaultPlatform();
+  const botEl = document.getElementById('f-bot');
+  if (botEl) draft.botId = botEl.value || draft.botId;
+  const firstEl = document.getElementById('f-first');
+  if (firstEl) draft.firstPageId = firstEl.value || '';
+  const remarkEl = document.getElementById('f-remark');
+  if (remarkEl) draft.remark = remarkEl.value.trim();
+}
+
+function switchEditorTab(tab) {
+  syncHeaderFields();
+  editorTab = tab;
+  renderEditor();
+}
+
+function requireSavedBasic() {
+  if (!isNew) return true;
+  showToast(BASIC_SAVE_HINT, 'err');
+  return false;
 }
 
 function onEditorPlChange() {
@@ -416,11 +441,99 @@ function clearUploadedImage(inputId) {
 
 function renderEditor() {
   const idLocked = !isNew && !!draft.id;
+  const scopeLocked = !isNew;
   const pages = sortedPages(draft);
-  const jumps = collectJumps();
   const menus = scopedMenus();
-  const firstOpts = pages.map(p => optionHtml(p.id, `${p.name} (${p.id})`, draft.firstPageId)).join('');
+  const locked = isNew;
+  const dis = locked ? 'disabled' : '';
+  const lockHint = locked ? `<p class="editor-lock-hint">${BASIC_SAVE_HINT}</p>` : '';
   ensurePreviewPage();
+  const basicPane = `
+    <section class="card">
+      <h4 class="card-title">基本信息</h4>
+      <div class="field">
+        <label class="field-label">产品线<span class="req">*</span></label>
+        <select class="select" id="f-pl" ${scopeLocked ? 'disabled' : ''} onchange="onEditorPlChange()">${productLineOptions(draft.productLineId)}</select>
+      </div>
+      <div class="field">
+        <label class="field-label">平台<span class="req">*</span></label>
+        <select class="select" id="f-platform" ${scopeLocked ? 'disabled' : ''} onchange="onEditorPlatformChange()">${platformOptions(draft.platform || defaultPlatform())}</select>
+      </div>
+      <div class="field">
+        <label class="field-label">Bot<span class="req">*</span></label>
+        <select class="select" id="f-bot" ${scopeLocked ? 'disabled' : ''} onchange="onEditorBotChange()">${botOptions(draft.productLineId, draft.botId, draft.platform)}</select>
+      </div>
+      <div class="field">
+        <label class="field-label">对话流 ID<span class="req">*</span></label>
+        <input class="input" id="f-id" maxlength="50" ${idLocked ? 'disabled' : ''} placeholder="请输入对话流 ID" value="${esc(draft.id)}" />
+        <div class="field-error" id="err-id"></div>
+      </div>
+      <div class="field">
+        <label class="field-label">对话流名称<span class="req">*</span></label>
+        <input class="input" id="f-name" maxlength="30" placeholder="请输入对话流名称" value="${esc(draft.name)}" />
+      </div>
+      <div class="field">
+        <label class="field-label">备注</label>
+        <textarea class="textarea" id="f-remark" maxlength="500" placeholder="请输入备注">${esc(draft.remark || '')}</textarea>
+      </div>
+    </section>`;
+  const pagesPane = `
+    <section class="card">
+      ${lockHint}
+      <div class="section-toolbar">
+        <h4 class="card-title" style="margin:0">页面列表</h4>
+        <button class="btn btn-primary" type="button" ${dis} onclick="openPageEdit(null)">
+          <i data-lucide="plus"></i>添加页面
+        </button>
+      </div>
+      <div class="page-list">
+        ${pages.length ? pages.map(p => `
+          <div class="page-list-item${p.id === previewPageId ? ' selected' : ''}" data-page-id="${esc(p.id)}" onclick="selectPreviewPage('${esc(p.id)}')">
+            <div class="grow">
+              <div class="title">${p.id === draft.firstPageId ? '<span class="tag tag-primary">首屏</span> ' : ''}${esc(p.name || p.id)} <span class="tag tag-gray">${esc(p.id)}</span></div>
+              <div class="meta">${esc(pageMeta(p))}</div>
+            </div>
+            <div class="page-list-ops" onclick="event.stopPropagation()">
+              <button class="link-btn" type="button" ${dis} onclick="openPageEdit('${esc(p.id)}')">编辑</button>
+              <button class="link-btn" type="button" ${p.id === draft.firstPageId || locked ? 'disabled' : ''} onclick="setFirstPage('${esc(p.id)}')">设为首屏</button>
+              <button class="link-btn" type="button" ${dis} onclick="copyPage('${esc(p.id)}')">复制</button>
+              <button class="link-btn link-btn-danger" type="button" ${pages.length <= 1 || locked ? 'disabled' : ''} onclick="deletePage('${esc(p.id)}')">删除</button>
+            </div>
+          </div>`).join('') : '<div class="table-empty">暂无页面，请添加</div>'}
+      </div>
+    </section>`;
+  const menusPane = `
+    <section class="card">
+      ${lockHint}
+      <div class="section-toolbar">
+        <h4 class="card-title" style="margin:0">底部菜单</h4>
+        <button class="btn btn-outline" type="button" ${dis} onclick="openMenuEdit(null)">
+          <i data-lucide="plus"></i>新建底部菜单
+        </button>
+      </div>
+      <div class="table-scroll">
+        <table class="table table-nowrap menu-pick-table">
+          <thead>
+            <tr>
+              <th>菜单名称</th>
+              <th>编辑</th>
+              <th>设为主菜单</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${menus.length ? menus.map(m => {
+              const isMain = m.id === draft.mainMenuId;
+              return `<tr>
+                <td>${esc(m.name || m.id)}${isMain ? '<span class="main-menu-mark" title="当前主菜单"><i data-lucide="house"></i></span>' : ''}</td>
+                <td><button class="link-btn" type="button" ${dis} onclick="openMenuEdit('${esc(m.id)}')">编辑</button></td>
+                <td><button class="link-btn" type="button" ${isMain || locked ? 'disabled' : ''} onclick="setMainMenu('${esc(m.id)}')">设为主菜单</button></td>
+              </tr>`;
+            }).join('') : `<tr><td colspan="3"><div class="table-empty">暂无底部菜单</div></td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </section>`;
+  const pane = editorTab === 'pages' ? pagesPane : (editorTab === 'menus' ? menusPane : basicPane);
   document.getElementById('content').innerHTML = `
     <div class="flow-editor-head">
       <div>
@@ -439,98 +552,12 @@ function renderEditor() {
         <div id="flow-preview-host">${viberPreviewHtml(pageById(draft, previewPageId))}</div>
       </aside>
       <div class="flow-editor-main">
-    <section class="card">
-      <h4 class="card-title">基本信息</h4>
-      <div class="field">
-        <label class="field-label">产品线<span class="req">*</span></label>
-        <select class="select" id="f-pl" ${isNew ? '' : 'disabled'} onchange="onEditorPlChange()">${productLineOptions(draft.productLineId)}</select>
-      </div>
-      <div class="field">
-        <label class="field-label">平台<span class="req">*</span></label>
-        <select class="select" id="f-platform" onchange="onEditorPlatformChange()">${platformOptions(draft.platform || defaultPlatform())}</select>
-      </div>
-      <div class="field">
-        <label class="field-label">Bot<span class="req">*</span></label>
-        <select class="select" id="f-bot" onchange="onEditorBotChange()">${botOptions(draft.productLineId, draft.botId, draft.platform)}</select>
-      </div>
-      <div class="field">
-        <label class="field-label">对话流 ID<span class="req">*</span></label>
-        <input class="input" id="f-id" maxlength="50" ${idLocked ? 'disabled' : ''} placeholder="请输入对话流 ID" value="${esc(draft.id)}" />
-        <div class="field-error" id="err-id"></div>
-      </div>
-      <div class="field">
-        <label class="field-label">对话流名称<span class="req">*</span></label>
-        <input class="input" id="f-name" maxlength="30" placeholder="请输入对话流名称" value="${esc(draft.name)}" />
-      </div>
-      <div class="field">
-        <label class="field-label">首屏页面<span class="req">*</span></label>
-        <select class="select" id="f-first">
-          <option value="">请选择首屏页面</option>
-          ${firstOpts}
-        </select>
-        <div class="field-hint">启用前须指定首屏；默认可取第一页</div>
-      </div>
-      <div class="field">
-        <label class="field-label">备注</label>
-        <textarea class="textarea" id="f-remark" maxlength="500" placeholder="请输入备注">${esc(draft.remark || '')}</textarea>
-      </div>
-    </section>
-    <section class="card">
-      <div class="section-toolbar">
-        <h4 class="card-title" style="margin:0">底部菜单</h4>
-        <button class="btn btn-outline" type="button" onclick="openMenuEdit(null)">
-          <i data-lucide="plus"></i>新建底部菜单
-        </button>
-      </div>
-      <div class="table-scroll">
-        <table class="table table-nowrap menu-pick-table">
-          <thead>
-            <tr>
-              <th>菜单名称</th>
-              <th>编辑</th>
-              <th>设为主菜单</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${menus.length ? menus.map(m => {
-              const isMain = m.id === draft.mainMenuId;
-              return `<tr>
-                <td>${esc(m.name || m.id)}${isMain ? '<span class="main-menu-mark" title="当前主菜单"><i data-lucide="house"></i></span>' : ''}</td>
-                <td><button class="link-btn" type="button" onclick="openMenuEdit('${esc(m.id)}')">编辑</button></td>
-                <td><button class="link-btn" type="button" ${isMain ? 'disabled' : ''} onclick="setMainMenu('${esc(m.id)}')">设为主菜单</button></td>
-              </tr>`;
-            }).join('') : `<tr><td colspan="3"><div class="table-empty">暂无底部菜单</div></td></tr>`}
-          </tbody>
-        </table>
-      </div>
-    </section>
-    <section class="card">
-      <div class="section-toolbar">
-        <h4 class="card-title" style="margin:0">页面列表</h4>
-        <button class="btn btn-primary" type="button" onclick="openPageEdit(null)">
-          <i data-lucide="plus"></i>添加页面
-        </button>
-      </div>
-      <div class="page-list">
-        ${pages.length ? pages.map(p => `
-          <div class="page-list-item${p.id === previewPageId ? ' selected' : ''}" data-page-id="${esc(p.id)}" onclick="selectPreviewPage('${esc(p.id)}')">
-            <div class="grow">
-              <div class="title">${p.id === draft.firstPageId ? '<span class="tag tag-primary">首屏</span> ' : ''}${esc(p.name || p.id)} <span class="tag tag-gray">${esc(p.id)}</span></div>
-              <div class="meta">${esc(pageMeta(p))}</div>
-            </div>
-            <div class="page-list-ops" onclick="event.stopPropagation()">
-              <button class="link-btn" type="button" onclick="openPageEdit('${esc(p.id)}')">编辑</button>
-              <button class="link-btn" type="button" ${p.id === draft.firstPageId ? 'disabled' : ''} onclick="setFirstPage('${esc(p.id)}')">设为首屏</button>
-              <button class="link-btn" type="button" onclick="copyPage('${esc(p.id)}')">复制</button>
-              <button class="link-btn link-btn-danger" type="button" ${pages.length <= 1 ? 'disabled' : ''} onclick="deletePage('${esc(p.id)}')">删除</button>
-            </div>
-          </div>`).join('') : '<div class="table-empty">暂无页面，请添加</div>'}
-      </div>
-    </section>
-    <section class="card">
-      <h4 class="card-title">页面跳转关系（自动生成）</h4>
-      ${jumps.length ? `<ul class="jump-list">${jumps.map(j => `<li>${esc(j)}</li>`).join('')}</ul>` : '<div class="table-empty">配置页面按钮或底部菜单后自动生成</div>'}
-    </section>
+        <div class="tabs">
+          <button class="tab${editorTab === 'basic' ? ' active' : ''}" type="button" onclick="switchEditorTab('basic')">基本信息</button>
+          <button class="tab${editorTab === 'pages' ? ' active' : ''}" type="button" onclick="switchEditorTab('pages')">页面列表</button>
+          <button class="tab${editorTab === 'menus' ? ' active' : ''}" type="button" onclick="switchEditorTab('menus')">底部菜单</button>
+        </div>
+        ${pane}
       </div>
     </div>`;
   bindEditorDirty();
@@ -637,6 +664,7 @@ async function deletePage(id) {
 }
 
 function openPageEdit(id) {
+  if (!requireSavedBasic()) return;
   syncHeaderFields();
   pageIsNew = !id;
   pageDirty = false;
@@ -649,7 +677,6 @@ function openPageEdit(id) {
 
 function renderPageDrawer() {
   const p = pageDraft;
-  const locked = !pageIsNew && !!p.id;
   const body = document.getElementById('pageDrawerBody');
   body.className = 'drawer-body drawer-body--split';
   body.innerHTML = `
@@ -663,17 +690,20 @@ function renderPageDrawer() {
       <input class="input" disabled value="${esc(DB.bots.find(b => b.id === draft.botId)?.botName || draft.botId || '-')}" />
     </div>
     <div class="field">
+      <label class="field-label">对话流</label>
+      <input class="input" disabled value="${esc(draft.name || draft.id || '当前对话流')}" />
+    </div>
+    <div class="field">
       <label class="field-label">页面 ID<span class="req">*</span></label>
-      <input class="input" id="pg-id" maxlength="50" ${locked ? 'disabled' : ''} placeholder="请输入页面 ID" value="${esc(p.id)}" />
+      ${pageIsNew ? `<div class="input-with-btn">
+        <input class="input" id="pg-id" maxlength="50" placeholder="请输入页面 ID" value="${esc(p.id)}" />
+        <button class="btn btn-outline" type="button" onclick="confirmPageId()">确认</button>
+      </div>` : `<input class="input" id="pg-id" maxlength="50" disabled placeholder="请输入页面 ID" value="${esc(p.id)}" />`}
       <div class="field-error" id="err-pg-id"></div>
     </div>
     <div class="field">
       <label class="field-label">页面名称<span class="req">*</span></label>
       <input class="input" id="pg-name" maxlength="30" placeholder="请输入页面名称" value="${esc(p.name)}" />
-    </div>
-    <div class="field">
-      <label class="field-label">对话流</label>
-      <input class="input" disabled value="${esc(draft.name || draft.id || '当前对话流')}" />
     </div>
     <div class="field">
       <label class="field-label">图片</label>
@@ -703,6 +733,13 @@ function renderPageDrawer() {
         <label><input type="radio" name="pg-status" value="disabled"${p.status === 'disabled' ? ' checked' : ''}> 停用</label>
       </div>
     </div>
+    <div class="field">
+      <label class="field-label">是否需要绑定</label>
+      <div class="radio-group">
+        <label><input type="radio" name="pg-bind" value="yes"${p.needBind ? ' checked' : ''}> 是</label>
+        <label><input type="radio" name="pg-bind" value="no"${p.needBind ? '' : ' checked'}> 否</label>
+      </div>
+    </div>
     </div>`;
   const form = document.getElementById('page-form-host');
   if (form) {
@@ -723,7 +760,7 @@ function renderCardRows() {
     const idx = pageDraft.cardButtons.indexOf(b);
     return `
     <div class="btn-row">
-      <div class="grow">${esc(b.text || '未命名')} · ${esc(cardStyleLabel(b.style))} · ${esc(eventLabel(b.event))}</div>
+      <div class="grow">${esc(b.text || '未命名')} · ${esc(cardStyleLabel(b.style))} · ${esc(eventLabel(b.event))}${b.needBind ? ' · 需绑定' : ''}</div>
       <button class="link-btn" type="button" onclick="openButtonEdit('card', ${idx})">编辑</button>
       <button class="link-btn link-btn-danger" type="button" onclick="deleteCardButton(${idx})">删除</button>
     </div>`;
@@ -738,6 +775,7 @@ function syncPageForm() {
   pageDraft.text = document.getElementById('pg-text')?.value || '';
   pageDraft.mainMenuOverrideId = document.getElementById('pg-menu')?.value || '';
   pageDraft.status = document.querySelector('input[name="pg-status"]:checked')?.value || 'active';
+  pageDraft.needBind = document.querySelector('input[name="pg-bind"]:checked')?.value === 'yes';
 }
 
 function addCardButton() {
@@ -759,7 +797,22 @@ async function deleteCardButton(i) {
   renderPageDrawer();
 }
 
+function confirmPageId() {
+  const id = (document.getElementById('pg-id')?.value || '').trim();
+  fieldError('err-pg-id', '');
+  if (!id || !isIdToken(id)) {
+    fieldError('err-pg-id', '必须以字母开头，仅小写字母/数字/下划线，长度 1-50');
+    return;
+  }
+  if ((draft.pages || []).some(p => p.id === id)) {
+    fieldError('err-pg-id', '该页面 ID 已存在');
+    return;
+  }
+  showToast('页面 ID 可用');
+}
+
 function savePage() {
+  if (!requireSavedBasic()) return;
   syncPageForm();
   fieldError('err-pg-id', '');
   if (!pageDraft.id || !isIdToken(pageDraft.id)) {
@@ -797,6 +850,7 @@ async function maybeClosePage() {
 }
 
 function openMenuEdit(id) {
+  if (!requireSavedBasic()) return;
   syncHeaderFields();
   menuIsNew = !id;
   menuDirty = false;
@@ -864,7 +918,7 @@ function renderMenuRows() {
     const show = b.image ? '图片' : (b.text || '未命名');
     return `<div class="btn-row" data-id="${esc(b.id)}">
       <span class="drag-handle" title="拖动排序"><i data-lucide="grip-vertical"></i></span>
-      <div class="grow">${esc(show)} · ${esc(eventLabel(b.event))}${b.event === 'Event' ? ' / ' + esc(builtinEventLabel(b.eventType)) : ''}</div>
+      <div class="grow">${esc(show)} · ${esc(eventLabel(b.event))}${b.event === 'Event' ? ' / ' + esc(builtinEventLabel(b.eventType)) : ''}${b.needBind ? ' · 需绑定' : ''}</div>
       <button class="link-btn" type="button" onclick="openButtonEdit('menu', ${idx})">编辑</button>
       <button class="link-btn link-btn-danger" type="button" onclick="deleteMenuButton(${idx})">删除</button>
     </div>`;
@@ -900,6 +954,7 @@ async function deleteMenuButton(i) {
 }
 
 function saveMenu() {
+  if (!requireSavedBasic()) return;
   syncMenuForm();
   if (!menuDraft.name) {
     showToast('请填写底部菜单名称', 'err');
@@ -949,6 +1004,17 @@ function openButtonEdit(source, index) {
   openDrawer('buttonDrawer');
 }
 
+function needBindFieldHtml(name, checked) {
+  return `
+    <div class="field">
+      <label class="field-label">是否需要绑定</label>
+      <div class="radio-group">
+        <label><input type="radio" name="${name}" value="yes"${checked ? ' checked' : ''}> 是</label>
+        <label><input type="radio" name="${name}" value="no"${checked ? '' : ' checked'}> 否</label>
+      </div>
+    </div>`;
+}
+
 function actionFieldsHtml(b) {
   return `
     <div class="field">
@@ -976,6 +1042,7 @@ function renderButtonDrawer() {
         <label><input type="radio" name="bt-style" value="secondary"${b.style === 'secondary' ? ' checked' : ''}> 次</label>
       </div>
     </div>
+    ${needBindFieldHtml('bt-bind', !!b.needBind)}
     ${actionFieldsHtml(b)}`;
   const menuFields = `
     <div class="field">
@@ -992,6 +1059,7 @@ function renderButtonDrawer() {
       <label class="field-label">按钮文案<span class="req">*</span></label>
       <input class="input" id="bt-text" maxlength="25" placeholder="请输入按钮文案" value="${esc(b.text)}" />
     </div>`}
+    ${needBindFieldHtml('bt-bind', !!b.needBind)}
     ${actionFieldsHtml(b)}`;
   document.getElementById('buttonDrawerBody').innerHTML = isMenu ? menuFields : cardFields;
   document.getElementById('buttonDrawerBody').oninput = () => { btnDirty = true; };
@@ -1041,7 +1109,16 @@ function renderEventParams(ev) {
       </select>
     </div>${b.eventType === 'SharePhone' ? renderShareAfter(b) : ''}`;
   }
-  return '<div class="field-hint">回主菜单无需额外参数</div>';
+  if (ev === 'Home') {
+    return `<div class="field" style="margin:0">
+      <label class="field-label">菜单<span class="req">*</span></label>
+      <select class="select" id="bt-menu">
+        <option value="">请选择菜单</option>
+        ${menuOptions(draft.productLineId, draft.botId, b.menuId, draft.platform)}
+      </select>
+    </div>`;
+  }
+  return '';
 }
 
 function renderShareAfter(b) {
@@ -1116,6 +1193,9 @@ function syncBtnDraftFromForm() {
   if (document.getElementById('bt-flow')) btnDraft.flowId = document.getElementById('bt-flow').value || '';
   if (document.getElementById('bt-builtin')) btnDraft.eventType = document.getElementById('bt-builtin').value || '';
   if (document.getElementById('bt-share-after')) btnDraft.shareAfter = document.getElementById('bt-share-after').value || '';
+  if (document.getElementById('bt-menu')) btnDraft.menuId = document.getElementById('bt-menu').value || '';
+  const bind = document.querySelector('input[name="bt-bind"]:checked')?.value;
+  if (bind) btnDraft.needBind = bind === 'yes';
   const style = document.querySelector('input[name="bt-style"]:checked')?.value;
   if (style) btnDraft.style = style;
 }
@@ -1141,6 +1221,8 @@ function readButtonForm() {
       : '',
     eventType: ev === 'Event' ? (btnDraft.eventType || '') : '',
     shareAfter: ev === 'Event' && btnDraft.eventType === 'SharePhone' ? (btnDraft.shareAfter || '') : '',
+    menuId: ev === 'Home' ? (btnDraft.menuId || '') : '',
+    needBind: !!btnDraft.needBind,
     style: btnCtx.source === 'card'
       ? (document.querySelector('input[name="bt-style"]:checked')?.value || 'primary')
       : (btnDraft.style || 'primary'),
@@ -1164,6 +1246,10 @@ function validateButtonAction(b) {
   }
   if (b.event === 'Flow' && !b.flowId) {
     showToast('请选择对话流', 'err');
+    return false;
+  }
+  if (b.event === 'Home' && !b.menuId) {
+    showToast('请选择菜单', 'err');
     return false;
   }
   if (b.event === 'Event' && !b.eventType) {

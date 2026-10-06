@@ -62,14 +62,6 @@ function filteredFlows() {
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 
-function canPublish(flow) {
-  const hasPage = (flow.pages || []).length >= 1;
-  const menu = menuById(flow.mainMenuId);
-  const hasMenuBtn = (menu?.buttons || []).length >= 1;
-  const hasFirst = !!flow.firstPageId && (flow.pages || []).some(p => p.id === flow.firstPageId);
-  return hasPage && hasMenuBtn && hasFirst;
-}
-
 function render() {
   const all = filteredFlows();
   const start = (page - 1) * PAGE_SIZE;
@@ -119,7 +111,6 @@ function render() {
           <span class="filter-label">状态</span>
           <select class="select" id="f-status" onchange="applyQuery()">
             <option value="">全部</option>
-            <option value="draft"${filters.status === 'draft' ? ' selected' : ''}>草稿</option>
             <option value="published"${filters.status === 'published' ? ' selected' : ''}>启用</option>
             <option value="offline"${filters.status === 'offline' ? ' selected' : ''}>禁用</option>
           </select>
@@ -147,7 +138,6 @@ function render() {
             ${list.length ? list.map(f => {
               const menu = menuById(f.mainMenuId);
               const published = f.status === 'published';
-              const canEnable = (f.status === 'draft' || f.status === 'offline') && canPublish(f);
               return `<tr>
                 <td>${esc(f.id)}</td>
                 <td>${esc(f.name)}</td>
@@ -157,7 +147,7 @@ function render() {
                 <td class="col-ops">
                   <button class="link-btn" type="button" onclick="location.href='flow-editor.html?id=${encodeURIComponent(f.id)}'">编辑</button>
                   <button class="link-btn" type="button" onclick="copyFlow('${esc(f.id)}')">复制</button>
-                  ${!published ? `<button class="link-btn" type="button" ${canEnable ? '' : 'disabled'} onclick="enableFlow('${esc(f.id)}')">启用</button>` : ''}
+                  ${!published ? `<button class="link-btn" type="button" onclick="enableFlow('${esc(f.id)}')">启用</button>` : ''}
                   ${published ? `<button class="link-btn" type="button" onclick="disableFlow('${esc(f.id)}')">禁用</button>` : ''}
                 </td>
               </tr>`;
@@ -193,7 +183,7 @@ async function copyFlow(id) {
   const copy = clone(f);
   copy.id = newId;
   copy.name = `${f.name} 副本`;
-  copy.status = 'draft';
+  copy.status = 'offline';
   copy.type = 'normal';
   copy.purpose = '';
   copy.remark = '';
@@ -206,10 +196,6 @@ async function copyFlow(id) {
 function enableFlow(id) {
   const f = flowById(id);
   if (!f) return;
-  if (!canPublish(f)) {
-    showToast('启用前需至少 1 个页面、1 个主菜单按钮，并指定首屏', 'err');
-    return;
-  }
   f.status = 'published';
   f.updatedAt = nowTs();
   saveStore();

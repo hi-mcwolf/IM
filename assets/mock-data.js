@@ -1,6 +1,6 @@
 /* IM Bot 用户分层 v0.4 — 内存 + sessionStorage mock */
 
-const STORE_KEY = 'im-bot-layering-v11';
+const STORE_KEY = 'im-bot-layering-v12';
 
 const PRODUCT_LINES = [
   { id: 'digiplus', name: 'digiplus' },
@@ -40,7 +40,7 @@ const BUTTON_EVENTS = [
   { value: 'Url', label: 'URL' },
   { value: 'Flow', label: '对话流' },
   { value: 'Event', label: '事件' },
-  { value: 'Home', label: '回主菜单' }
+  { value: 'Home', label: '切换菜单' }
 ];
 
 const BUILTIN_EVENTS = [
@@ -89,6 +89,8 @@ function makeBtn(id, text, event, extra = {}) {
     shareAfter: extra.shareAfter || '',
     style: extra.style || 'primary',
     image: extra.image || '',
+    needBind: !!extra.needBind,
+    menuId: extra.menuId || '',
     sort: extra.sort || 1
   };
 }
@@ -103,6 +105,7 @@ function makePage(id, name, pageType, extra = {}) {
     cardButtons: extra.cardButtons || [],
     mainMenuOverrideId: extra.mainMenuOverrideId || '',
     autoNextPageId: extra.autoNextPageId || '',
+    needBind: !!extra.needBind,
     status: extra.status || 'active',
     order: extra.order || 0
   };
@@ -162,7 +165,7 @@ const SEED = {
         makeBtn('mb_1', '首页', 'Page', { pageId: 'page_welcome', sort: 1 }),
         makeBtn('mb_2', '活动', 'Page', { pageId: 'page_offer', sort: 2 }),
         makeBtn('mb_3', '客服', 'Event', { eventType: 'Support', sort: 3 }),
-        makeBtn('mb_4', '回首页', 'Home', { sort: 4 })
+        makeBtn('mb_4', '回首页', 'Home', { sort: 4, menuId: 'menu_main' })
       ]
     },
     {
@@ -277,7 +280,7 @@ const SEED = {
       platform: 'viber',
       botId: 'bot_1',
       type: 'normal',
-      status: 'draft',
+      status: 'offline',
       mainMenuId: 'menu_main',
       firstPageId: '',
       remark: '',
@@ -302,7 +305,7 @@ const SEED = {
           order: 0,
           text: '欢迎来到 BingoPlus',
           cardButtons: [
-            makeBtn('cb_d1', '查看活动', 'Home', { sort: 1 })
+            makeBtn('cb_d1', '查看活动', 'Home', { sort: 1, menuId: 'menu_main' })
           ]
         })
       ]
@@ -344,7 +347,7 @@ const SEED = {
           order: 0,
           text: '本次会话已结束，感谢您的咨询',
           cardButtons: [
-            makeBtn('cb_f1', '回主菜单', 'Home', { sort: 1 })
+            makeBtn('cb_f1', '回主菜单', 'Home', { sort: 1, menuId: 'menu_main' })
           ]
         })
       ]
@@ -430,30 +433,12 @@ const SEED = {
       protosTagIds: ['user_level'],
       tags: ['V1', 'V2', 'V3', 'V4', 'V5'],
       flowId: 'flow_member',
-      priority: 10,
+      priority: 30,
       effectiveStart: '',
       effectiveEnd: '',
       status: 'active',
       remark: '',
       createdAt: '2026-09-11 09:30:00'
-    },
-    {
-      id: 'strategy_fallback',
-      type: 'fallback',
-      name: '兜底策略',
-      sceneIds: [],
-      productLineId: 'BingoPlus',
-      platform: 'viber',
-      botId: 'bot_1',
-      protosTagIds: [],
-      tags: [],
-      flowId: 'sys_default',
-      priority: 999,
-      effectiveStart: '',
-      effectiveEnd: '',
-      status: 'active',
-      remark: '所有策略都没匹配上时走此策略',
-      createdAt: '2026-09-01 00:00:00'
     }
   ]
 };
