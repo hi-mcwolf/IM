@@ -192,6 +192,65 @@ function confirmModal({ title, message = '', confirmText = '确认删除', dange
   });
 }
 
+function promptModal({ title, fields = [], confirmText = '确认', validate } = {}) {
+  ensureModalHost();
+  return new Promise(resolve => {
+    const host = document.getElementById('modal-host');
+    const wrap = document.createElement('div');
+    wrap.className = 'modal-root open';
+    wrap.innerHTML = `
+      <div class="modal-mask"></div>
+      <div class="modal-card" role="dialog" aria-modal="true">
+        <h3 class="modal-title">${esc(title || '请输入')}</h3>
+        ${fields.map(f => `
+          <div class="field">
+            <label class="field-label">${esc(f.label || '')}${f.required ? '<span class="req">*</span>' : ''}</label>
+            <input class="input" data-pm="${esc(f.id)}" maxlength="50" placeholder="${esc(f.placeholder || '')}" />
+          </div>`).join('')}
+        <div class="field-error" data-pm-error></div>
+        <div class="modal-actions">
+          <button class="btn btn-outline" type="button" data-act="cancel">取消</button>
+          <button class="btn btn-primary" type="button" data-act="ok">${esc(confirmText)}</button>
+        </div>
+      </div>`;
+    host.appendChild(wrap);
+    const first = wrap.querySelector('input');
+    if (first) first.focus();
+    let done = false;
+    const finish = val => {
+      if (done) return;
+      done = true;
+      document.removeEventListener('keydown', onKey);
+      wrap.remove();
+      resolve(val);
+    };
+    const submit = () => {
+      const values = {};
+      fields.forEach(f => {
+        values[f.id] = (wrap.querySelector(`[data-pm="${f.id}"]`)?.value || '').trim();
+      });
+      const err = typeof validate === 'function' ? (validate(values) || '') : '';
+      const errEl = wrap.querySelector('[data-pm-error]');
+      if (err) {
+        if (errEl) errEl.textContent = err;
+        return;
+      }
+      finish(values);
+    };
+    const onKey = ev => {
+      if (ev.key === 'Escape') finish(null);
+      if (ev.key === 'Enter' && wrap.contains(document.activeElement)) {
+        ev.preventDefault();
+        submit();
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    wrap.querySelector('[data-act="ok"]').addEventListener('click', submit);
+    wrap.querySelector('[data-act="cancel"]').addEventListener('click', () => finish(null));
+    wrap.querySelector('.modal-mask').addEventListener('click', () => finish(null));
+  });
+}
+
 function statusTag(status) {
   const map = {
     active: { label: '启用', cls: 'tag-success' },

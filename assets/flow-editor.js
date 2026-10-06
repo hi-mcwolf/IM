@@ -75,15 +75,6 @@ function persistDraftToStore() {
   return true;
 }
 
-function canPublishDraft() {
-  const pages = sortedPages(draft);
-  const hasPage = pages.length >= 1;
-  const menu = menuById(draft.mainMenuId);
-  const hasMenuBtn = (menu?.buttons || []).length >= 1;
-  const hasFirst = !!draft.firstPageId && pages.some(p => p.id === draft.firstPageId);
-  return hasPage && hasMenuBtn && hasFirst;
-}
-
 function jumpTargetLabel(btn) {
   if (btn.event === 'Page') {
     const p = pageById(draft, btn.pageId);
@@ -275,6 +266,10 @@ function syncHeaderFields() {
 }
 
 function switchEditorTab(tab) {
+  if (isNew && tab !== 'basic') {
+    showToast(BASIC_SAVE_HINT, 'err');
+    return;
+  }
   syncHeaderFields();
   editorTab = tab;
   renderEditor();
@@ -323,6 +318,66 @@ function setMainMenu(id) {
   draft.mainMenuId = id;
   dirty = true;
   renderEditor();
+}
+
+function copyMenu(id) {
+  if (!requireSavedBasic()) return;
+  const src = menuById(id);
+  if (!src) return;
+  const copy = clone(src);
+  copy.id = nextId('menu');
+  const name = `${src.name || '菜单'} 副本`;
+  copy.name = name.length > 30 ? name.slice(0, 30) : name;
+  copy.buttons = (copy.buttons || []).map(b => ({ ...b, id: nextId('btn') }));
+  DB.menus.push(copy);
+  saveStore();
+  renderEditor();
+  showToast('底部菜单已复制');
+}
+
+function menuUsedByOtherFlow(id) {
+  return DB.flows.some(f => f.id !== draft.id && (
+    f.mainMenuId === id ||
+    (f.pages || []).some(p => p.mainMenuOverrideId === id)
+  ));
+}
+
+async function deleteMenu(id) {
+  if (!requireSavedBasic()) return;
+  if (id === draft.mainMenuId) {
+    showToast('当前主菜单不可删除，请先设置其他主菜单', 'err');
+    return;
+  }
+  if (menuUsedByOtherFlow(id)) {
+    showToast('该底部菜单被其他对话流使用，无法删除', 'err');
+    return;
+  }
+  const menu = menuById(id);
+  if (!menu) return;
+  const ok = await confirmModal({ title: `确认删除底部菜单 ${menu.name || menu.id}？`, confirmText: '确认删除' });
+  if (!ok) return;
+  DB.menus = DB.menus.filter(m => m.id !== id);
+  let touched = false;
+  (draft.pages || []).forEach(p => {
+    if (p.mainMenuOverrideId === id) {
+      p.mainMenuOverrideId = '';
+      touched = true;
+    }
+    (p.cardButtons || []).forEach(b => {
+      if (b.menuId === id) {
+        b.menuId = '';
+        touched = true;
+      }
+    });
+  });
+  DB.menus.forEach(m => (m.buttons || []).forEach(b => {
+    if (b.menuId === id) b.menuId = '';
+  }));
+  saveStore();
+  if (touched && !isNew) persistDraftToStore();
+  dirty = touched;
+  renderEditor();
+  showToast('底部菜单已删除');
 }
 
 function setFirstPage(id) {
@@ -518,6 +573,8 @@ function renderEditor() {
               <th>菜单名称</th>
               <th>编辑</th>
               <th>设为主菜单</th>
+              <th>复制</th>
+              <th>删除</th>
             </tr>
           </thead>
           <tbody>
@@ -527,13 +584,15 @@ function renderEditor() {
                 <td>${esc(m.name || m.id)}${isMain ? '<span class="main-menu-mark" title="当前主菜单"><i data-lucide="house"></i></span>' : ''}</td>
                 <td><button class="link-btn" type="button" ${dis} onclick="openMenuEdit('${esc(m.id)}')">编辑</button></td>
                 <td><button class="link-btn" type="button" ${isMain || locked ? 'disabled' : ''} onclick="setMainMenu('${esc(m.id)}')">设为主菜单</button></td>
+                <td><button class="link-btn" type="button" ${dis} onclick="copyMenu('${esc(m.id)}')">复制</button></td>
+                <td><button class="link-btn link-btn-danger" type="button" ${isMain || locked ? 'disabled' : ''} onclick="deleteMenu('${esc(m.id)}')">删除</button></td>
               </tr>`;
-            }).join('') : `<tr><td colspan="3"><div class="table-empty">暂无底部菜单</div></td></tr>`}
+            }).join('') : `<tr><td colspan="5"><div class="table-empty">暂无底部菜单</div></td></tr>`}
           </tbody>
         </table>
       </div>
     </section>`;
-  const pane = editorTab === 'pages' ? pagesPane : (editorTab === 'menus' ? menusPane : basicPane);
+  const pane = !isNew && editorTab === 'pages' ? pagesPane : (!isNew && editorTab === 'menus' ? menusPane : basicPane);
   document.getElementById('content').innerHTML = `
     <div class="flow-editor-head">
       <div>
@@ -542,8 +601,7 @@ function renderEditor() {
       </div>
       <div class="page-header-actions">
         <button class="btn btn-outline" type="button" onclick="goBack()">返回列表</button>
-        <button class="btn btn-outline" type="button" onclick="saveFlow(false)">保存</button>
-        <button class="btn btn-primary" type="button" onclick="saveFlow(true)">启用</button>
+        <button class="btn btn-primary" type="button" onclick="saveFlow()">保存</button>
       </div>
     </div>
     <div class="flow-editor-grid">
@@ -553,9 +611,9 @@ function renderEditor() {
       </aside>
       <div class="flow-editor-main">
         <div class="tabs">
-          <button class="tab${editorTab === 'basic' ? ' active' : ''}" type="button" onclick="switchEditorTab('basic')">基本信息</button>
-          <button class="tab${editorTab === 'pages' ? ' active' : ''}" type="button" onclick="switchEditorTab('pages')">页面列表</button>
-          <button class="tab${editorTab === 'menus' ? ' active' : ''}" type="button" onclick="switchEditorTab('menus')">底部菜单</button>
+          <button class="tab${editorTab === 'basic' || isNew ? ' active' : ''}" type="button" onclick="switchEditorTab('basic')">基本信息</button>
+          ${isNew ? '' : `<button class="tab${editorTab === 'pages' ? ' active' : ''}" type="button" onclick="switchEditorTab('pages')">页面列表</button>
+          <button class="tab${editorTab === 'menus' ? ' active' : ''}" type="button" onclick="switchEditorTab('menus')">底部菜单</button>`}
         </div>
         ${pane}
       </div>
@@ -573,7 +631,7 @@ function bindEditorDirty() {
   });
 }
 
-function saveFlow(publish) {
+function saveFlow() {
   syncHeaderFields();
   fieldError('err-id', '');
   if (!draft.id || !isIdToken(draft.id)) {
@@ -597,26 +655,36 @@ function saveFlow(publish) {
     fieldError('err-id', '该对话流 ID 已存在');
     return;
   }
-  if (publish) {
-    if (!draft.firstPageId && sortedPages(draft)[0]) draft.firstPageId = sortedPages(draft)[0].id;
-    if (!canPublishDraft()) {
-      showToast('启用前需至少 1 个页面、1 个主菜单按钮，并指定首屏', 'err');
-      return;
-    }
-    draft.status = 'published';
-  }
+  const creating = isNew;
+  if (creating) ensureDefaultFlowStructure();
   if (!persistDraftToStore()) {
     fieldError('err-id', '该对话流 ID 已存在');
     return;
   }
   dirty = false;
-  if (isNew) isNew = false;
-  showToast(publish ? '已启用' : '保存成功');
-  if (publish) location.href = 'flows.html';
-  else {
-    history.replaceState(null, '', `flow-editor.html?id=${encodeURIComponent(draft.id)}`);
-    renderEditor();
+  showToast(creating ? '保存成功，已自动创建默认首页与底部菜单' : '保存成功');
+  if (creating) editorTab = 'pages';
+  history.replaceState(null, '', `flow-editor.html?id=${encodeURIComponent(draft.id)}`);
+  renderEditor();
+}
+
+function ensureDefaultFlowStructure() {
+  if (!(draft.pages || []).length) {
+    let pageId = 'page_home';
+    let n = 2;
+    while ((draft.pages || []).some(p => p.id === pageId)) {
+      pageId = `page_home${n}`;
+      n += 1;
+    }
+    draft.pages = [makePage(pageId, '首页', '首页', { order: 0, status: 'active' })];
+    draft.firstPageId = pageId;
+    previewPageId = pageId;
   }
+  const menu = emptyMenu(draft.productLineId, draft.botId, draft.platform);
+  menu.id = nextId('menu');
+  menu.name = `${draft.name} 主菜单`;
+  DB.menus.push(menu);
+  draft.mainMenuId = menu.id;
 }
 
 async function goBack() {
@@ -720,10 +788,11 @@ function renderPageDrawer() {
     </div>
     <div class="field">
       <label class="field-label">底部菜单</label>
-      <select class="select" id="pg-menu">
+      <select class="select" id="pg-menu" data-prev="${esc(p.mainMenuOverrideId || '')}" onfocus="this.dataset.prev=this.value" onchange="onPgMenuChange(this)">
         <option value="">使用对话流默认底部菜单</option>
         <option value="none"${p.mainMenuOverrideId === 'none' ? ' selected' : ''}>不使用底部菜单</option>
         ${menuOptions(draft.productLineId, draft.botId, p.mainMenuOverrideId, draft.platform)}
+        <option value="__new__">+ 新建底部菜单…</option>
       </select>
     </div>
     <div class="field">
@@ -1066,15 +1135,119 @@ function renderButtonDrawer() {
   document.getElementById('buttonDrawerBody').onchange = () => { btnDirty = true; };
 }
 
+function rerenderBtnParams() {
+  const host = document.getElementById('bt-params');
+  if (host && btnDraft) host.innerHTML = renderEventParams(btnDraft.event);
+}
+
+async function quickCreatePage() {
+  const values = await promptModal({
+    title: '新建页面',
+    confirmText: '创建',
+    fields: [
+      { id: 'id', label: '页面 ID', placeholder: '请输入页面 ID', required: true },
+      { id: 'name', label: '页面名称', placeholder: '请输入页面名称', required: true }
+    ],
+    validate(v) {
+      if (!v.id || !isIdToken(v.id)) return '必须以字母开头，仅小写字母/数字/下划线，长度 1-50';
+      if ((draft.pages || []).some(p => p.id === v.id)) return '该页面 ID 已存在';
+      if (!v.name) return '请填写页面名称';
+      if (v.name.length > 30) return '页面名称最多 30 个字符';
+      return '';
+    }
+  });
+  if (!values) return null;
+  const order = Math.max(-1, ...(draft.pages || []).map(p => p.order || 0)) + 1;
+  draft.pages = draft.pages || [];
+  draft.pages.push(makePage(values.id, values.name, '首页', { order, status: 'active' }));
+  if (!draft.firstPageId) draft.firstPageId = values.id;
+  if (!previewPageId) previewPageId = values.id;
+  dirty = true;
+  if (!isNew) persistDraftToStore();
+  return values.id;
+}
+
+async function quickCreateMenu() {
+  const values = await promptModal({
+    title: '新建底部菜单',
+    confirmText: '创建',
+    fields: [
+      { id: 'name', label: '底部菜单名称', placeholder: '请输入底部菜单名称', required: true }
+    ],
+    validate(v) {
+      if (!v.name) return '请填写底部菜单名称';
+      if (v.name.length > 30) return '底部菜单名称最多 30 个字符';
+      return '';
+    }
+  });
+  if (!values) return null;
+  const menu = emptyMenu(draft.productLineId, draft.botId, draft.platform);
+  menu.id = nextId('menu');
+  menu.name = values.name;
+  DB.menus.push(menu);
+  if (!draft.mainMenuId) draft.mainMenuId = menu.id;
+  dirty = true;
+  saveStore();
+  return menu.id;
+}
+
+async function onBtPageChange(sel) {
+  if (!btnDraft) return;
+  if (sel.value !== '__new__') {
+    btnDraft.pageId = sel.value || '';
+    sel.dataset.prev = sel.value || '';
+    return;
+  }
+  const id = await quickCreatePage();
+  btnDraft.pageId = id || sel.dataset.prev || '';
+  rerenderBtnParams();
+}
+
+async function onBtMenuChange(sel) {
+  if (!btnDraft) return;
+  if (sel.value !== '__new__') {
+    btnDraft.menuId = sel.value || '';
+    sel.dataset.prev = sel.value || '';
+    return;
+  }
+  const id = await quickCreateMenu();
+  btnDraft.menuId = id || sel.dataset.prev || '';
+  rerenderBtnParams();
+}
+
+async function onPgMenuChange(sel) {
+  if (!pageDraft) return;
+  if (sel.value !== '__new__') {
+    pageDraft.mainMenuOverrideId = sel.value || '';
+    sel.dataset.prev = sel.value || '';
+    pageDirty = true;
+    refreshPagePreview();
+    return;
+  }
+  const id = await quickCreateMenu();
+  pageDraft.mainMenuOverrideId = id || sel.dataset.prev || '';
+  pageDirty = true;
+  const current = pageDraft.mainMenuOverrideId || '';
+  sel.innerHTML = `
+    <option value="">使用对话流默认底部菜单</option>
+    <option value="none"${current === 'none' ? ' selected' : ''}>不使用底部菜单</option>
+    ${menuOptions(draft.productLineId, draft.botId, current, draft.platform)}
+    <option value="__new__">+ 新建底部菜单…</option>`;
+  sel.value = current;
+  sel.dataset.prev = current;
+  refreshPagePreview();
+}
+
 function renderEventParams(ev) {
   const b = btnDraft;
   if (ev === 'Page') {
     const pages = sortedPages(draft).filter(p => p.id);
     return `<div class="field" style="margin:0">
       <label class="field-label">跳转页面<span class="req">*</span></label>
-      <select class="select" id="bt-page">
+      <select class="select" id="bt-page" data-prev="${esc(b.pageId || '')}" onfocus="this.dataset.prev=this.value" onchange="onBtPageChange(this)">
         <option value="">请选择页面</option>
         ${pages.map(p => optionHtml(p.id, `${p.name} (${p.id})`, b.pageId)).join('')}
+        <option value="__new__">+ 新建页面…</option>
       </select>
     </div>`;
   }
@@ -1112,9 +1285,10 @@ function renderEventParams(ev) {
   if (ev === 'Home') {
     return `<div class="field" style="margin:0">
       <label class="field-label">菜单<span class="req">*</span></label>
-      <select class="select" id="bt-menu">
+      <select class="select" id="bt-menu" data-prev="${esc(b.menuId || '')}" onfocus="this.dataset.prev=this.value" onchange="onBtMenuChange(this)">
         <option value="">请选择菜单</option>
         ${menuOptions(draft.productLineId, draft.botId, b.menuId, draft.platform)}
+        <option value="__new__">+ 新建底部菜单…</option>
       </select>
     </div>`;
   }
@@ -1133,9 +1307,10 @@ function renderShareAfter(b) {
     </div>
     ${after === 'Page' ? `<div class="field" style="margin:0">
       <label class="field-label">页面<span class="req">*</span></label>
-      <select class="select" id="bt-page">
+      <select class="select" id="bt-page" data-prev="${esc(b.pageId || '')}" onfocus="this.dataset.prev=this.value" onchange="onBtPageChange(this)">
         <option value="">请选择页面</option>
         ${pages.map(p => optionHtml(p.id, `${p.name} (${p.id})`, b.pageId)).join('')}
+        <option value="__new__">+ 新建页面…</option>
       </select>
     </div>` : ''}
     ${after === 'Flow' ? `<div class="field" style="margin:0">
