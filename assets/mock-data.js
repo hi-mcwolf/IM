@@ -40,7 +40,7 @@ const BUTTON_EVENTS = [
   { value: 'Url', label: 'URL' },
   { value: 'Flow', label: '对话流' },
   { value: 'Event', label: '事件' },
-  { value: 'Home', label: '切换菜单' }
+  { value: 'Home', label: '切换底部菜单' }
 ];
 
 const BUILTIN_EVENTS = [

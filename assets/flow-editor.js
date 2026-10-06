@@ -95,7 +95,7 @@ function jumpTargetLabel(btn) {
   if (btn.event === 'Home') {
     const menu = menuById(btn.menuId);
     const name = menu?.name || btn.menuId;
-    return name ? `切换菜单：${name}` : '切换菜单';
+    return name ? `切换底部菜单：${name}` : '切换底部菜单';
   }
   return eventLabel(btn.event);
 }
@@ -763,10 +763,7 @@ function renderPageDrawer() {
     </div>
     <div class="field">
       <label class="field-label">页面 ID<span class="req">*</span></label>
-      ${pageIsNew ? `<div class="input-with-btn">
-        <input class="input" id="pg-id" maxlength="50" placeholder="请输入页面 ID" value="${esc(p.id)}" />
-        <button class="btn btn-outline" type="button" onclick="confirmPageId()">确认</button>
-      </div>` : `<input class="input" id="pg-id" maxlength="50" disabled placeholder="请输入页面 ID" value="${esc(p.id)}" />`}
+      <input class="input" id="pg-id" maxlength="50" ${pageIsNew ? '' : 'disabled'} placeholder="请输入页面 ID" value="${esc(p.id)}" />
       <div class="field-error" id="err-pg-id"></div>
     </div>
     <div class="field">
@@ -864,20 +861,6 @@ async function deleteCardButton(i) {
   pageDraft.cardButtons.splice(i, 1);
   pageDirty = true;
   renderPageDrawer();
-}
-
-function confirmPageId() {
-  const id = (document.getElementById('pg-id')?.value || '').trim();
-  fieldError('err-pg-id', '');
-  if (!id || !isIdToken(id)) {
-    fieldError('err-pg-id', '必须以字母开头，仅小写字母/数字/下划线，长度 1-50');
-    return;
-  }
-  if ((draft.pages || []).some(p => p.id === id)) {
-    fieldError('err-pg-id', '该页面 ID 已存在');
-    return;
-  }
-  showToast('页面 ID 可用');
 }
 
 function savePage() {
@@ -1284,9 +1267,9 @@ function renderEventParams(ev) {
   }
   if (ev === 'Home') {
     return `<div class="field" style="margin:0">
-      <label class="field-label">菜单<span class="req">*</span></label>
+      <label class="field-label">底部菜单<span class="req">*</span></label>
       <select class="select" id="bt-menu" data-prev="${esc(b.menuId || '')}" onfocus="this.dataset.prev=this.value" onchange="onBtMenuChange(this)">
-        <option value="">请选择菜单</option>
+        <option value="">请选择底部菜单</option>
         ${menuOptions(draft.productLineId, draft.botId, b.menuId, draft.platform)}
         <option value="__new__">+ 新建底部菜单…</option>
       </select>
@@ -1424,7 +1407,7 @@ function validateButtonAction(b) {
     return false;
   }
   if (b.event === 'Home' && !b.menuId) {
-    showToast('请选择菜单', 'err');
+    showToast('请选择底部菜单', 'err');
     return false;
   }
   if (b.event === 'Event' && !b.eventType) {
