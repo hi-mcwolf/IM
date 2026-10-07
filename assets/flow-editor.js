@@ -249,8 +249,6 @@ function refreshMenuPreview() {
 
 function syncHeaderFields() {
   if (!draft) return;
-  const idEl = document.getElementById('f-id');
-  if (isNew && idEl) draft.id = idEl.value.trim();
   const nameEl = document.getElementById('f-name');
   if (nameEl) draft.name = nameEl.value.trim();
   const plEl = document.getElementById('f-pl');
@@ -495,7 +493,6 @@ function clearUploadedImage(inputId) {
 }
 
 function renderEditor() {
-  const idLocked = !isNew && !!draft.id;
   const scopeLocked = !isNew;
   const pages = sortedPages(draft);
   const menus = scopedMenus();
@@ -517,11 +514,6 @@ function renderEditor() {
       <div class="field">
         <label class="field-label">Bot<span class="req">*</span></label>
         <select class="select" id="f-bot" ${scopeLocked ? 'disabled' : ''} onchange="onEditorBotChange()">${botOptions(draft.productLineId, draft.botId, draft.platform)}</select>
-      </div>
-      <div class="field">
-        <label class="field-label">对话流 ID<span class="req">*</span></label>
-        <input class="input" id="f-id" maxlength="50" ${idLocked ? 'disabled' : ''} placeholder="请输入对话流 ID" value="${esc(draft.id)}" />
-        <div class="field-error" id="err-id"></div>
       </div>
       <div class="field">
         <label class="field-label">对话流名称<span class="req">*</span></label>
@@ -631,14 +623,21 @@ function bindEditorDirty() {
   });
 }
 
+function nextFlowId() {
+  let id = nextId('flow');
+  while (flowById(id)) id = nextId('flow');
+  return id;
+}
+
+function nextPageId() {
+  let id = nextId('page');
+  while ((draft.pages || []).some(p => p.id === id)) id = nextId('page');
+  return id;
+}
+
 function saveFlow() {
   syncHeaderFields();
-  fieldError('err-id', '');
-  if (!draft.id || !isIdToken(draft.id)) {
-    fieldError('err-id', '必须以字母开头，仅小写字母/数字/下划线，长度 1-50');
-    showToast('请填写合法的对话流 ID', 'err');
-    return;
-  }
+  if (isNew && !draft.id) draft.id = nextFlowId();
   if (!draft.name) {
     showToast('请填写对话流名称', 'err');
     return;
@@ -652,13 +651,12 @@ function saveFlow() {
     return;
   }
   if (isNew && flowById(draft.id)) {
-    fieldError('err-id', '该对话流 ID 已存在');
-    return;
+    draft.id = nextFlowId();
   }
   const creating = isNew;
   if (creating) ensureDefaultFlowStructure();
   if (!persistDraftToStore()) {
-    fieldError('err-id', '该对话流 ID 已存在');
+    showToast('保存失败', 'err');
     return;
   }
   dirty = false;
@@ -762,11 +760,6 @@ function renderPageDrawer() {
       <input class="input" disabled value="${esc(draft.name || draft.id || '当前对话流')}" />
     </div>
     <div class="field">
-      <label class="field-label">页面 ID<span class="req">*</span></label>
-      <input class="input" id="pg-id" maxlength="50" ${pageIsNew ? '' : 'disabled'} placeholder="请输入页面 ID" value="${esc(p.id)}" />
-      <div class="field-error" id="err-pg-id"></div>
-    </div>
-    <div class="field">
       <label class="field-label">页面名称<span class="req">*</span></label>
       <input class="input" id="pg-name" maxlength="30" placeholder="请输入页面名称" value="${esc(p.name)}" />
     </div>
@@ -835,7 +828,6 @@ function renderCardRows() {
 
 function syncPageForm() {
   if (!pageDraft) return;
-  if (pageIsNew) pageDraft.id = (document.getElementById('pg-id')?.value || '').trim();
   pageDraft.name = (document.getElementById('pg-name')?.value || '').trim();
   pageDraft.pageType = pageDraft.pageType || '首页';
   pageDraft.text = document.getElementById('pg-text')?.value || '';
@@ -866,19 +858,13 @@ async function deleteCardButton(i) {
 function savePage() {
   if (!requireSavedBasic()) return;
   syncPageForm();
-  fieldError('err-pg-id', '');
-  if (!pageDraft.id || !isIdToken(pageDraft.id)) {
-    fieldError('err-pg-id', '必须以字母开头，仅小写字母/数字/下划线，长度 1-50');
-    return;
-  }
+  if (pageIsNew && !pageDraft.id) pageDraft.id = nextPageId();
   if (!pageDraft.name) {
     showToast('请填写页面名称', 'err');
     return;
   }
-  const dup = (draft.pages || []).find(p => p.id === pageDraft.id);
-  if (pageIsNew && dup) {
-    fieldError('err-pg-id', '该页面 ID 已存在');
-    return;
+  if (pageIsNew && (draft.pages || []).some(p => p.id === pageDraft.id)) {
+    pageDraft.id = nextPageId();
   }
   if (pageIsNew) {
     draft.pages.push(clone(pageDraft));
@@ -1128,26 +1114,24 @@ async function quickCreatePage() {
     title: '新建页面',
     confirmText: '创建',
     fields: [
-      { id: 'id', label: '页面 ID', placeholder: '请输入页面 ID', required: true },
       { id: 'name', label: '页面名称', placeholder: '请输入页面名称', required: true }
     ],
     validate(v) {
-      if (!v.id || !isIdToken(v.id)) return '必须以字母开头，仅小写字母/数字/下划线，长度 1-50';
-      if ((draft.pages || []).some(p => p.id === v.id)) return '该页面 ID 已存在';
       if (!v.name) return '请填写页面名称';
       if (v.name.length > 30) return '页面名称最多 30 个字符';
       return '';
     }
   });
   if (!values) return null;
+  const id = nextPageId();
   const order = Math.max(-1, ...(draft.pages || []).map(p => p.order || 0)) + 1;
   draft.pages = draft.pages || [];
-  draft.pages.push(makePage(values.id, values.name, '首页', { order, status: 'active' }));
-  if (!draft.firstPageId) draft.firstPageId = values.id;
-  if (!previewPageId) previewPageId = values.id;
+  draft.pages.push(makePage(id, values.name, '首页', { order, status: 'active' }));
+  if (!draft.firstPageId) draft.firstPageId = id;
+  if (!previewPageId) previewPageId = id;
   dirty = true;
   if (!isNew) persistDraftToStore();
-  return values.id;
+  return id;
 }
 
 async function quickCreateMenu() {
