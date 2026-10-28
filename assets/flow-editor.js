@@ -152,15 +152,15 @@ function resolvePreviewMenu(page) {
   return menuById(page?.mainMenuOverrideId || draft.mainMenuId);
 }
 
-let simInput = false;
+let simMode = '';
 
 function isMs() { return draft?.platform === 'messenger'; }
 function previewCaption() { return isMs() ? 'Messenger 预览' : 'Viber 预览'; }
 function cardBtnLimit() { return isMs() ? MS_LIMITS.cardButtons : 2; }
 function menuBtnLimit() { return isMs() ? MS_LIMITS.quickReplies : 6; }
 
-function toggleSimInput(v) {
-  simInput = !!v;
+function setSim(v) {
+  simMode = v || '';
   refreshMainPreview();
   if (document.getElementById('pageDrawer')?.classList.contains('open')) refreshPagePreview();
   if (document.getElementById('menuDrawer')?.classList.contains('open')) refreshMenuPreview();
@@ -188,8 +188,9 @@ function messengerPreviewHtml(page, menu) {
   const kb = menu || resolvePreviewMenu(page);
   const qrs = (kb?.buttons || []).slice().sort((a, b) => ((a.style === 'secondary') - (b.style === 'secondary')) || ((a.sort || 0) - (b.sort || 0)));
   const pm = getPmenu(draft.productLineId, draft.botId);
-  const composerOn = !pm.composerHidden || simInput;
-  const simQr = simInput ? [
+  const composerOn = !pm.composerHidden || !!simMode;
+  const menuTitles = pm.items.map(i => esc(i.title)).concat(simMode === 'support' ? ['<b class="ms-end">结束客服</b>'] : []);
+  const simQr = simMode === 'phone' ? [
     '<button class="ms-qr ms-qr-sys" type="button"><span class="ms-qr-ico">☎</span>分享手机号</button>'
   ].join('') : '';
   const qrHtml = (simQr || qrs.length) ? `<div class="ms-qrs">${simQr}${qrs.map(b => `<button class="ms-qr" type="button" ${b.event === 'Page' && b.pageId ? `onclick="previewGoPage('${esc(b.pageId)}')"` : ''}>${b.image ? `<span class="ms-qr-ico"><img src="${esc(b.image)}" alt="" onerror="this.style.display='none'">图</span>` : ''}${esc(b.text || '按钮')}</button>`).join('')}</div>` : '';
@@ -198,7 +199,7 @@ function messengerPreviewHtml(page, menu) {
     ...(page.moreCards || []).map(c => ({ title: interpolatePreview(c.title), subtitle: interpolatePreview(c.subtitle), image: c.image, buttons: c.buttons }))
   ] : [];
   return `
-    <div class="ms-sim"><label><input type="checkbox" ${simInput ? 'checked' : ''} onchange="toggleSimInput(this.checked)"> 模拟：分享手机号 / 客服触发</label></div>
+    <div class="ms-sim"><label>模拟触发：<select onchange="setSim(this.value)"><option value="">无</option><option value="phone"${simMode === 'phone' ? ' selected' : ''}>分享手机号</option><option value="support"${simMode === 'support' ? ' selected' : ''}>调起客服</option></select></label></div>
     <div class="viber-chat ms-chat">
       <div class="viber-chat-head ms-head">
         <span class="avatar">${esc((botName || 'B').slice(0, 1).toUpperCase())}</span>
@@ -210,8 +211,8 @@ function messengerPreviewHtml(page, menu) {
       ${qrHtml}
       <div class="ms-bottom ${composerOn ? 'on' : 'off'}">
         ${composerOn
-          ? '<div class="ms-composer"><span class="ms-plus">＋</span><span class="ms-input">Aa</span><span class="ms-plus">☺</span></div><div class="ms-state">输入框已显示' + (simInput ? '（可直接回复手机号）' : '') + '</div>'
-          : `<div class="ms-pmenu">☰ ${pm.items.map(i => esc(i.title)).join(' · ')}</div><div class="ms-state">输入框已隐藏（仅可点击菜单与按钮）</div>`}
+          ? `<div class="ms-composer"><span class="ms-plus">＋</span><span class="ms-input">Aa</span><span class="ms-plus">☺</span></div><div class="ms-pmenu" style="margin-top:6px">☰ ${menuTitles.join(' · ')}</div><div class="ms-state">输入框已显示${simMode === 'phone' ? '（可直接回复手机号）' : (simMode === 'support' ? '（客服会话中，菜单已追加「结束客服」）' : '')}</div>`
+          : `<div class="ms-pmenu">☰ ${menuTitles.join(' · ')}</div><div class="ms-state">输入框已隐藏（仅可点击菜单与按钮）</div>`}
       </div>
     </div>
     <div class="ms-note">近似预览，以 Messenger 实际显示为准</div>`;

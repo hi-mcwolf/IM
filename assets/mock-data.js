@@ -1,6 +1,6 @@
 /* IM Bot 用户分层 v0.4 — 内存 + sessionStorage mock */
 
-const STORE_KEY = 'im-bot-layering-v16-ms';
+const STORE_KEY = 'im-bot-layering-v17-ms';
 
 const PRODUCT_LINES = [
   { id: 'digiplus', name: 'digiplus' },

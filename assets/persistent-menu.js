@@ -10,7 +10,7 @@ let pl = defaultProductLine();
 let botId = '';
 let cfg = null;
 let dirty = false;
-let sim = false;
+let sim = '';
 let publishing = false;
 let dragFrom = -1;
 
@@ -59,9 +59,10 @@ function switchHtml(id, checked, onchange) {
 function previewHtml() {
   const bot = DB.bots.find(b => b.id === botId);
   const name = bot?.botName || 'Bot';
-  const composerOn = !cfg.composerHidden || sim;
+  const composerOn = !cfg.composerHidden || !!sim;
+  const titles = cfg.items.map(i => esc(i.title || '未命名')).concat(sim === 'support' ? ['<b class="ms-end">结束客服</b>'] : []);
   return `
-    <div class="ms-sim"><label><input type="checkbox" ${sim ? 'checked' : ''} onchange="onSim(this.checked)"> 模拟：用户触发分享手机号 / 客服</label></div>
+    <div class="ms-sim"><label>模拟触发：<select onchange="onSim(this.value)"><option value="">无</option><option value="phone"${sim === 'phone' ? ' selected' : ''}>分享手机号</option><option value="support"${sim === 'support' ? ' selected' : ''}>调起客服</option></select></label></div>
     <div class="viber-chat ms-chat">
       <div class="viber-chat-head ms-head">
         <span class="avatar">${esc(name.slice(0, 1).toUpperCase())}</span>
@@ -72,15 +73,15 @@ function previewHtml() {
       </div>
       <div class="ms-bottom ${composerOn ? 'on' : 'off'}">
         ${composerOn
-          ? `<div class="ms-composer"><span class="ms-plus">＋</span><span class="ms-input">Aa</span><span class="ms-plus">☺</span></div><div class="ms-state">输入框已显示${sim ? '（按用户覆盖）' : ''}</div>`
-          : `<div class="ms-pmenu">☰ ${cfg.items.map(i => esc(i.title || '未命名')).join(' · ') || '（无菜单项）'}</div><div class="ms-state">输入框已隐藏（仅可点击菜单与按钮）</div>`}
+          ? `<div class="ms-composer"><span class="ms-plus">＋</span><span class="ms-input">Aa</span><span class="ms-plus">☺</span></div><div class="ms-pmenu" style="margin-top:6px">☰ ${titles.join(' · ') || '（无菜单项）'}</div><div class="ms-state">输入框已显示${sim ? '（按用户覆盖）' : ''}${sim === 'support' ? '，菜单已追加「结束客服」' : ''}</div>`
+          : `<div class="ms-pmenu">☰ ${titles.join(' · ') || '（无菜单项）'}</div><div class="ms-state">输入框已隐藏（仅可点击菜单与按钮）</div>`}
       </div>
     </div>
     <div class="ms-note">近似预览，以 Messenger 实际显示为准</div>`;
 }
 
 function onSim(v) {
-  sim = !!v;
+  sim = v || '';
   refreshPreview();
 }
 
@@ -196,11 +197,11 @@ function render() {
               <thead><tr><th>触发</th><th>动作</th><th>恢复时机</th></tr></thead>
               <tbody>
                 <tr><td>下发分享手机号消息前</td><td>将该用户输入框覆盖为显示</td><td>绑定完成；或手机号校验失败 3 次后</td></tr>
-                <tr><td>触发调起客服（Support）</td><td>将该用户输入框覆盖为显示</td><td>客服会话结束</td></tr>
+                <tr><td>触发调起客服（Support）</td><td>将该用户输入框覆盖为显示；用户级菜单追加文字项「结束客服」</td><td>用户点击「结束客服」或客服会话结束：移除该项，恢复默认隐藏</td></tr>
               </tbody>
             </table>
           </div>
-          <div class="field-hint" style="margin-top:8px">覆盖或恢复调用失败会重试，仍失败则记录告警，不阻断主流程；隐藏状态下菜单里始终保留客服入口。</div>
+          <div class="field-hint" style="margin-top:8px">覆盖或恢复调用失败会重试，仍失败则记录告警，不阻断主流程；隐藏状态下菜单里始终保留客服入口。Messenger 不支持「关闭键盘」动作与图片按钮，用文字项「结束客服」替代 Viber 的结束客服图片。</div>
         </section>
 
         <div style="display:flex;gap:8px;margin-top:16px">
