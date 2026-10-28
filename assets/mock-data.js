@@ -1,6 +1,6 @@
 /* IM Bot 用户分层 v0.4 — 内存 + sessionStorage mock */
 
-const STORE_KEY = 'im-bot-layering-v15-ms';
+const STORE_KEY = 'im-bot-layering-v16-ms';
 
 const PRODUCT_LINES = [
   { id: 'digiplus', name: 'digiplus' },
@@ -93,6 +93,7 @@ function makeBtn(id, text, event, extra = {}) {
     browser: extra.browser || (extra.autoLogin ? 'internal' : (extra.url ? 'external' : '')),
     flowId: extra.flowId || '',
     eventType: extra.eventType || '',
+    endImage: extra.endImage || '',
     shareAfter: extra.shareAfter || '',
     style: extra.style || 'primary',
     image: extra.image || '',

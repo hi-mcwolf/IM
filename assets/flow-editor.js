@@ -584,6 +584,11 @@ function onImageFileChange(inputId) {
       pageDraft.moreCards[Number(inputId.slice(10))].image = dataUrl;
       pageDirty = true;
       renderPageDrawer();
+    } else if (inputId === 'bt-end-image') {
+      syncBtnDraftFromForm();
+      btnDraft.endImage = dataUrl;
+      btnDirty = true;
+      renderButtonDrawer();
     } else if (inputId === 'bt-image') {
       syncBtnDraftFromForm();
       btnDraft.image = dataUrl;
@@ -605,6 +610,11 @@ function clearUploadedImage(inputId) {
     pageDraft.moreCards[Number(inputId.slice(10))].image = '';
     pageDirty = true;
     renderPageDrawer();
+  } else if (inputId === 'bt-end-image') {
+    syncBtnDraftFromForm();
+    btnDraft.endImage = '';
+    btnDirty = true;
+    renderButtonDrawer();
   } else if (inputId === 'bt-image') {
     syncBtnDraftFromForm();
     btnDraft.image = '';
@@ -1515,7 +1525,7 @@ function renderEventParams(ev) {
         <option value="">请选择事件</option>
         ${BUILTIN_EVENTS.map(e => optionHtml(e.value, e.label, b.eventType)).join('')}
       </select>
-    </div>${b.eventType === 'SharePhone' ? renderShareAfter(b) : ''}`;
+    </div>${b.eventType === 'SharePhone' ? renderShareAfter(b) : ''}${b.eventType === 'Support' && !isMs() ? renderEndSupportImage(b) : ''}`;
   }
   if (ev === 'Home') {
     return `<div class="field" style="margin:0">
@@ -1528,6 +1538,14 @@ function renderEventParams(ev) {
     </div>`;
   }
   return '';
+}
+
+function renderEndSupportImage(b) {
+  return `<div class="field">
+      <label class="field-label">结束客服图片</label>
+      ${uploadFieldHtml('bt-end-image', b.endImage)}
+      <div class="field-hint">客服会话中展示，用户点击该图片后结束客服并关闭键盘</div>
+    </div>`;
 }
 
 function renderShareAfter(b) {
@@ -1630,6 +1648,7 @@ function readButtonForm() {
       ? (btnDraft.flowId || '')
       : '',
     eventType: ev === 'Event' ? (btnDraft.eventType || '') : '',
+    endImage: ev === 'Event' && btnDraft.eventType === 'Support' ? (btnDraft.endImage || '') : '',
     shareAfter: ev === 'Event' && btnDraft.eventType === 'SharePhone' ? (btnDraft.shareAfter || '') : '',
     menuId: ev === 'Home' ? (btnDraft.menuId || '') : '',
     needBind: !!btnDraft.needBind,
