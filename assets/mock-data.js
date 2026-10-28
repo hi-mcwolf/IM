@@ -1,6 +1,6 @@
 /* IM Bot 用户分层 v0.4 — 内存 + sessionStorage mock */
 
-const STORE_KEY = 'im-bot-layering-v17-ms';
+const STORE_KEY = 'im-bot-layering-v18-ms';
 
 const PRODUCT_LINES = [
   { id: 'digiplus', name: 'digiplus' },
@@ -18,7 +18,7 @@ const PLATFORM_BOT_KEYS = { viber: 'vb', telegram: 'tg', messenger: 'ms' };
 /* Messenger 渠道能力约束（PRD 4.6） */
 const MS_LIMITS = {
   cards: 10, cardTitle: 80, cardSubtitle: 80, cardButtons: 3,
-  btnText: 20, quickReplies: 13, quickRepliesSoft: 6, menuItems: 3, menuTitle: 30
+  btnText: 20, quickReplies: 13, menuItems: 20, menuTitle: 30
 };
 
 const PROTOS_TAGS = [
@@ -94,6 +94,7 @@ function makeBtn(id, text, event, extra = {}) {
     flowId: extra.flowId || '',
     eventType: extra.eventType || '',
     endImage: extra.endImage || '',
+    endText: extra.endText || '',
     shareAfter: extra.shareAfter || '',
     style: extra.style || 'primary',
     image: extra.image || '',
@@ -112,6 +113,7 @@ function makePage(id, name, pageType, extra = {}) {
     text: extra.text || '',
     subtitle: extra.subtitle || '',
     moreCards: extra.moreCards || [],
+    quickReplies: extra.quickReplies || [],
     cardButtons: extra.cardButtons || [],
     mainMenuOverrideId: extra.mainMenuOverrideId || '',
     autoNextPageId: extra.autoNextPageId || '',
@@ -192,7 +194,7 @@ const SEED = {
     },
     {
       id: 'menu_ms_main',
-      name: 'Messenger 底部按钮',
+      name: 'Messenger 底部菜单',
       productLineId: 'BingoPlus',
       platform: 'messenger',
       botId: 'bot_1',
@@ -201,8 +203,7 @@ const SEED = {
         makeBtn('mmb_1', '首页', 'Page', { pageId: 'ms_home', sort: 1 }),
         makeBtn('mmb_2', '活动', 'Page', { pageId: 'ms_offer', sort: 2 }),
         makeBtn('mmb_3', '联系客服', 'Event', { eventType: 'Support', sort: 3 }),
-        makeBtn('mmb_4', '分享手机号', 'Event', { eventType: 'SharePhone', shareAfter: 'Page', pageId: 'ms_home', sort: 4 }),
-        makeBtn('mmb_5', '回首页', 'Home', { menuId: 'menu_ms_main', sort: 5 })
+        makeBtn('mmb_4', '分享手机号', 'Event', { eventType: 'SharePhone', shareAfter: 'Page', pageId: 'ms_home', sort: 4 })
       ]
     },
   ],
@@ -400,6 +401,11 @@ const SEED = {
             makeBtn('mcb_2', '去充值', 'Url', { url: 'https://bp.com/deposit?mid={memberId}', browser: 'internal', sort: 2 }),
             makeBtn('mcb_3', '联系客服', 'Event', { eventType: 'Support', sort: 3 })
           ],
+          quickReplies: [
+            makeBtn('mqr_1', '查看活动', 'Page', { pageId: 'ms_offer', sort: 1 }),
+            makeBtn('mqr_2', '我要充值', 'Flow', { flowId: 'flow_ms_vip', sort: 2 }),
+            makeBtn('mqr_3', '联系客服', 'Event', { eventType: 'Support', endText: '结束会话', sort: 3 })
+          ],
           moreCards: [
             { id: 'mc_1', title: '充值送好礼', subtitle: '首充最高送 100%', image: 'https://cdn.example.com/offer.jpg',
               buttons: [makeBtn('mcb_4', '立即参与', 'Url', { url: 'https://bp.com/promo', browser: 'internal', sort: 1 })] },
@@ -570,13 +576,12 @@ const SEED = {
       createdAt: '2026-10-28 10:00:00'
     }
   ],
-  pmenus: {}
 };
 
 function loadStore() {
   try {
     const raw = sessionStorage.getItem(STORE_KEY);
-    if (raw) { const s = JSON.parse(raw); if (!s.pmenus) s.pmenus = {}; return s; }
+    if (raw) { const s = JSON.parse(raw); return s; }
   } catch (_) { /* ignore */ }
   return clone(SEED);
 }
@@ -791,34 +796,4 @@ function publishedMatchFlowOptions(pl, botId, selected, platform) {
 
 function menuOptions(pl, botId, selected, platform) {
   return menusByScope(pl, botId, platform).map(m => optionHtml(m.id, `${m.name} (${m.id})`, selected)).join('');
-}
-
-/* Messenger 全局菜单（Page 级，按 产品线+Bot 存储） */
-function pmenuKey(pl, botId) { return `${pl}::${botId}`; }
-
-function defaultPmenu() {
-  return {
-    getStartedEnabled: true,
-    route: 'strategy',
-    routeFlowId: '',
-    composerHidden: true,
-    items: [
-      { id: 'pm_1', title: '回主页', type: 'home', url: '' },
-      { id: 'pm_2', title: '联系客服', type: 'support', url: '' },
-      { id: 'pm_3', title: '我的账户', type: 'url', url: 'https://bp.com/account' }
-    ],
-    publishedAt: ''
-  };
-}
-
-function getPmenu(pl, botId) {
-  const k = pmenuKey(pl, botId);
-  if (!DB.pmenus) DB.pmenus = {};
-  return DB.pmenus[k] ? clone(DB.pmenus[k]) : defaultPmenu();
-}
-
-function savePmenu(pl, botId, cfg) {
-  if (!DB.pmenus) DB.pmenus = {};
-  DB.pmenus[pmenuKey(pl, botId)] = clone(cfg);
-  saveStore();
 }

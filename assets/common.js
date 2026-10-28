@@ -16,8 +16,7 @@ const IM_NAV = [
     children: [
       { key: 'scenes', label: '来源管理', href: 'scenes.html' },
       { key: 'strategies', label: '策略管理', href: 'strategies.html' },
-      { key: 'flows', label: '对话流', href: 'flows.html' },
-      { key: 'pmenu', label: '全局菜单', href: 'persistent-menu.html' }
+      { key: 'flows', label: '对话流', href: 'flows.html' }
     ]
   }
 ];
