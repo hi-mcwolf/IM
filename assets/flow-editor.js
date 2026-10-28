@@ -190,8 +190,7 @@ function messengerPreviewHtml(page, menu) {
   const pm = getPmenu(draft.productLineId, draft.botId);
   const composerOn = !pm.composerHidden || simInput;
   const simQr = simInput ? [
-    '<button class="ms-qr ms-qr-sys" type="button"><span class="ms-qr-ico">☎</span>分享手机号</button>',
-    '<button class="ms-qr ms-qr-sys" type="button">手动输入手机号</button>'
+    '<button class="ms-qr ms-qr-sys" type="button"><span class="ms-qr-ico">☎</span>分享手机号</button>'
   ].join('') : '';
   const qrHtml = (simQr || qrs.length) ? `<div class="ms-qrs">${simQr}${qrs.map(b => `<button class="ms-qr" type="button" ${b.event === 'Page' && b.pageId ? `onclick="previewGoPage('${esc(b.pageId)}')"` : ''}>${b.image ? `<span class="ms-qr-ico"><img src="${esc(b.image)}" alt="" onerror="this.style.display='none'">图</span>` : ''}${esc(b.text || '按钮')}</button>`).join('')}</div>` : '';
   const cards = page ? [
@@ -211,7 +210,7 @@ function messengerPreviewHtml(page, menu) {
       ${qrHtml}
       <div class="ms-bottom ${composerOn ? 'on' : 'off'}">
         ${composerOn
-          ? '<div class="ms-composer"><span class="ms-plus">＋</span><span class="ms-input">Aa</span><span class="ms-plus">☺</span></div><div class="ms-state">输入框已显示</div>'
+          ? '<div class="ms-composer"><span class="ms-plus">＋</span><span class="ms-input">Aa</span><span class="ms-plus">☺</span></div><div class="ms-state">输入框已显示' + (simInput ? '（可直接回复手机号）' : '') + '</div>'
           : `<div class="ms-pmenu">☰ ${pm.items.map(i => esc(i.title)).join(' · ')}</div><div class="ms-state">输入框已隐藏（仅可点击菜单与按钮）</div>`}
       </div>
     </div>

@@ -195,7 +195,7 @@ function render() {
             <table class="table table-nowrap">
               <thead><tr><th>触发</th><th>动作</th><th>恢复时机</th></tr></thead>
               <tbody>
-                <tr><td>下发分享手机号消息前</td><td>将该用户输入框覆盖为显示</td><td>绑定完成；或手输失败 3 次后</td></tr>
+                <tr><td>下发分享手机号消息前</td><td>将该用户输入框覆盖为显示</td><td>绑定完成；或手机号校验失败 3 次后</td></tr>
                 <tr><td>触发调起客服（Support）</td><td>将该用户输入框覆盖为显示</td><td>客服会话结束</td></tr>
               </tbody>
             </table>
