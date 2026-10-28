@@ -586,20 +586,5 @@ html, body { height: 100%; }
 .ms-issue.warn { color: #B26B00; background: #FFF8EC; border-radius: 6px; padding: 4px 8px; }
 .ms-more-card { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; background: #FAFBFC; }
 .ms-more-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-/* 全局菜单页 */
-.pm-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
-.pm-grid .card + .card { margin-top: 16px; }
-.pm-switch { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; }
-.pm-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
-.pm-switch .track { width: 38px; height: 22px; background: #C9CDD4; border-radius: 999px; position: relative; transition: .15s; }
-.pm-switch .track::after { content: ''; position: absolute; left: 2px; top: 2px; width: 18px; height: 18px; background: #fff; border-radius: 50%; transition: .15s; }
-.pm-switch input:checked + .track { background: var(--primary); }
-.pm-switch input:checked + .track::after { left: 18px; }
-.pm-warn { margin: 8px 0; padding: 8px 12px; border-radius: 8px; background: #FFF8EC; border: 1px solid #FFD8A8; color: #B26B00; font-size: 12px; }
-.pm-item { display: grid; grid-template-columns: 24px 1.2fr 130px 1.6fr 56px; gap: 8px; align-items: start; padding: 8px 0; border-bottom: 1px dashed var(--line); }
-.pm-item .drag-handle { margin-top: 6px; }
-.pm-tag-pub { margin-left: 8px; }
-.pm-preview { position: sticky; top: 0; }
-
 .ms-end { color: #E5484D; }
 .ms-sim select { margin-left: 4px; }
