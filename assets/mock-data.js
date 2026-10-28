@@ -1,6 +1,6 @@
 /* IM Bot 用户分层 v0.4 — 内存 + sessionStorage mock */
 
-const STORE_KEY = 'im-bot-layering-v14-ms';
+const STORE_KEY = 'im-bot-layering-v15-ms';
 
 const PRODUCT_LINES = [
   { id: 'digiplus', name: 'digiplus' },
@@ -419,7 +419,7 @@ const SEED = {
     },
     {
       id: 'flow_ms_guest',
-      name: 'Messenger 未登录引导',
+      name: 'Messenger 未绑定引导',
       productLineId: 'BingoPlus',
       platform: 'messenger',
       botId: 'bot_1',
@@ -427,14 +427,14 @@ const SEED = {
       status: 'published',
       mainMenuId: 'menu_ms_main',
       firstPageId: 'ms_guest',
-      remark: '是否登录=否 的策略使用；绑定完成后重新匹配策略',
+      remark: '是否绑定=否 的策略使用；绑定完成后重新匹配策略',
       updatedAt: '2026-10-28 10:00:00',
       pages: [
         makePage('ms_guest', '访客欢迎', '首页', {
           order: 0,
           image: 'https://cdn.example.com/welcome.jpg',
-          text: '欢迎！登录后可查看专属权益',
-          subtitle: '分享手机号即可登录',
+          text: '欢迎！绑定后可查看专属权益',
+          subtitle: '分享手机号即可绑定',
           cardButtons: [
             makeBtn('mcb_g1', '分享手机号', 'Event', { eventType: 'SharePhone', shareAfter: 'Page', pageId: 'ms_guest', sort: 1 }),
             makeBtn('mcb_g2', '联系客服', 'Event', { eventType: 'Support', sort: 2 })
@@ -552,12 +552,12 @@ const SEED = {
     },
     {
       id: 'strategy_ms_guest',
-      name: 'Messenger 未登录引导',
+      name: 'Messenger 未绑定引导',
       sceneIds: ['member'],
       productLineId: 'BingoPlus',
       platform: 'messenger',
       botId: 'bot_1',
-      needLogin: false,
+      needBind: false,
       protosTagIds: [],
       tags: [],
       flowId: 'flow_ms_guest',
@@ -565,7 +565,7 @@ const SEED = {
       effectiveStart: '',
       effectiveEnd: '',
       status: 'active',
-      remark: '未登录用户承接，获取身份后重新匹配',
+      remark: '未绑定用户承接，获取身份后重新匹配',
       createdAt: '2026-10-28 10:00:00'
     }
   ],
