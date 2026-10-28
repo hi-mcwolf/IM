@@ -10,6 +10,34 @@ if (!filters.pl) filters.pl = defaultProductLine();
 if (!filters.platform) filters.platform = defaultPlatform();
 if (!filters.bot) filters.bot = defaultBot(filters.pl, filters.platform);
 
+function msLink(botId, code) {
+  const bot = (DB.bots || []).find(b => b.id === botId);
+  const page = (bot?.botUsername || '').replace(/^@/, '') || 'your_page';
+  return `https://m.me/${page}?ref=${code || '{来源code}'}`;
+}
+
+function copyText(text) {
+  const done = () => showToast('已复制');
+  if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).then(done, done);
+  else done();
+}
+
+function updateSceneLink() {
+  const plat = document.getElementById('sc-platform')?.value;
+  const wrap = document.getElementById('sc-link-wrap');
+  if (!wrap) return;
+  wrap.style.display = plat === 'messenger' ? '' : 'none';
+  const code = (document.getElementById('sc-id')?.value || '').trim();
+  const botId = document.getElementById('sc-bot')?.value;
+  const el = document.getElementById('sc-link');
+  if (el) el.value = msLink(botId, code);
+  if (plat === 'messenger' && code && !/^[A-Za-z0-9_-]{1,50}$/.test(code) && !document.getElementById('sc-id').disabled) {
+    fieldError('err-id', '仅支持字母、数字、下划线、短横线');
+  } else {
+    fieldError('err-id', '');
+  }
+}
+
 function applyQuery() {
   filters.pl = document.getElementById('f-pl')?.value || '';
   filters.platform = document.getElementById('f-platform')?.value || '';
@@ -63,7 +91,7 @@ function render() {
     <div class="page-header">
       <div>
         <h1 class="page-title">来源管理</h1>
-        <p class="page-desc">识别 deeplink source 入口，作为策略匹配的来源维度</p>
+        <p class="page-desc">${filters.platform === 'messenger' ? '识别 m.me 链接 ref 入口' : '识别 deeplink source 入口'}，作为策略匹配的来源维度</p>
       </div>
       <div class="page-header-actions">
         <button class="btn btn-primary" type="button" onclick="openSceneEdit(null)">
@@ -112,6 +140,7 @@ function render() {
             <tr>
               <th>来源 code</th>
               <th>来源名称</th>
+              ${filters.platform === 'messenger' ? '<th>来源链接</th>' : ''}
               <th>状态</th>
               <th class="col-ops">操作</th>
             </tr>
@@ -122,13 +151,14 @@ function render() {
               return `<tr>
                 <td>${esc(s.id)}</td>
                 <td>${esc(s.name)}</td>
+                ${filters.platform === 'messenger' ? `<td><span class="link-text">${esc(msLink(s.botId, s.id))}</span> <button class="link-btn" type="button" onclick="copyText('${esc(msLink(s.botId, s.id))}')">复制</button></td>` : ''}
                 <td>${statusTag(s.status)}</td>
                 <td class="col-ops">
                   <button class="link-btn" type="button" onclick="openSceneEdit('${esc(s.id)}')">编辑</button>
                   <button class="link-btn link-btn-danger" type="button" ${refs ? 'disabled title="该来源被策略引用"' : ''} onclick="deleteScene('${esc(s.id)}')">删除</button>
                 </td>
               </tr>`;
-            }).join('') : `<tr><td colspan="4"><div class="table-empty">暂无数据</div></td></tr>`}
+            }).join('') : `<tr><td colspan="${filters.platform === 'messenger' ? 5 : 4}"><div class="table-empty">暂无数据</div></td></tr>`}
           </tbody>
         </table>
       </div>
@@ -161,12 +191,20 @@ function openSceneEdit(id) {
     </div>
     <div class="field">
       <label class="field-label">Bot<span class="req">*</span></label>
-      <select class="select" id="sc-bot">${botOptions(s.productLineId, s.botId, s.platform)}</select>
+      <select class="select" id="sc-bot" onchange="updateSceneLink()">${botOptions(s.productLineId, s.botId, s.platform)}</select>
     </div>
     <div class="field">
       <label class="field-label">来源 code<span class="req">*</span></label>
-      <input class="input" id="sc-id" maxlength="50" ${id ? 'disabled' : ''} placeholder="请输入来源 code" value="${esc(s.id)}" />
+      <input class="input" id="sc-id" maxlength="50" ${id ? 'disabled' : ''} placeholder="请输入来源 code" value="${esc(s.id)}" oninput="updateSceneLink()" />
       <div class="field-error" id="err-id"></div>
+    </div>
+    <div class="field" id="sc-link-wrap" style="${s.platform === 'messenger' ? '' : 'display:none'}">
+      <label class="field-label">来源链接</label>
+      <div style="display:flex;gap:8px">
+        <input class="input" id="sc-link" readonly value="${esc(msLink(s.botId, s.id))}" />
+        <button class="btn btn-outline" type="button" onclick="copyText(document.getElementById('sc-link').value)">复制</button>
+      </div>
+      <div class="field-hint" style="font-size:12px;color:var(--text-3);margin-top:4px">系统生成，投放到 Messenger 的入口链接；ref 即来源 code</div>
     </div>
     <div class="field">
       <label class="field-label">来源名称<span class="req">*</span></label>
@@ -194,10 +232,12 @@ function onFormPlChange() {
   const platform = document.getElementById('sc-platform').value;
   const bot = defaultBot(pl, platform);
   document.getElementById('sc-bot').innerHTML = botOptions(pl, bot, platform);
+  updateSceneLink();
 }
 
 function onFormPlatformChange() {
   onFormPlChange();
+  updateSceneLink();
 }
 
 function readForm() {
@@ -221,7 +261,12 @@ function saveScene() {
   const d = readForm();
   fieldError('err-id', '');
   if (!editingId) {
-    if (!isIdToken(d.id)) {
+    if (d.platform === 'messenger') {
+      if (!/^[A-Za-z0-9_-]{1,50}$/.test(d.id)) {
+        fieldError('err-id', '仅支持字母、数字、下划线、短横线');
+        return;
+      }
+    } else if (!isIdToken(d.id)) {
       fieldError('err-id', '必须以字母开头，仅小写字母/数字/下划线，长度 1-50');
       return;
     }

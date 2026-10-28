@@ -118,6 +118,7 @@ function pageMeta(p) {
   const n = (p.cardButtons || []).length;
   const menu = p.mainMenuOverrideId === 'none' ? null : menuById(p.mainMenuOverrideId || draft.mainMenuId);
   const parts = [n ? `${n} 个卡片按钮` : '无卡片按钮'];
+  if (isMs()) parts.unshift(`${1 + (p.moreCards || []).length} 张卡片`);
   if (p.image) parts.push('含图');
   if (p.mainMenuOverrideId === 'none') parts.push('不使用底部菜单');
   else if (p.mainMenuOverrideId) parts.push(`底部菜单：${menu ? menu.name : p.mainMenuOverrideId}`);
@@ -151,7 +152,74 @@ function resolvePreviewMenu(page) {
   return menuById(page?.mainMenuOverrideId || draft.mainMenuId);
 }
 
+let simInput = false;
+
+function isMs() { return draft?.platform === 'messenger'; }
+function previewCaption() { return isMs() ? 'Messenger 预览' : 'Viber 预览'; }
+function cardBtnLimit() { return isMs() ? MS_LIMITS.cardButtons : 2; }
+function menuBtnLimit() { return isMs() ? MS_LIMITS.quickReplies : 6; }
+
+function toggleSimInput(v) {
+  simInput = !!v;
+  refreshMainPreview();
+  if (document.getElementById('pageDrawer')?.classList.contains('open')) refreshPagePreview();
+  if (document.getElementById('menuDrawer')?.classList.contains('open')) refreshMenuPreview();
+}
+
+function msCardHtml(title, subtitle, image, buttons) {
+  const btns = (buttons || []).slice().sort((a, b) => (a.sort || 0) - (b.sort || 0));
+  return `<div class="ms-card">
+    <div class="ms-card-img">${image ? `<img src="${esc(image)}" alt="" onerror="this.style.display='none'">` : ''}<span>${image ? esc(imagePresetLabel(image) || '头图') : '头图 1.91:1'}</span></div>
+    <div class="ms-card-body">
+      <div class="ms-card-title${title ? '' : ' empty'}">${esc(title || '（暂无标题）')}</div>
+      ${subtitle ? `<div class="ms-card-sub">${esc(subtitle)}</div>` : ''}
+    </div>
+    ${btns.length ? `<div class="ms-card-btns">${btns.map(b => msBtn(b)).join('')}</div>` : ''}
+  </div>`;
+}
+
+function msBtn(b) {
+  const jump = b.event === 'Page' && b.pageId ? `onclick="previewGoPage('${esc(b.pageId)}')"` : '';
+  return `<button class="ms-card-btn" type="button" ${jump}>${esc(b.text || '按钮')}</button>`;
+}
+
+function messengerPreviewHtml(page, menu) {
+  const botName = botDisplayName();
+  const kb = menu || resolvePreviewMenu(page);
+  const qrs = (kb?.buttons || []).slice().sort((a, b) => ((a.style === 'secondary') - (b.style === 'secondary')) || ((a.sort || 0) - (b.sort || 0)));
+  const pm = getPmenu(draft.productLineId, draft.botId);
+  const composerOn = !pm.composerHidden || simInput;
+  const simQr = simInput ? [
+    '<button class="ms-qr ms-qr-sys" type="button"><span class="ms-qr-ico">☎</span>分享手机号</button>',
+    '<button class="ms-qr ms-qr-sys" type="button">手动输入手机号</button>'
+  ].join('') : '';
+  const qrHtml = (simQr || qrs.length) ? `<div class="ms-qrs">${simQr}${qrs.map(b => `<button class="ms-qr" type="button" ${b.event === 'Page' && b.pageId ? `onclick="previewGoPage('${esc(b.pageId)}')"` : ''}>${b.image ? `<span class="ms-qr-ico"><img src="${esc(b.image)}" alt="" onerror="this.style.display='none'">图</span>` : ''}${esc(b.text || '按钮')}</button>`).join('')}</div>` : '';
+  const cards = page ? [
+    { title: interpolatePreview(page.text), subtitle: interpolatePreview(page.subtitle), image: page.image, buttons: page.cardButtons },
+    ...(page.moreCards || []).map(c => ({ title: interpolatePreview(c.title), subtitle: interpolatePreview(c.subtitle), image: c.image, buttons: c.buttons }))
+  ] : [];
+  return `
+    <div class="ms-sim"><label><input type="checkbox" ${simInput ? 'checked' : ''} onchange="toggleSimInput(this.checked)"> 模拟：分享手机号 / 客服触发</label></div>
+    <div class="viber-chat ms-chat">
+      <div class="viber-chat-head ms-head">
+        <span class="avatar">${esc((botName || 'B').slice(0, 1).toUpperCase())}</span>
+        <div class="meta"><div class="name">${esc(botName)}</div><div class="sub">Messenger · ${esc(page ? (page.name || page.id || '未命名页面') : '未选择页面')}</div></div>
+      </div>
+      <div class="viber-chat-body">
+        ${page ? `<div class="ms-carousel">${cards.map(c => msCardHtml(c.title, c.subtitle, c.image, c.buttons)).join('')}</div>` : '<div class="viber-empty">选择或添加页面后在此预览 Messenger 效果</div>'}
+      </div>
+      ${qrHtml}
+      <div class="ms-bottom ${composerOn ? 'on' : 'off'}">
+        ${composerOn
+          ? '<div class="ms-composer"><span class="ms-plus">＋</span><span class="ms-input">Aa</span><span class="ms-plus">☺</span></div><div class="ms-state">输入框已显示</div>'
+          : `<div class="ms-pmenu">☰ ${pm.items.map(i => esc(i.title)).join(' · ')}</div><div class="ms-state">输入框已隐藏（仅可点击菜单与按钮）</div>`}
+      </div>
+    </div>
+    <div class="ms-note">近似预览，以 Messenger 实际显示为准</div>`;
+}
+
 function viberPreviewHtml(page, menu) {
+  if (isMs()) return messengerPreviewHtml(page, menu);
   const botName = botDisplayName();
   const kb = menu || resolvePreviewMenu(page);
   const kbBtns = (kb?.buttons || []).slice().sort((a, b) => (a.sort || 0) - (b.sort || 0));
@@ -234,7 +302,7 @@ function refreshMainPreview() {
 }
 
 function refreshPagePreview() {
-  if (pageDraft) syncPageForm();
+  if (pageDraft) { syncPageForm(); updatePageErrors(); }
   const host = document.getElementById('page-preview-host');
   if (host) host.innerHTML = viberPreviewHtml(pageDraft);
 }
@@ -245,6 +313,46 @@ function refreshMenuPreview() {
   if (!host) return;
   const page = pageById(draft, previewPageId) || sortedPages(draft)[0] || emptyPage(0);
   host.innerHTML = viberPreviewHtml(page, menuDraft);
+}
+
+function msIssues() {
+  if (!isMs()) return [];
+  const out = [];
+  const L = MS_LIMITS;
+  const chkBtns = (where, list) => {
+    if ((list || []).length > L.cardButtons) out.push({ level: 'err', text: `${where}：卡片按钮最多 ${L.cardButtons} 个（当前 ${list.length}）` });
+    (list || []).forEach(b => { if ((b.text || '').length > L.btnText) out.push({ level: 'err', text: `${where}：按钮「${b.text}」文案超过 ${L.btnText} 字符` }); });
+  };
+  sortedPages(draft).forEach(p => {
+    const nm = p.name || p.id;
+    const total = 1 + (p.moreCards || []).length;
+    if (total > L.cards) out.push({ level: 'err', text: `${nm}：卡片最多 ${L.cards} 张（当前 ${total}）` });
+    if ((p.text || '').length > L.cardTitle) out.push({ level: 'err', text: `${nm}：卡片标题超过 ${L.cardTitle} 字符` });
+    if ((p.subtitle || '').length > L.cardSubtitle) out.push({ level: 'err', text: `${nm}：卡片副标题超过 ${L.cardSubtitle} 字符` });
+    chkBtns(nm, p.cardButtons);
+    (p.moreCards || []).forEach((c, i) => {
+      if ((c.title || '').length > L.cardTitle) out.push({ level: 'err', text: `${nm} 卡片${i + 2}：标题超过 ${L.cardTitle} 字符` });
+      if ((c.subtitle || '').length > L.cardSubtitle) out.push({ level: 'err', text: `${nm} 卡片${i + 2}：副标题超过 ${L.cardSubtitle} 字符` });
+      chkBtns(`${nm} 卡片${i + 2}`, c.buttons);
+    });
+  });
+  const menuIds = new Set([draft.mainMenuId, ...sortedPages(draft).map(p => p.mainMenuOverrideId)].filter(x => x && x !== 'none'));
+  menuIds.forEach(id => {
+    const m = menuById(id);
+    if (!m) return;
+    const n = (m.buttons || []).length;
+    if (n > L.quickReplies) out.push({ level: 'err', text: `底部按钮「${m.name}」：最多 ${L.quickReplies} 个（当前 ${n}）` });
+    else if (n > L.quickRepliesSoft) out.push({ level: 'warn', text: `底部按钮「${m.name}」：超过 ${L.quickRepliesSoft} 个，建议精简（当前 ${n}）` });
+    (m.buttons || []).forEach(b => { if ((b.text || '').length > L.btnText) out.push({ level: 'err', text: `底部按钮「${m.name}」：「${b.text}」文案超过 ${L.btnText} 字符` }); });
+  });
+  return out;
+}
+
+function issuesBannerHtml() {
+  const list = msIssues();
+  if (!isMs()) return '';
+  if (!list.length) return '<div class="ms-issues ok">Messenger 渠道校验通过</div>';
+  return `<div class="ms-issues"><div class="ms-issues-title">Messenger 渠道校验：${list.filter(i => i.level === 'err').length} 项超限，${list.filter(i => i.level === 'warn').length} 项提示</div>${list.map(i => `<div class="ms-issue ${i.level}">${i.level === 'err' ? '超限' : '提示'}　${esc(i.text)}</div>`).join('')}</div>`;
 }
 
 function syncHeaderFields() {
@@ -468,12 +576,19 @@ function onImageFileChange(inputId) {
   const file = input?.files?.[0];
   readImageFile(file, dataUrl => {
     if (inputId === 'pg-image') {
+      if (isMs()) syncPageForm();
       pageDraft.image = dataUrl;
       pageDirty = true;
       renderPageDrawer();
+    } else if (inputId.startsWith('pg-mc-img-')) {
+      syncPageForm();
+      pageDraft.moreCards[Number(inputId.slice(10))].image = dataUrl;
+      pageDirty = true;
+      renderPageDrawer();
     } else if (inputId === 'bt-image') {
+      syncBtnDraftFromForm();
       btnDraft.image = dataUrl;
-      btnDraft.text = '';
+      if (!isMs()) btnDraft.text = '';
       btnDirty = true;
       renderButtonDrawer();
     }
@@ -482,10 +597,17 @@ function onImageFileChange(inputId) {
 
 function clearUploadedImage(inputId) {
   if (inputId === 'pg-image') {
+    if (isMs()) syncPageForm();
     pageDraft.image = '';
     pageDirty = true;
     renderPageDrawer();
+  } else if (inputId.startsWith('pg-mc-img-')) {
+    syncPageForm();
+    pageDraft.moreCards[Number(inputId.slice(10))].image = '';
+    pageDirty = true;
+    renderPageDrawer();
   } else if (inputId === 'bt-image') {
+    syncBtnDraftFromForm();
     btnDraft.image = '';
     btnDirty = true;
     renderButtonDrawer();
@@ -598,10 +720,11 @@ function renderEditor() {
     </div>
     <div class="flow-editor-grid">
       <aside class="viber-preview-col">
-        <div class="viber-preview-caption">Viber 预览</div>
+        <div class="viber-preview-caption">${previewCaption()}</div>
         <div id="flow-preview-host">${viberPreviewHtml(pageById(draft, previewPageId))}</div>
       </aside>
       <div class="flow-editor-main">
+        ${issuesBannerHtml()}
         <div class="tabs">
           <button class="tab${editorTab === 'basic' || isNew ? ' active' : ''}" type="button" onclick="switchEditorTab('basic')">基本信息</button>
           ${isNew ? '' : `<button class="tab${editorTab === 'pages' ? ' active' : ''}" type="button" onclick="switchEditorTab('pages')">页面列表</button>
@@ -637,6 +760,11 @@ function nextPageId() {
 
 function saveFlow() {
   syncHeaderFields();
+  const msErrs = msIssues().filter(i => i.level === 'err');
+  if (msErrs.length) {
+    showToast(`存在 ${msErrs.length} 项超限，无法保存：${msErrs[0].text}`, 'err');
+    return;
+  }
   if (isNew && !draft.id) draft.id = nextFlowId();
   if (!draft.name) {
     showToast('请填写对话流名称', 'err');
@@ -747,7 +875,7 @@ function renderPageDrawer() {
   body.className = 'drawer-body drawer-body--split';
   body.innerHTML = `
     <div class="detail-preview viber-preview-pane">
-      <div class="viber-preview-caption">Viber 预览</div>
+      <div class="viber-preview-caption">${previewCaption()}</div>
       <div id="page-preview-host">${viberPreviewHtml(p)}</div>
     </div>
     <div class="detail-main" id="page-form-host">
@@ -763,7 +891,7 @@ function renderPageDrawer() {
       <label class="field-label">页面名称<span class="req">*</span></label>
       <input class="input" id="pg-name" maxlength="30" placeholder="请输入页面名称" value="${esc(p.name)}" />
     </div>
-    <div class="field">
+    ${isMs() ? msCardFieldsHtml(p) : `<div class="field">
       <label class="field-label">图片</label>
       ${uploadFieldHtml('pg-image', p.image)}
     </div>
@@ -775,7 +903,7 @@ function renderPageDrawer() {
       <label class="field-label">卡片按钮（≤2，文案 / 主次 / 点击后操作）</label>
       <div class="btn-list" id="pg-cards">${renderCardRows()}</div>
       <button class="btn btn-outline" type="button" ${(p.cardButtons || []).length >= 2 ? 'disabled' : ''} onclick="addCardButton()">添加卡片按钮</button>
-    </div>
+    </div>`}
     <div class="field">
       <label class="field-label">底部菜单</label>
       <select class="select" id="pg-menu" data-prev="${esc(p.mainMenuOverrideId || '')}" onfocus="this.dataset.prev=this.value" onchange="onPgMenuChange(this)">
@@ -805,23 +933,114 @@ function renderPageDrawer() {
     form.oninput = () => { pageDirty = true; refreshPagePreview(); };
     form.onchange = () => { pageDirty = true; refreshPagePreview(); };
   }
+  updatePageErrors();
   refreshIcons();
+}
+
+function msCardFieldsHtml(p) {
+  const more = p.moreCards || [];
+  const total = 1 + more.length;
+  return `
+    <div class="field">
+      <label class="field-label">卡片 1 · 头图</label>
+      ${uploadFieldHtml('pg-image', p.image)}
+      <div class="field-hint">建议比例 1.91:1，非该比例将被平台裁剪或缩放；GIF 不会播放动画</div>
+    </div>
+    <div class="field">
+      <label class="field-label">卡片标题<span class="counter" id="cnt-pg-text"></span></label>
+      <input class="input" id="pg-text" placeholder="最多 80 字符，支持 {nickname} 等占位符" value="${esc(p.text || '')}" />
+      <div class="field-error" id="err-pg-text"></div>
+    </div>
+    <div class="field">
+      <label class="field-label">卡片副标题<span class="counter" id="cnt-pg-subtitle"></span></label>
+      <input class="input" id="pg-subtitle" placeholder="最多 80 字符" value="${esc(p.subtitle || '')}" />
+      <div class="field-error" id="err-pg-subtitle"></div>
+    </div>
+    <div class="field">
+      <label class="field-label">卡片 1 · 按钮（≤3，文案 ≤20 / 点击后操作）</label>
+      <div class="btn-list" id="pg-cards">${renderCardRows(0)}</div>
+      <button class="btn btn-outline" type="button" ${(p.cardButtons || []).length >= MS_LIMITS.cardButtons ? 'disabled' : ''} onclick="addCardButton(0)">添加卡片按钮</button>
+    </div>
+    <div class="field">
+      <label class="field-label">更多卡片（横向轮播，共 ≤10 张，当前 ${total} 张）</label>
+      ${more.map((c, i) => `
+        <div class="ms-more-card">
+          <div class="ms-more-head"><b>卡片 ${i + 2}</b><button class="link-btn link-btn-danger" type="button" onclick="deleteMoreCard(${i})">删除卡片</button></div>
+          <div class="field"><label class="field-label">头图</label>${uploadFieldHtml('pg-mc-img-' + i, c.image)}</div>
+          <div class="field"><label class="field-label">标题<span class="counter" id="cnt-mc-title-${i}"></span></label><input class="input" data-mc="title" data-i="${i}" placeholder="最多 80 字符" value="${esc(c.title || '')}" /></div>
+          <div class="field"><label class="field-label">副标题<span class="counter" id="cnt-mc-subtitle-${i}"></span></label><input class="input" data-mc="subtitle" data-i="${i}" placeholder="最多 80 字符" value="${esc(c.subtitle || '')}" /></div>
+          <div class="field"><label class="field-label">按钮（≤3）</label>
+            <div class="btn-list">${renderCardRows(i + 1)}</div>
+            <button class="btn btn-outline" type="button" ${(c.buttons || []).length >= MS_LIMITS.cardButtons ? 'disabled' : ''} onclick="addCardButton(${i + 1})">添加卡片按钮</button>
+          </div>
+        </div>`).join('')}
+      <button class="btn btn-outline" type="button" onclick="addMoreCard()">添加卡片</button>
+      ${total >= MS_LIMITS.cards ? '<div class="field-error" style="display:block">最多 10 张卡片</div>' : ''}
+    </div>`;
+}
+
+function cardListOf(ci) {
+  return ci ? ((pageDraft.moreCards[ci - 1].buttons = pageDraft.moreCards[ci - 1].buttons || [])) : (pageDraft.cardButtons = pageDraft.cardButtons || []);
+}
+
+function addMoreCard() {
+  syncPageForm();
+  if (1 + (pageDraft.moreCards || []).length >= MS_LIMITS.cards) {
+    showToast('最多 10 张卡片', 'err');
+    return;
+  }
+  pageDraft.moreCards = pageDraft.moreCards || [];
+  pageDraft.moreCards.push({ id: nextId('mc'), title: '', subtitle: '', image: '', buttons: [] });
+  pageDirty = true;
+  renderPageDrawer();
+}
+
+async function deleteMoreCard(i) {
+  const ok = await confirmModal({ title: `确认删除卡片 ${i + 2}？`, confirmText: '确认删除' });
+  if (!ok) return;
+  syncPageForm();
+  pageDraft.moreCards.splice(i, 1);
+  pageDirty = true;
+  renderPageDrawer();
+}
+
+function updatePageErrors() {
+  if (!isMs() || !pageDraft) return false;
+  const L = MS_LIMITS;
+  let bad = false;
+  const chk = (val, max, cntId, errId, msg) => {
+    const c = document.getElementById(cntId);
+    if (c) c.textContent = ` ${(val || '').length}/${max}`;
+    const over = (val || '').length > max;
+    if (errId) fieldError(errId, over ? msg : '');
+    if (over) bad = true;
+  };
+  chk(pageDraft.text, L.cardTitle, 'cnt-pg-text', 'err-pg-text', `标题最多 ${L.cardTitle} 字符`);
+  chk(pageDraft.subtitle, L.cardSubtitle, 'cnt-pg-subtitle', 'err-pg-subtitle', `副标题最多 ${L.cardSubtitle} 字符`);
+  (pageDraft.moreCards || []).forEach((c, i) => {
+    chk(c.title, L.cardTitle, `cnt-mc-title-${i}`, '', '');
+    chk(c.subtitle, L.cardSubtitle, `cnt-mc-subtitle-${i}`, '', '');
+  });
+  const btn = document.getElementById('pageSaveBtn');
+  if (btn) btn.disabled = bad;
+  return bad;
 }
 
 function cardStyleLabel(style) {
   return style === 'secondary' ? '次' : '主';
 }
 
-function renderCardRows() {
-  const list = (pageDraft.cardButtons || []).slice().sort((a, b) => (a.sort || 0) - (b.sort || 0));
+function renderCardRows(ci = 0) {
+  const src = cardListOf(ci);
+  const list = src.slice().sort((a, b) => (a.sort || 0) - (b.sort || 0));
   if (!list.length) return '<div class="table-empty" style="padding:12px">暂无卡片按钮</div>';
   return list.map(b => {
-    const idx = pageDraft.cardButtons.indexOf(b);
+    const idx = src.indexOf(b);
     return `
     <div class="btn-row">
       <div class="grow">${esc(b.text || '未命名')} · ${esc(cardStyleLabel(b.style))} · ${esc(eventLabel(b.event))}${b.needBind ? ' · 需绑定' : ''}</div>
-      <button class="link-btn" type="button" onclick="openButtonEdit('card', ${idx})">编辑</button>
-      <button class="link-btn link-btn-danger" type="button" onclick="deleteCardButton(${idx})">删除</button>
+      <button class="link-btn" type="button" onclick="openButtonEdit('card', ${idx}, ${ci})">编辑</button>
+      <button class="link-btn link-btn-danger" type="button" onclick="deleteCardButton(${idx}, ${ci})">删除</button>
     </div>`;
   }).join('');
 }
@@ -831,26 +1050,32 @@ function syncPageForm() {
   pageDraft.name = (document.getElementById('pg-name')?.value || '').trim();
   pageDraft.pageType = pageDraft.pageType || '首页';
   pageDraft.text = document.getElementById('pg-text')?.value || '';
+  if (isMs()) {
+    pageDraft.subtitle = document.getElementById('pg-subtitle')?.value || '';
+    document.querySelectorAll('[data-mc]').forEach(el => {
+      const c = (pageDraft.moreCards || [])[Number(el.dataset.i)];
+      if (c) c[el.dataset.mc] = el.value;
+    });
+  }
   pageDraft.mainMenuOverrideId = document.getElementById('pg-menu')?.value || '';
   pageDraft.status = document.querySelector('input[name="pg-status"]:checked')?.value || 'active';
   pageDraft.needBind = document.querySelector('input[name="pg-bind"]:checked')?.value === 'yes';
 }
 
-function addCardButton() {
+function addCardButton(ci = 0) {
   syncPageForm();
-  if ((pageDraft.cardButtons || []).length >= 2) {
-    showToast('卡片按钮最多 2 个', 'err');
+  if (cardListOf(ci).length >= cardBtnLimit()) {
+    showToast(`卡片按钮最多 ${cardBtnLimit()} 个`, 'err');
     return;
   }
-  pageDraft.cardButtons = pageDraft.cardButtons || [];
-  openButtonEdit('card', null);
+  openButtonEdit('card', null, ci);
 }
 
-async function deleteCardButton(i) {
+async function deleteCardButton(i, ci = 0) {
   const ok = await confirmModal({ title: '确认删除该卡片按钮？', confirmText: '确认删除' });
   if (!ok) return;
   syncPageForm();
-  pageDraft.cardButtons.splice(i, 1);
+  cardListOf(ci).splice(i, 1);
   pageDirty = true;
   renderPageDrawer();
 }
@@ -861,6 +1086,10 @@ function savePage() {
   if (pageIsNew && !pageDraft.id) pageDraft.id = nextPageId();
   if (!pageDraft.name) {
     showToast('请填写页面名称', 'err');
+    return;
+  }
+  if (updatePageErrors()) {
+    showToast('存在超限内容，请修正后保存', 'err');
     return;
   }
   if (pageIsNew && (draft.pages || []).some(p => p.id === pageDraft.id)) {
@@ -914,7 +1143,7 @@ function renderMenuDrawer() {
   body.className = 'drawer-body drawer-body--split';
   body.innerHTML = `
     <div class="detail-preview viber-preview-pane">
-      <div class="viber-preview-caption">Viber 预览</div>
+      <div class="viber-preview-caption">${previewCaption()}</div>
       <div id="menu-preview-host">${viberPreviewHtml(page, m)}</div>
     </div>
     <div class="detail-main" id="menu-form-host">
@@ -934,9 +1163,10 @@ function renderMenuDrawer() {
       </div>
     </div>
     <div class="field">
-      <label class="field-label">菜单按钮（≤6，文案或图片）</label>
+      <label class="field-label">${isMs() ? `底部按钮 Quick Replies（≤${MS_LIMITS.quickReplies}，文案 ≤20 + 可选小图标）` : '菜单按钮（≤6，文案或图片）'}</label>
+      ${isMs() && btns.length > MS_LIMITS.quickRepliesSoft ? `<div class="ms-issue warn" style="margin-bottom:8px">超过 ${MS_LIMITS.quickRepliesSoft} 个，建议精简（允许保存）</div>` : ''}
       <div class="btn-list" id="menu-btn-sort-list">${renderMenuRows()}</div>
-      <button class="btn btn-outline" type="button" ${btns.length >= 6 ? 'disabled' : ''} onclick="addMenuButton()">添加菜单按钮</button>
+      <button class="btn btn-outline" type="button" ${btns.length >= menuBtnLimit() ? 'disabled' : ''} onclick="addMenuButton()">添加菜单按钮</button>
     </div>
     </div>`;
   const form = document.getElementById('menu-form-host');
@@ -953,7 +1183,7 @@ function renderMenuRows() {
   if (!list.length) return '<div class="table-empty" style="padding:12px">暂无按钮</div>';
   return list.map(b => {
     const idx = menuDraft.buttons.indexOf(b);
-    const show = b.image ? '图片' : (b.text || '未命名');
+    const show = isMs() ? `${b.text || '未命名'}${b.image ? '（含图标）' : ''}${b.style === 'secondary' ? ' · 次' : ' · 主'}` : (b.image ? '图片' : (b.text || '未命名'));
     return `<div class="btn-row" data-id="${esc(b.id)}">
       <span class="drag-handle" title="拖动排序"><i data-lucide="grip-vertical"></i></span>
       <div class="grow">${esc(show)} · ${esc(eventLabel(b.event))}${b.event === 'Event' ? ' / ' + esc(builtinEventLabel(b.eventType)) : ''}${b.needBind ? ' · 需绑定' : ''}</div>
@@ -974,8 +1204,8 @@ function syncMenuForm() {
 
 function addMenuButton() {
   syncMenuForm();
-  if ((menuDraft.buttons || []).length >= 6) {
-    showToast('菜单按钮最多 6 个', 'err');
+  if ((menuDraft.buttons || []).length >= menuBtnLimit()) {
+    showToast(`菜单按钮最多 ${menuBtnLimit()} 个`, 'err');
     return;
   }
   menuDraft.buttons = menuDraft.buttons || [];
@@ -998,8 +1228,8 @@ function saveMenu() {
     showToast('请填写底部菜单名称', 'err');
     return;
   }
-  if ((menuDraft.buttons || []).length > 6) {
-    showToast('菜单按钮最多 6 个', 'err');
+  if ((menuDraft.buttons || []).length > menuBtnLimit()) {
+    showToast(`菜单按钮最多 ${menuBtnLimit()} 个`, 'err');
     return;
   }
   if (menuIsNew) {
@@ -1025,12 +1255,12 @@ async function maybeCloseMenu() {
   return confirmModal({ title: '确认取消？', message: '底部菜单有未保存的改动', confirmText: '确认离开', danger: false });
 }
 
-function openButtonEdit(source, index) {
+function openButtonEdit(source, index, cardIdx = 0) {
   if (source === 'card') syncPageForm();
   if (source === 'menu') syncMenuForm();
-  btnCtx = { source, index };
+  btnCtx = { source, index, cardIdx };
   btnDirty = false;
-  const list = source === 'card' ? (pageDraft.cardButtons || []) : (menuDraft.buttons || []);
+  const list = source === 'card' ? cardListOf(cardIdx) : (menuDraft.buttons || []);
   const fallbackStyle = source === 'card' && list.every(x => (x.style || 'primary') === 'primary')
     ? (list.length ? 'secondary' : 'primary')
     : 'primary';
@@ -1068,10 +1298,14 @@ function renderButtonDrawer() {
   const b = btnDraft;
   const isMenu = btnCtx.source === 'menu';
   const display = b.image ? 'image' : 'text';
+  const ms = isMs();
+  const txtMax = ms ? '' : 'maxlength="25"';
+  const styleNote = ms ? '<div class="field-hint">Messenger 无主次样式，仅影响排序（主在前）</div>' : '';
   const cardFields = `
     <div class="field">
-      <label class="field-label">按钮文案<span class="req">*</span></label>
-      <input class="input" id="bt-text" maxlength="25" placeholder="请输入按钮文案" value="${esc(b.text)}" />
+      <label class="field-label">按钮文案<span class="req">*</span>${ms ? '<span class="counter" id="cnt-bt-text"></span>' : ''}</label>
+      <input class="input" id="bt-text" ${txtMax} placeholder="${ms ? '最多 20 字符' : '请输入按钮文案'}" value="${esc(b.text)}" oninput="onBtTextInput()" />
+      <div class="field-error" id="err-bt-text"></div>
     </div>
     <div class="field">
       <label class="field-label">样式<span class="req">*</span></label>
@@ -1079,6 +1313,28 @@ function renderButtonDrawer() {
         <label><input type="radio" name="bt-style" value="primary"${b.style !== 'secondary' ? ' checked' : ''}> 主</label>
         <label><input type="radio" name="bt-style" value="secondary"${b.style === 'secondary' ? ' checked' : ''}> 次</label>
       </div>
+      ${styleNote}
+    </div>
+    ${needBindFieldHtml('bt-bind', !!b.needBind)}
+    ${actionFieldsHtml(b)}`;
+  const msMenuFields = `
+    <div class="field">
+      <label class="field-label">按钮文案<span class="req">*</span><span class="counter" id="cnt-bt-text"></span></label>
+      <input class="input" id="bt-text" placeholder="最多 20 字符" value="${esc(b.text)}" oninput="onBtTextInput()" />
+      <div class="field-error" id="err-bt-text"></div>
+    </div>
+    <div class="field">
+      <label class="field-label">按钮图标（可选）</label>
+      ${uploadFieldHtml('bt-image', b.image)}
+      <div class="field-hint">Quick Replies 小图标，建议 ≥24×24，会被裁剪为方形；卡片按钮不支持图标</div>
+    </div>
+    <div class="field">
+      <label class="field-label">样式<span class="req">*</span></label>
+      <div class="radio-group">
+        <label><input type="radio" name="bt-style" value="primary"${b.style !== 'secondary' ? ' checked' : ''}> 主</label>
+        <label><input type="radio" name="bt-style" value="secondary"${b.style === 'secondary' ? ' checked' : ''}> 次</label>
+      </div>
+      ${styleNote}
     </div>
     ${needBindFieldHtml('bt-bind', !!b.needBind)}
     ${actionFieldsHtml(b)}`;
@@ -1099,9 +1355,22 @@ function renderButtonDrawer() {
     </div>`}
     ${needBindFieldHtml('bt-bind', !!b.needBind)}
     ${actionFieldsHtml(b)}`;
-  document.getElementById('buttonDrawerBody').innerHTML = isMenu ? menuFields : cardFields;
+  document.getElementById('buttonDrawerBody').innerHTML = isMenu ? (ms ? msMenuFields : menuFields) : cardFields;
+  onBtTextInput();
   document.getElementById('buttonDrawerBody').oninput = () => { btnDirty = true; };
   document.getElementById('buttonDrawerBody').onchange = () => { btnDirty = true; };
+}
+
+function onBtTextInput() {
+  if (!isMs()) return;
+  const el = document.getElementById('bt-text');
+  if (!el) return;
+  const n = el.value.length;
+  const c = document.getElementById('cnt-bt-text');
+  if (c) c.textContent = ` ${n}/${MS_LIMITS.btnText}`;
+  fieldError('err-bt-text', n > MS_LIMITS.btnText ? `按钮文案最多 ${MS_LIMITS.btnText} 字符` : '');
+  const sb = document.getElementById('buttonSaveBtn');
+  if (sb) sb.disabled = n > MS_LIMITS.btnText;
 }
 
 function rerenderBtnParams() {
@@ -1345,13 +1614,13 @@ function syncBtnDraftFromForm() {
 function readButtonForm() {
   syncBtnDraftFromForm();
   const isMenu = btnCtx.source === 'menu';
-  const display = isMenu
+  const display = isMenu && !isMs()
     ? (document.querySelector('input[name="bt-display"]:checked')?.value || (btnDraft.image ? 'image' : 'text'))
     : 'text';
   const ev = btnDraft.event || 'Page';
   return {
     id: btnDraft.id || nextId('btn'),
-    text: display === 'image' ? '' : (btnDraft.text || '').trim(),
+    text: (display === 'image' && !isMs()) ? '' : (btnDraft.text || '').trim(),
     event: ev,
     pageId: ev === 'Page' || (ev === 'Event' && btnDraft.eventType === 'SharePhone' && btnDraft.shareAfter === 'Page')
       ? (btnDraft.pageId || '')
@@ -1365,10 +1634,10 @@ function readButtonForm() {
     shareAfter: ev === 'Event' && btnDraft.eventType === 'SharePhone' ? (btnDraft.shareAfter || '') : '',
     menuId: ev === 'Home' ? (btnDraft.menuId || '') : '',
     needBind: !!btnDraft.needBind,
-    style: btnCtx.source === 'card'
+    style: (btnCtx.source === 'card' || isMs())
       ? (document.querySelector('input[name="bt-style"]:checked')?.value || 'primary')
       : (btnDraft.style || 'primary'),
-    image: isMenu && display === 'image' ? (btnDraft.image || '') : '',
+    image: isMenu && (display === 'image' || isMs()) ? (btnDraft.image || '') : '',
     sort: Number(btnDraft.sort || 1)
   };
 }
@@ -1418,17 +1687,28 @@ function validateButtonAction(b) {
 function saveButton() {
   const b = readButtonForm();
   if (btnCtx.source === 'menu') {
-    if (!b.image && !b.text) {
-      showToast('请填写按钮文案或上传图片', 'err');
-      return;
-    }
-    if (b.image && b.text) {
-      showToast('文案与图片只能选其一', 'err');
-      return;
+    if (isMs()) {
+      if (!b.text) {
+        showToast('请填写按钮文案', 'err');
+        return;
+      }
+      if (b.text.length > MS_LIMITS.btnText) {
+        showToast(`按钮文案最多 ${MS_LIMITS.btnText} 字符`, 'err');
+        return;
+      }
+    } else {
+      if (!b.image && !b.text) {
+        showToast('请填写按钮文案或上传图片', 'err');
+        return;
+      }
+      if (b.image && b.text) {
+        showToast('文案与图片只能选其一', 'err');
+        return;
+      }
     }
     if (!validateButtonAction(b)) return;
-    if (btnCtx.index == null && (menuDraft.buttons || []).length >= 6) {
-      showToast('菜单按钮最多 6 个', 'err');
+    if (btnCtx.index == null && (menuDraft.buttons || []).length >= menuBtnLimit()) {
+      showToast(`菜单按钮最多 ${menuBtnLimit()} 个`, 'err');
       return;
     }
     if (btnCtx.index == null) menuDraft.buttons.push(b);
@@ -1440,13 +1720,18 @@ function saveButton() {
       showToast('请填写按钮文案', 'err');
       return;
     }
-    if (!validateButtonAction(b)) return;
-    if (btnCtx.index == null && (pageDraft.cardButtons || []).length >= 2) {
-      showToast('卡片按钮最多 2 个', 'err');
+    if (isMs() && b.text.length > MS_LIMITS.btnText) {
+      showToast(`按钮文案最多 ${MS_LIMITS.btnText} 字符`, 'err');
       return;
     }
-    if (btnCtx.index == null) pageDraft.cardButtons.push(b);
-    else pageDraft.cardButtons[btnCtx.index] = b;
+    if (!validateButtonAction(b)) return;
+    const cl = cardListOf(btnCtx.cardIdx || 0);
+    if (btnCtx.index == null && cl.length >= cardBtnLimit()) {
+      showToast(`卡片按钮最多 ${cardBtnLimit()} 个`, 'err');
+      return;
+    }
+    if (btnCtx.index == null) cl.push(b);
+    else cl[btnCtx.index] = b;
     pageDirty = true;
     renderPageDrawer();
   }

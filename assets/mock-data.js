@@ -1,6 +1,6 @@
 /* IM Bot 用户分层 v0.4 — 内存 + sessionStorage mock */
 
-const STORE_KEY = 'im-bot-layering-v12';
+const STORE_KEY = 'im-bot-layering-v13-ms';
 
 const PRODUCT_LINES = [
   { id: 'digiplus', name: 'digiplus' },
@@ -9,10 +9,17 @@ const PRODUCT_LINES = [
 
 const PLATFORMS = [
   { id: 'viber', name: 'viber' },
-  { id: 'telegram', name: 'telegram' }
+  { id: 'telegram', name: 'telegram' },
+  { id: 'messenger', name: 'messenger' }
 ];
 
-const PLATFORM_BOT_KEYS = { viber: 'vb', telegram: 'tg' };
+const PLATFORM_BOT_KEYS = { viber: 'vb', telegram: 'tg', messenger: 'ms' };
+
+/* Messenger 渠道能力约束（PRD 4.6） */
+const MS_LIMITS = {
+  cards: 10, cardTitle: 80, cardSubtitle: 80, cardButtons: 3,
+  btnText: 20, quickReplies: 13, quickRepliesSoft: 6, menuItems: 3, menuTitle: 30
+};
 
 const PROTOS_TAGS = [
   {
@@ -102,6 +109,8 @@ function makePage(id, name, pageType, extra = {}) {
     pageType,
     image: extra.image || '',
     text: extra.text || '',
+    subtitle: extra.subtitle || '',
+    moreCards: extra.moreCards || [],
     cardButtons: extra.cardButtons || [],
     mainMenuOverrideId: extra.mainMenuOverrideId || '',
     autoNextPageId: extra.autoNextPageId || '',
@@ -178,6 +187,21 @@ const SEED = {
       buttons: [
         makeBtn('msb_1', '联系客服', 'Event', { eventType: 'Support', sort: 1 }),
         makeBtn('msb_2', '回首页', 'Flow', { flowId: 'flow_vip_home', sort: 2 })
+      ]
+    },
+    {
+      id: 'menu_ms_main',
+      name: 'Messenger 底部按钮',
+      productLineId: 'BingoPlus',
+      platform: 'messenger',
+      botId: 'bot_1',
+      status: 'active',
+      buttons: [
+        makeBtn('mmb_1', '首页', 'Page', { pageId: 'ms_home', sort: 1 }),
+        makeBtn('mmb_2', '活动', 'Page', { pageId: 'ms_offer', sort: 2 }),
+        makeBtn('mmb_3', '联系客服', 'Event', { eventType: 'Support', sort: 3 }),
+        makeBtn('mmb_4', '分享手机号', 'Event', { eventType: 'SharePhone', shareAfter: 'Page', pageId: 'ms_home', sort: 4 }),
+        makeBtn('mmb_5', '回首页', 'Home', { menuId: 'menu_ms_main', sort: 5 })
       ]
     },
   ],
@@ -351,6 +375,47 @@ const SEED = {
           ]
         })
       ]
+    },
+    {
+      id: 'flow_ms_vip',
+      name: 'Messenger 默认承接',
+      productLineId: 'BingoPlus',
+      platform: 'messenger',
+      botId: 'bot_1',
+      type: 'normal',
+      status: 'published',
+      mainMenuId: 'menu_ms_main',
+      firstPageId: 'ms_home',
+      remark: 'Messenger 渠道演示对话流',
+      updatedAt: '2026-10-27 18:00:00',
+      pages: [
+        makePage('ms_home', '欢迎页', '首页', {
+          order: 0,
+          image: 'https://cdn.example.com/vip.jpg',
+          text: '尊贵的 VIP，欢迎回来 {nickname}',
+          subtitle: '本周专属礼遇已为你准备好',
+          cardButtons: [
+            makeBtn('mcb_1', '查看活动', 'Page', { pageId: 'ms_offer', sort: 1 }),
+            makeBtn('mcb_2', '去充值', 'Url', { url: 'https://bp.com/deposit?mid={memberId}', browser: 'internal', sort: 2 }),
+            makeBtn('mcb_3', '联系客服', 'Event', { eventType: 'Support', sort: 3 })
+          ],
+          moreCards: [
+            { id: 'mc_1', title: '充值送好礼', subtitle: '首充最高送 100%', image: 'https://cdn.example.com/offer.jpg',
+              buttons: [makeBtn('mcb_4', '立即参与', 'Url', { url: 'https://bp.com/promo', browser: 'internal', sort: 1 })] },
+            { id: 'mc_2', title: '好友邀请', subtitle: '邀请好友各得奖励', image: 'https://cdn.example.com/welcome.jpg',
+              buttons: [makeBtn('mcb_5', '查看详情', 'Page', { pageId: 'ms_offer', sort: 1 })] }
+          ]
+        }),
+        makePage('ms_offer', '活动详情', '列表', {
+          order: 1,
+          image: 'https://cdn.example.com/offer.jpg',
+          text: '本周精选活动',
+          subtitle: '充值即送，限时参与',
+          cardButtons: [
+            makeBtn('mcb_6', '去充值', 'Url', { url: 'https://bp.com/deposit?mid={memberId}', browser: 'internal', sort: 1 })
+          ]
+        })
+      ]
     }
   ],
   scenes: [
@@ -386,7 +451,10 @@ const SEED = {
       remark: '客服入口',
       createdAt: '2026-09-10 10:10:00',
       updatedAt: '2026-09-14 09:00:00'
-    }
+    },
+    { id: 'vip_big', name: 'VIP大客', productLineId: 'BingoPlus', platform: 'messenger', botId: 'bot_1', status: 'active', remark: 'm.me ref=vip_big', createdAt: '2026-10-20 10:00:00', updatedAt: '2026-10-26 18:00:00' },
+    { id: 'member', name: '普通会员', productLineId: 'BingoPlus', platform: 'messenger', botId: 'bot_1', status: 'active', remark: '', createdAt: '2026-10-20 10:05:00', updatedAt: '2026-10-25 12:00:00' },
+    { id: 'cs', name: '客服', productLineId: 'BingoPlus', platform: 'messenger', botId: 'bot_1', status: 'active', remark: '客服入口', createdAt: '2026-10-20 10:10:00', updatedAt: '2026-10-24 09:00:00' }
   ],
   strategies: [
     {
@@ -439,14 +507,32 @@ const SEED = {
       status: 'active',
       remark: '',
       createdAt: '2026-09-11 09:30:00'
+    },
+    {
+      id: 'strategy_ms_vip',
+      name: 'Messenger VIP6-8 承接',
+      sceneIds: ['vip_big'],
+      productLineId: 'BingoPlus',
+      platform: 'messenger',
+      botId: 'bot_1',
+      protosTagIds: ['user_level'],
+      tags: ['V6', 'V7', 'V8'],
+      flowId: 'flow_ms_vip',
+      priority: 10,
+      effectiveStart: '',
+      effectiveEnd: '',
+      status: 'active',
+      remark: '',
+      createdAt: '2026-10-26 12:00:00'
     }
-  ]
+  ],
+  pmenus: {}
 };
 
 function loadStore() {
   try {
     const raw = sessionStorage.getItem(STORE_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) { const s = JSON.parse(raw); if (!s.pmenus) s.pmenus = {}; return s; }
   } catch (_) { /* ignore */ }
   return clone(SEED);
 }
@@ -661,4 +747,34 @@ function publishedMatchFlowOptions(pl, botId, selected, platform) {
 
 function menuOptions(pl, botId, selected, platform) {
   return menusByScope(pl, botId, platform).map(m => optionHtml(m.id, `${m.name} (${m.id})`, selected)).join('');
+}
+
+/* Messenger 全局菜单（Page 级，按 产品线+Bot 存储） */
+function pmenuKey(pl, botId) { return `${pl}::${botId}`; }
+
+function defaultPmenu() {
+  return {
+    getStartedEnabled: true,
+    route: 'strategy',
+    routeFlowId: '',
+    composerHidden: true,
+    items: [
+      { id: 'pm_1', title: '回主页', type: 'home', url: '' },
+      { id: 'pm_2', title: '联系客服', type: 'support', url: '' },
+      { id: 'pm_3', title: '我的账户', type: 'url', url: 'https://bp.com/account' }
+    ],
+    publishedAt: ''
+  };
+}
+
+function getPmenu(pl, botId) {
+  const k = pmenuKey(pl, botId);
+  if (!DB.pmenus) DB.pmenus = {};
+  return DB.pmenus[k] ? clone(DB.pmenus[k]) : defaultPmenu();
+}
+
+function savePmenu(pl, botId, cfg) {
+  if (!DB.pmenus) DB.pmenus = {};
+  DB.pmenus[pmenuKey(pl, botId)] = clone(cfg);
+  saveStore();
 }
