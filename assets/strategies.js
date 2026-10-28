@@ -111,12 +111,52 @@ function creatingFallback() {
   return (document.querySelector('input[name="st-fallback"]:checked')?.value || fallbackDraft) === 'yes';
 }
 
+function needLoginOf(s) { return s?.needLogin !== false; }
+
+function loginFieldVisible() {
+  const plat = document.getElementById('st-platform')?.value;
+  const field = document.getElementById('st-login-field');
+  return !!field && plat === 'messenger' && !(editingFallback() || creatingFallback());
+}
+
+function currentNeedLogin() {
+  if (!loginFieldVisible()) return true;
+  return (document.querySelector('input[name="st-login"]:checked')?.value || 'yes') === 'yes';
+}
+
+function applyLoginVisibility() {
+  const field = document.getElementById('st-login-field');
+  if (field) field.hidden = !loginFieldVisible();
+  const needLogin = currentNeedLogin();
+  const tags = document.getElementById('st-tags-field');
+  if (tags) tags.hidden = !needLogin;
+}
+
+async function onStLoginChange(ev) {
+  const val = ev?.target?.value;
+  const hasTags = collectProtosFromRows().protosTagIds.length > 0;
+  if (val === 'no' && hasTags) {
+    const ok = await confirmModal({ title: '切换为「否」？', message: '切换为否将清空已选标签', confirmText: '确认切换', danger: false });
+    if (!ok) {
+      const yes = document.querySelector('input[name="st-login"][value="yes"]');
+      if (yes) yes.checked = true;
+      return;
+    }
+    protosRows = [{ parentId: '', childIds: [] }];
+    refreshProtosRowsUi();
+  }
+  applyLoginVisibility();
+  dirty = true;
+  syncSaveBtn();
+}
+
 function applyFallbackVisibility() {
   const yes = creatingFallback();
   const box = document.getElementById('st-nonfallback-fields');
   if (box) box.hidden = yes;
   const req = document.getElementById('st-tags-req');
   if (req) req.hidden = yes;
+  applyLoginVisibility();
 }
 
 function onStFallbackChange() {
@@ -239,6 +279,7 @@ function render() {
               <th>策略名称</th>
               <th>来源</th>
               <th>星灵标签</th>
+              ${filters.platform === 'messenger' ? '<th>是否登录</th>' : ''}
               <th>对话流</th>
               <th>生效时间</th>
               <th class="col-nowrap">状态</th>
@@ -254,7 +295,8 @@ function render() {
                 <td>${esc(s.id)}</td>
                 <td>${esc(s.name || '-')}${fb ? fixedPinHtml() : ''}</td>
                 <td>${esc(formatSceneNames(s))}</td>
-                <td>${esc(formatTags(s.tags))}</td>
+                <td>${needLoginOf(s) ? esc(formatTags(s.tags)) : '-'}</td>
+                ${filters.platform === 'messenger' ? `<td>${fb ? '-' : (needLoginOf(s) ? '是' : '否')}</td>` : ''}
                 <td>${esc(flow ? `${flow.name} (${flow.id})` : s.flowId)}</td>
                 <td>${formatEffectiveTime(s)}</td>
                 <td class="col-nowrap">${statusTag(s.status)}</td>
@@ -263,7 +305,7 @@ function render() {
                   ${fb ? '' : `<button class="link-btn link-btn-danger" type="button" onclick="deleteStrategy('${esc(s.id)}')">删除</button>`}
                 </td>
               </tr>`;
-            }).join('') : `<tr><td colspan="9"><div class="table-empty">暂无数据</div></td></tr>`}
+            }).join('') : `<tr><td colspan="${filters.platform === 'messenger' ? 10 : 9}"><div class="table-empty">暂无数据</div></td></tr>`}
           </tbody>
         </table>
       </div>
@@ -368,7 +410,15 @@ function openStrategyEdit(id) {
       <div class="field-hint">非必填，可多选；不选表示不限来源</div>
       <div id="scene-msel-host">${renderSceneSelect(s.productLineId, s.botId, s.platform)}</div>
     </div>
-    <div class="field">
+    <div class="field" id="st-login-field"${(s.platform === 'messenger' && !isFallback) ? '' : ' hidden'}>
+      <label class="field-label">是否登录<span class="req">*</span></label>
+      <div class="field-hint">是：面向已登录用户，需选择标签；否：面向未登录用户，不选标签。命中「否」策略的用户获取身份后，会重新走策略匹配</div>
+      <div class="radio-group">
+        <label><input type="radio" name="st-login" value="yes"${needLoginOf(s) ? ' checked' : ''} onchange="onStLoginChange(event)"> 是</label>
+        <label><input type="radio" name="st-login" value="no"${needLoginOf(s) ? '' : ' checked'} onchange="onStLoginChange(event)"> 否</label>
+      </div>
+    </div>
+    <div class="field" id="st-tags-field"${(s.platform === 'messenger' && !isFallback && !needLoginOf(s)) ? ' hidden' : ''}>
       <label class="field-label">星灵标签 / Protos Tags<span class="req" id="st-tags-req"${isFallback ? ' hidden' : ''}>*</span></label>
       <div class="field-hint">默认 1 个标签下拉，可选后展示子标签；最多添加 10 个</div>
       <div id="protos-rows">${renderProtosRows()}</div>
@@ -659,6 +709,7 @@ function onStBotChange() {
   refreshSceneSelect(false);
   document.getElementById('st-flow').innerHTML = `<option value="">请选择对话流</option>${publishedMatchFlowOptions(pl, bot, '', platform)}`;
   syncFallbackField();
+  applyLoginVisibility();
   syncSaveBtn();
 }
 
@@ -679,8 +730,9 @@ function readForm() {
     productLineId: document.getElementById('st-pl')?.value || '',
     platform: document.getElementById('st-platform')?.value || '',
     botId: document.getElementById('st-bot')?.value || '',
-    protosTagIds,
-    tags,
+    needLogin: currentNeedLogin(),
+    protosTagIds: currentNeedLogin() ? protosTagIds : [],
+    tags: currentNeedLogin() ? tags : [],
     flowId: document.getElementById('st-flow')?.value || '',
     priority: fallback ? 999 : Number(document.getElementById('st-priority')?.value || 0),
     effectiveStart: fallback ? '' : toTs(document.getElementById('st-start')?.value || ''),
@@ -697,7 +749,7 @@ function syncSaveBtn() {
     return;
   }
   document.getElementById('strategySaveBtn').disabled =
-    !d.name || !d.flowId || !(d.tags || []).length || !d.productLineId || !d.platform || !d.botId;
+    !d.name || !d.flowId || (d.needLogin && !(d.tags || []).length) || !d.productLineId || !d.platform || !d.botId;
 }
 
 function saveStrategy() {
@@ -714,15 +766,15 @@ function saveStrategy() {
     return;
   }
   if (!fallback) {
-    if (!d.protosTagIds.length) {
+    if (d.needLogin && !d.protosTagIds.length) {
       fieldError('err-tags', '请至少选择 1 个星灵标签');
       return;
     }
-    if (d.protosTagIds.length > 10) {
+    if (d.needLogin && d.protosTagIds.length > 10) {
       fieldError('err-tags', '最多可添加 10 个标签');
       return;
     }
-    if (!d.tags.length) {
+    if (d.needLogin && !d.tags.length) {
       fieldError('err-tags', '请至少选择 1 个子标签');
       return;
     }
