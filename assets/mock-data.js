@@ -656,7 +656,7 @@ function productLineById(id) {
 }
 
 function defaultPlatform() {
-  return PLATFORMS[0].id;
+  return 'messenger';
 }
 
 function platformBotKey(platform) {
