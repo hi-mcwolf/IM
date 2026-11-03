@@ -190,7 +190,8 @@ function messengerPreviewHtml(page, menu) {
   const kb = menu || resolvePreviewMenu(page);
   const menuItems = (kb?.buttons || []).slice().sort((a, b) => (a.sort || 0) - (b.sort || 0)).map(b => esc(b.text || '未命名'));
   const menuTitles = simMode === 'support' ? ['<b class="ms-end">结束会话</b>'] : menuItems;
-  const composerOn = !!simMode;
+  const cfg = getMsCfg(draft.productLineId, draft.botId);
+  const composerOn = !!simMode || !cfg.composerHidden;
   const qrs = simMode === 'support' ? [] : ((page && page.quickReplies) || []);
   const simQr = simMode === 'phone' ? '<button class="ms-qr ms-qr-sys" type="button"><span class="ms-qr-ico">☎</span>分享手机号</button>' : '';
   const qrHtml = (simQr || qrs.length) ? `<div class="ms-qrs">${simQr}${qrs.map(b => `<button class="ms-qr" type="button" ${b.event === 'Page' && b.pageId ? `onclick="previewGoPage('${esc(b.pageId)}')"` : ''}>${b.image ? `<span class="ms-qr-ico"><img src="${esc(b.image)}" alt="" onerror="this.style.display='none'">图</span>` : ''}${esc(b.text || '按钮')}</button>`).join('')}</div>` : '';
@@ -200,7 +201,7 @@ function messengerPreviewHtml(page, menu) {
   ] : [];
   const state = simMode === 'phone' ? '键盘已显示（用户点了分享手机号，可直接回复手机号）'
     : simMode === 'support' ? '键盘已显示（客服会话中，菜单只有「结束会话」）'
-    : '键盘已隐藏（未绑定 / 默认状态）';
+    : (cfg.composerHidden ? '键盘已隐藏（未绑定 / 默认状态）' : '键盘已显示（Bot 配置：键盘默认隐藏=关）');
   return `
     <div class="ms-sim"><label>模拟用户状态：<select onchange="setSim(this.value)"><option value="">默认（键盘隐藏）</option><option value="phone"${simMode === 'phone' ? ' selected' : ''}>点了分享手机号</option><option value="support"${simMode === 'support' ? ' selected' : ''}>客服会话中</option></select></label></div>
     <div class="viber-chat ms-chat">

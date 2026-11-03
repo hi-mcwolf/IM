@@ -1,6 +1,6 @@
 /* IM Bot 用户分层 v0.4 — 内存 + sessionStorage mock */
 
-const STORE_KEY = 'im-bot-layering-v18-ms';
+const STORE_KEY = 'im-bot-layering-v19-ms';
 
 const PRODUCT_LINES = [
   { id: 'digiplus', name: 'digiplus' },
@@ -796,4 +796,19 @@ function publishedMatchFlowOptions(pl, botId, selected, platform) {
 
 function menuOptions(pl, botId, selected, platform) {
   return menusByScope(pl, botId, platform).map(m => optionHtml(m.id, `${m.name} (${m.id})`, selected)).join('');
+}
+
+/* Messenger Bot 级键盘与文字处理配置（PRD 6.3.5，按 产品线+Bot） */
+function msCfgKey(pl, botId) { return `${pl}::${botId}`; }
+function defaultMsCfg() {
+  return { composerHidden: true, boundToSupport: false, promptText: '需要联系客服吗？点击下方按钮转人工。', qrTitle: '联系客服' };
+}
+function getMsCfg(pl, botId) {
+  if (!DB.msCfgs) DB.msCfgs = {};
+  return Object.assign(defaultMsCfg(), DB.msCfgs[msCfgKey(pl, botId)] || {});
+}
+function saveMsCfg(pl, botId, cfg) {
+  if (!DB.msCfgs) DB.msCfgs = {};
+  DB.msCfgs[msCfgKey(pl, botId)] = clone(cfg);
+  saveStore();
 }

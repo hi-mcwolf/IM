@@ -268,6 +268,7 @@ function render() {
         </div>
       </div>
     </section>
+    ${filters.platform === 'messenger' ? msCfgCardHtml() : ''}
     <section class="card table-card">
       <h4 class="card-title">策略列表</h4>
       <div class="table-scroll">
@@ -889,3 +890,60 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   render();
 });
+
+
+/* Messenger Bot 级配置：键盘默认隐藏 + 已绑定用户发文字的处理 */
+let msCfgDraft = null;
+function msCfgCardHtml() {
+  if (!msCfgDraft || msCfgDraft._k !== msCfgKey(filters.pl, filters.bot)) {
+    msCfgDraft = Object.assign(getMsCfg(filters.pl, filters.bot), { _k: msCfgKey(filters.pl, filters.bot) });
+  }
+  const c = msCfgDraft;
+  const showBound = !c.composerHidden;
+  const bad = showBound && !c.boundToSupport && (!c.promptText.trim() || c.promptText.length > 200 || !c.qrTitle.trim() || c.qrTitle.length > 20);
+  return `<section class="card" id="ms-cfg-card" style="margin-bottom:16px">
+    <h4 class="card-title">Messenger 键盘与文字处理（Bot 级）</h4>
+    <div class="field">
+      <label class="field-label">键盘默认隐藏</label>
+      <div class="radio-group">
+        <label><input type="radio" name="ms-hide" value="1"${c.composerHidden ? ' checked' : ''} onchange="onMsCfg('composerHidden', true)"> 开</label>
+        <label><input type="radio" name="ms-hide" value="0"${c.composerHidden ? '' : ' checked'} onchange="onMsCfg('composerHidden', false)"> 关</label>
+      </div>
+      <div class="field-hint">开：用户默认只能点菜单和按钮，分享手机号、调起客服时才显示键盘；关：键盘始终显示</div>
+    </div>
+    ${showBound ? `<div class="field">
+      <label class="field-label">已绑定用户输入直接转客服</label>
+      <div class="radio-group">
+        <label><input type="radio" name="ms-bound" value="1"${c.boundToSupport ? ' checked' : ''} onchange="onMsCfg('boundToSupport', true)"> 开</label>
+        <label><input type="radio" name="ms-bound" value="0"${c.boundToSupport ? '' : ' checked'} onchange="onMsCfg('boundToSupport', false)"> 关</label>
+      </div>
+      <div class="field-hint">开：已绑定用户发文字即打开客服会话；关：先回复下方提示文案和快速回复，用户点击后转客服，并把之前输入的最近 10 条一并发给客服</div>
+    </div>
+    ${c.boundToSupport ? '' : `<div class="field">
+      <label class="field-label">提示文案<span class="req">*</span><span class="counter"> ${c.promptText.length}/200</span></label>
+      <textarea class="textarea" id="ms-prompt" rows="2" oninput="onMsCfg('promptText', this.value, true)">${esc(c.promptText)}</textarea>
+      <div class="field-error" style="display:${c.promptText.length > 200 ? 'block' : 'none'}">提示文案最多 200 字符</div>
+    </div>
+    <div class="field">
+      <label class="field-label">快速回复文案<span class="req">*</span><span class="counter"> ${c.qrTitle.length}/20</span></label>
+      <input class="input" id="ms-qrt" value="${esc(c.qrTitle)}" oninput="onMsCfg('qrTitle', this.value, true)" />
+      <div class="field-error" style="display:${c.qrTitle.length > 20 ? 'block' : 'none'}">快速回复文案最多 20 字符</div>
+    </div>`}` : ''}
+    <button class="btn btn-primary" type="button" id="ms-cfg-save" ${bad ? 'disabled' : ''} onclick="saveMsCfgCard()">保存</button>
+  </section>`;
+}
+function onMsCfg(k, v, keepFocus) {
+  msCfgDraft[k] = v;
+  if (keepFocus) {
+    const bad = !msCfgDraft.composerHidden && !msCfgDraft.boundToSupport && (!msCfgDraft.promptText.trim() || msCfgDraft.promptText.length > 200 || !msCfgDraft.qrTitle.trim() || msCfgDraft.qrTitle.length > 20);
+    document.getElementById('ms-cfg-save').disabled = bad;
+    return;
+  }
+  const el = document.getElementById('ms-cfg-card');
+  el.outerHTML = msCfgCardHtml();
+}
+function saveMsCfgCard() {
+  const c = Object.assign({}, msCfgDraft); delete c._k;
+  saveMsCfg(filters.pl, filters.bot, c);
+  showToast('已保存', 'ok');
+}
