@@ -588,3 +588,4 @@ html, body { height: 100%; }
 .ms-more-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
 .ms-end { color: #E5484D; }
 .ms-sim select { margin-left: 4px; }
+#ms-cfg-card .modal-title { margin-bottom: 16px; }

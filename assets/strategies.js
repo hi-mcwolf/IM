@@ -208,6 +208,7 @@ function render() {
         <p class="page-desc">将来源 + 星灵标签映射到对话流</p>
       </div>
       <div class="page-header-actions">
+        ${filters.platform === 'messenger' ? '<button class="btn btn-outline" type="button" id="ms-cfg-btn" onclick="openMsCfg()"><i data-lucide="settings"></i>键盘与文字处理</button>' : ''}
         <button class="btn btn-primary" type="button" onclick="openStrategyEdit(null)">
           <i data-lucide="plus"></i>新建策略
         </button>
@@ -268,7 +269,6 @@ function render() {
         </div>
       </div>
     </section>
-    ${filters.platform === 'messenger' ? msCfgCardHtml() : ''}
     <section class="card table-card">
       <h4 class="card-title">策略列表</h4>
       <div class="table-scroll">
@@ -892,17 +892,15 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-/* Messenger Bot 级配置：键盘默认隐藏 + 已绑定用户发文字的处理 */
+/* Messenger Bot 级配置（弹窗）：键盘默认隐藏 + 已绑定用户发文字的处理 */
 let msCfgDraft = null;
-function msCfgCardHtml() {
-  if (!msCfgDraft || msCfgDraft._k !== msCfgKey(filters.pl, filters.bot)) {
-    msCfgDraft = Object.assign(getMsCfg(filters.pl, filters.bot), { _k: msCfgKey(filters.pl, filters.bot) });
-  }
+function msCfgBad(c) {
+  return !c.composerHidden && !c.boundToSupport && (!c.promptText.trim() || c.promptText.length > 200 || !c.qrTitle.trim() || c.qrTitle.length > 20);
+}
+function msCfgBodyHtml() {
   const c = msCfgDraft;
   const showBound = !c.composerHidden;
-  const bad = showBound && !c.boundToSupport && (!c.promptText.trim() || c.promptText.length > 200 || !c.qrTitle.trim() || c.qrTitle.length > 20);
-  return `<section class="card" id="ms-cfg-card" style="margin-bottom:16px">
-    <h4 class="card-title">Messenger 键盘与文字处理（Bot 级）</h4>
+  return `<h3 class="modal-title">Messenger 键盘与文字处理（Bot 级）</h3>
     <div class="field">
       <label class="field-label">键盘默认隐藏</label>
       <div class="radio-group">
@@ -920,30 +918,44 @@ function msCfgCardHtml() {
       <div class="field-hint">开：已绑定用户发文字即打开客服会话；关：先回复下方提示文案和快速回复，用户点击后转客服，并把之前输入的最近 10 条一并发给客服</div>
     </div>
     ${c.boundToSupport ? '' : `<div class="field">
-      <label class="field-label">提示文案<span class="req">*</span><span class="counter"> ${c.promptText.length}/200</span></label>
+      <label class="field-label">提示文案<span class="req">*</span><span class="counter" id="ms-prompt-cnt"> ${c.promptText.length}/200</span></label>
       <textarea class="textarea" id="ms-prompt" rows="2" oninput="onMsCfg('promptText', this.value, true)">${esc(c.promptText)}</textarea>
-      <div class="field-error" style="display:${c.promptText.length > 200 ? 'block' : 'none'}">提示文案最多 200 字符</div>
+      <div class="field-error" id="ms-prompt-err" style="display:${c.promptText.length > 200 ? 'block' : 'none'}">提示文案最多 200 字符</div>
     </div>
     <div class="field">
-      <label class="field-label">快速回复文案<span class="req">*</span><span class="counter"> ${c.qrTitle.length}/20</span></label>
+      <label class="field-label">快速回复文案<span class="req">*</span><span class="counter" id="ms-qrt-cnt"> ${c.qrTitle.length}/20</span></label>
       <input class="input" id="ms-qrt" value="${esc(c.qrTitle)}" oninput="onMsCfg('qrTitle', this.value, true)" />
-      <div class="field-error" style="display:${c.qrTitle.length > 20 ? 'block' : 'none'}">快速回复文案最多 20 字符</div>
+      <div class="field-error" id="ms-qrt-err" style="display:${c.qrTitle.length > 20 ? 'block' : 'none'}">快速回复文案最多 20 字符</div>
     </div>`}` : ''}
-    <button class="btn btn-primary" type="button" id="ms-cfg-save" ${bad ? 'disabled' : ''} onclick="saveMsCfgCard()">保存</button>
-  </section>`;
+    <div class="modal-actions">
+      <button class="btn btn-outline" type="button" onclick="closeMsCfg()">取消</button>
+      <button class="btn btn-primary" type="button" id="ms-cfg-save" ${msCfgBad(c) ? 'disabled' : ''} onclick="saveMsCfgCard()">保存</button>
+    </div>`;
 }
+function openMsCfg() {
+  ensureModalHost();
+  msCfgDraft = getMsCfg(filters.pl, filters.bot);
+  const wrap = document.createElement('div');
+  wrap.className = 'modal-root open';
+  wrap.id = 'ms-cfg-modal';
+  wrap.innerHTML = `<div class="modal-mask" onclick="closeMsCfg()"></div><div class="modal-card" id="ms-cfg-card" role="dialog" aria-modal="true" style="width:520px;max-width:92vw">${msCfgBodyHtml()}</div>`;
+  document.getElementById('modal-host').appendChild(wrap);
+}
+function closeMsCfg() { document.getElementById('ms-cfg-modal')?.remove(); }
 function onMsCfg(k, v, keepFocus) {
   msCfgDraft[k] = v;
   if (keepFocus) {
-    const bad = !msCfgDraft.composerHidden && !msCfgDraft.boundToSupport && (!msCfgDraft.promptText.trim() || msCfgDraft.promptText.length > 200 || !msCfgDraft.qrTitle.trim() || msCfgDraft.qrTitle.length > 20);
-    document.getElementById('ms-cfg-save').disabled = bad;
+    document.getElementById('ms-cfg-save').disabled = msCfgBad(msCfgDraft);
+    const set = (id, n, max) => { const e = document.getElementById(id); if (e) e.textContent = ` ${n}/${max}`; };
+    const show = (id, on) => { const e = document.getElementById(id); if (e) e.style.display = on ? 'block' : 'none'; };
+    set('ms-prompt-cnt', msCfgDraft.promptText.length, 200); set('ms-qrt-cnt', msCfgDraft.qrTitle.length, 20);
+    show('ms-prompt-err', msCfgDraft.promptText.length > 200); show('ms-qrt-err', msCfgDraft.qrTitle.length > 20);
     return;
   }
-  const el = document.getElementById('ms-cfg-card');
-  el.outerHTML = msCfgCardHtml();
+  document.getElementById('ms-cfg-card').innerHTML = msCfgBodyHtml();
 }
 function saveMsCfgCard() {
-  const c = Object.assign({}, msCfgDraft); delete c._k;
-  saveMsCfg(filters.pl, filters.bot, c);
+  saveMsCfg(filters.pl, filters.bot, msCfgDraft);
+  closeMsCfg();
   showToast('已保存', 'ok');
 }
