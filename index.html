@@ -30,6 +30,20 @@
       </footer>
     </aside>
   </div>
+  <div class="drawer-root" id="be-drawer">
+    <div class="drawer-mask" onclick="closeBotEdit()"></div>
+    <aside class="drawer drawer-md" role="dialog" aria-modal="true">
+      <header class="drawer-header">
+        <h3 id="be-drawer-title">编辑 Bot</h3>
+        <button class="icon-btn" type="button" aria-label="关闭" onclick="closeBotEdit()"><i data-lucide="x"></i></button>
+      </header>
+      <div class="drawer-body" id="be-drawer-body"></div>
+      <footer class="drawer-footer">
+        <button class="btn btn-outline" type="button" onclick="closeBotEdit()">取消</button>
+        <button class="btn btn-primary" type="button" id="be-save" onclick="saveBotEdit()">保存</button>
+      </footer>
+    </aside>
+  </div>
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   <script src="assets/common.js"></script>
   <script src="assets/mock-data.js"></script>

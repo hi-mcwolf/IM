@@ -12,8 +12,8 @@ if (!filters.bot) filters.bot = defaultBot(filters.pl, filters.platform);
 
 function msLink(botId, code) {
   const bot = (DB.bots || []).find(b => b.id === botId);
-  const page = (bot?.botUsername || '').replace(/^@/, '') || 'your_page';
-  return `https://m.me/${page}?ref=${code || '{来源code}'}`;
+  const base = (bot?.msUrl || '').replace(/\/+$/, '') || 'https://m.me/{未配置m.me地址}';
+  return `${base}?ref=${code || '{来源code}'}`;
 }
 
 function copyText(text) {

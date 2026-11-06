@@ -311,7 +311,7 @@ function renderBotList() {
                 <td>${esc(b.createTime)}</td>
                 <td class="col-ops">
                   <button class="link-btn" type="button" onclick="openAutoLoginConfig('${esc(b.id)}')">自动登录</button>
-                  <button class="link-btn" type="button" onclick="showToast('原型未接 Bot 编辑','err')">编辑</button>
+                  <button class="link-btn" type="button" onclick="openBotEdit('${esc(b.id)}')">编辑</button>
                   <button class="link-btn link-btn-danger" type="button" onclick="showToast('原型未接 Bot 删除','err')">删除</button>
                 </td>
               </tr>`).join('') : `<tr><td colspan="8"><div class="table-empty">暂无数据</div></td></tr>`}
@@ -321,6 +321,54 @@ function renderBotList() {
       ${renderPagination(list.length, 1, 20, 'noopPage')}
     </section>`;
   refreshIcons();
+}
+
+const MS_URL_RE = /^https:\/\/m\.me\/[A-Za-z0-9._-]+$/;
+let beBotId = null;
+
+function openBotEdit(id) {
+  const bot = getBot(id);
+  if (!bot) return;
+  beBotId = id;
+  const hasMs = (bot.platforms || []).includes('ms');
+  document.getElementById('be-drawer-title').textContent = `编辑 Bot · ${bot.botName}`;
+  document.getElementById('be-drawer-body').innerHTML = `
+    <div class="field"><label class="field-label">Bot Name</label><input class="input" value="${esc(bot.botName)}" disabled /></div>
+    <div class="field"><label class="field-label">Bot Token</label><input class="input" value="${esc(bot.botToken)}" disabled /></div>
+    ${hasMs ? `<div class="field">
+      <label class="field-label">Messenger 地址（m.me）</label>
+      <input class="input" id="be-msurl" placeholder="https://m.me/{Page 用户名或 ID}" value="${esc(bot.msUrl || '')}" oninput="onBeUrl()" />
+      <div class="field-error" id="be-msurl-err"></div>
+      <div class="field-hint">Messenger 来源链接的前缀，来源管理中生成 <code>{地址}?ref={来源 code}</code>；示例 https://m.me/BingoPlusBot</div>
+    </div>` : '<div class="field-hint">该 Bot 未开通 Messenger，无需配置 m.me 地址</div>'}`;
+  openDrawer('be-drawer');
+  refreshIcons();
+}
+
+function onBeUrl() {
+  const v = (document.getElementById('be-msurl')?.value || '').trim();
+  const bad = v && !MS_URL_RE.test(v);
+  const e = document.getElementById('be-msurl-err');
+  e.textContent = bad ? '请输入 https://m.me/ 开头的地址，后面只能是 Page 用户名或 ID（字母、数字、点、下划线、短横线），不含参数和结尾斜杠' : '';
+  e.style.display = bad ? 'block' : 'none';
+  document.getElementById('be-save').disabled = !!bad;
+}
+
+function closeBotEdit() { closeDrawer('be-drawer'); beBotId = null; }
+
+function saveBotEdit() {
+  const bot = getBot(beBotId);
+  if (!bot) return;
+  if ((bot.platforms || []).includes('ms')) {
+    const v = (document.getElementById('be-msurl')?.value || '').trim();
+    if (!v) { showToast('请填写 Messenger 地址', 'err'); return; }
+    if (!MS_URL_RE.test(v)) { onBeUrl(); return; }
+    bot.msUrl = v;
+  }
+  saveStore();
+  closeBotEdit();
+  renderBotList();
+  showToast('已保存');
 }
 
 function noopPage() { /* single page mock */ }
