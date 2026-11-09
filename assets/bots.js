@@ -336,10 +336,14 @@ function openBotEdit(id) {
     <div class="field"><label class="field-label">Bot Name</label><input class="input" value="${esc(bot.botName)}" disabled /></div>
     <div class="field"><label class="field-label">Bot Token</label><input class="input" value="${esc(bot.botToken)}" disabled /></div>
     ${hasMs ? `<div class="field">
-      <label class="field-label">Messenger 地址（m.me）</label>
-      <input class="input" id="be-msurl" placeholder="https://m.me/{Page 用户名或 ID}" value="${esc(bot.msUrl || '')}" oninput="onBeUrl()" />
+      <label class="field-label">Page ID</label>
+      <input class="input" value="${esc(bot.msPageId || '')}" disabled />
+    </div>
+    <div class="field">
+      <label class="field-label">Messenger 地址（m.me，选填）</label>
+      <input class="input" id="be-msurl" placeholder="不填则使用 https://m.me/{Page ID}" value="${esc(bot.msUrl || '')}" oninput="onBeUrl()" />
       <div class="field-error" id="be-msurl-err"></div>
-      <div class="field-hint">Messenger 来源链接的前缀，来源管理中生成 <code>{地址}?ref={来源 code}</code>；示例 https://m.me/BingoPlusBot</div>
+      <div class="field-hint">Messenger 来源链接的前缀，生成 <code>{地址}?ref={来源 code}</code>；不填时使用 Page ID（https://m.me/{Page ID}）；示例 https://m.me/BingoPlusBot</div>
     </div>` : '<div class="field-hint">该 Bot 未开通 Messenger，无需配置 m.me 地址</div>'}`;
   openDrawer('be-drawer');
   refreshIcons();
@@ -361,8 +365,7 @@ function saveBotEdit() {
   if (!bot) return;
   if ((bot.platforms || []).includes('ms')) {
     const v = (document.getElementById('be-msurl')?.value || '').trim();
-    if (!v) { showToast('请填写 Messenger 地址', 'err'); return; }
-    if (!MS_URL_RE.test(v)) { onBeUrl(); return; }
+    if (v && !MS_URL_RE.test(v)) { onBeUrl(); return; }
     bot.msUrl = v;
   }
   saveStore();

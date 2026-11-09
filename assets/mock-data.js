@@ -1,6 +1,6 @@
 /* IM Bot 用户分层 v0.4 — 内存 + sessionStorage mock */
 
-const STORE_KEY = 'im-bot-layering-v20-ms';
+const STORE_KEY = 'im-bot-layering-v21-ms';
 
 const PRODUCT_LINES = [
   { id: 'digiplus', name: 'digiplus' },
@@ -131,6 +131,7 @@ const SEED = {
       botName: 'BingoPlus_Official',
       botToken: '7283****:AAH****CmKpq',
       botUsername: '@BingoPlusBot',
+      msPageId: '104829376501234',
       msUrl: 'https://m.me/BingoPlusBot',
       productLineId: 'BingoPlus',
       platforms: ['tg', 'wa', 'vb', 'ms'],
@@ -146,7 +147,8 @@ const SEED = {
       botName: 'Rewards_Support',
       botToken: '6691****:AAG****QwxRt',
       botUsername: '@RewardsSupportBot',
-      msUrl: 'https://m.me/RewardsSupportBot',
+      msPageId: '109283746501987',
+      msUrl: '',
       productLineId: 'BingoPlus',
       platforms: ['tg', 'ms'],
       status: 'SUCCESS',

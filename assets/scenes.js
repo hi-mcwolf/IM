@@ -12,7 +12,7 @@ if (!filters.bot) filters.bot = defaultBot(filters.pl, filters.platform);
 
 function msLink(botId, code) {
   const bot = (DB.bots || []).find(b => b.id === botId);
-  const base = (bot?.msUrl || '').replace(/\/+$/, '') || 'https://m.me/{未配置m.me地址}';
+  const base = (bot?.msUrl || '').replace(/\/+$/, '') || (bot?.msPageId ? `https://m.me/${bot.msPageId}` : 'https://m.me/{Page ID}');
   return `${base}?ref=${code || '{来源code}'}`;
 }
 
