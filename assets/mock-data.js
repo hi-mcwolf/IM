@@ -1,6 +1,6 @@
 /* IM Bot 用户分层 v0.4 — 内存 + sessionStorage mock */
 
-const STORE_KEY = 'im-bot-layering-v23-ms';
+const STORE_KEY = 'im-bot-layering-v24-ms';
 
 const PRODUCT_LINES = [
   { id: 'digiplus', name: 'digiplus' },
@@ -847,8 +847,8 @@ function defaultMsCfg() {
   return {
     composerShown: true,
     boundToSupport: false,
-    promptText: '需要联系客服吗？点击下方按钮转人工。',
-    qrTitle: '联系客服',
+    promptText: '您好，需要为您转接人工客服吗？点击下方按钮即可转接。',
+    qrTitle: '转人工客服',
     endText: '结束会话',
     endAction: { type: 'Page', flowId: 'flow_ms_vip', pageId: 'ms_home', eventType: '', url: '' },
     items: [

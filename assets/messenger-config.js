@@ -50,10 +50,10 @@ function validate(c) {
   else if (c.endText.length > L.menuTitle) errs.push(`关闭客服文案最多 ${L.menuTitle} 字符`);
   { const e = endActionError(c.endAction); if (e) errs.push(e); }
   if (c.composerShown && !c.boundToSupport) {
-    if (!c.promptText.trim()) errs.push('请填写提示文案');
-    else if (c.promptText.length > 200) errs.push('提示文案最多 200 字符');
-    if (!c.qrTitle.trim()) errs.push('请填写快速回复文案');
-    else if (c.qrTitle.length > 20) errs.push('快速回复文案最多 20 字符');
+    if (!c.promptText.trim()) errs.push('请填写询问消息');
+    else if (c.promptText.length > 200) errs.push('询问消息最多 200 字符');
+    if (!c.qrTitle.trim()) errs.push('请填写转接按钮文案');
+    else if (c.qrTitle.length > 20) errs.push('转接按钮文案最多 20 字符');
   }
   return errs;
 }
@@ -192,15 +192,17 @@ function renderPreview() {
   if (!host) return;
   const menuTitles = sim === 'support' ? [`<b class="ms-end">${esc(cfg.endText || '结束会话')}</b>`] : cfg.items.map(i => esc(i.title || '未命名'));
   const composerOn = cfg.composerShown || !!sim;
-  const state = sim === 'phone' ? '键盘已显示（用户点了分享手机号，可直接回复手机号）'
+  const state = sim === 'ask' ? '键盘已显示（用户打字后，机器人先询问；点按钮才转人工）'
+    : sim === 'phone' ? '键盘已显示（用户点了分享手机号，可直接回复手机号）'
     : sim === 'support' ? '键盘已显示（客服会话中，菜单只有结束会话）'
     : (cfg.composerShown ? '键盘已显示（键盘默认显示=开）' : '键盘已隐藏（默认状态）');
   const bot = (DB.bots || []).find(b => b.id === filters.bot);
   host.innerHTML = `
-    <div class="ms-sim"><label>模拟用户状态：<select onchange="setSim(this.value)"><option value="">默认</option><option value="phone"${sim === 'phone' ? ' selected' : ''}>点了分享手机号</option><option value="support"${sim === 'support' ? ' selected' : ''}>客服会话中</option></select></label></div>
+    <div class="ms-sim"><label>模拟用户状态：<select onchange="setSim(this.value)"><option value="">默认</option><option value="phone"${sim === 'phone' ? ' selected' : ''}>点了分享手机号</option><option value="support"${sim === 'support' ? ' selected' : ''}>客服会话中</option>${cfg.composerShown && !cfg.boundToSupport ? `<option value="ask"${sim === 'ask' ? ' selected' : ''}>已绑定用户打字（先询问）</option>` : ''}</select></label></div>
     <div class="viber-chat ms-chat" style="min-height:300px">
       <div class="viber-chat-head ms-head"><span class="avatar">${esc((bot?.botName || 'B').slice(0, 1).toUpperCase())}</span><div class="meta"><div class="name">${esc(bot?.botName || 'Bot')}</div><div class="sub">Messenger</div></div></div>
-      <div class="viber-chat-body"><div class="viber-empty">对话内容</div></div>
+      <div class="viber-chat-body">${sim === 'ask' ? `<div style="text-align:right;margin:8px 0"><span style="display:inline-block;background:#0A7CFF;color:#fff;border-radius:14px;padding:6px 12px;font-size:12px">我想查一下余额</span></div><div style="margin:8px 0"><span style="display:inline-block;background:#F0F2F5;border-radius:14px;padding:6px 12px;font-size:12px;max-width:85%">${esc(cfg.promptText)}</span></div>` : '<div class="viber-empty">对话内容</div>'}</div>
+      ${sim === 'ask' ? `<div class="ms-qrs"><button class="ms-qr" type="button">${esc(cfg.qrTitle)}</button></div>` : ''}
       <div class="ms-bottom ${composerOn ? 'on' : 'off'}">
         ${composerOn ? '<div class="ms-composer"><span class="ms-plus">＋</span><span class="ms-input">Aa</span><span class="ms-plus">☺</span></div>' : ''}
         <div class="ms-pmenu"${composerOn ? ' style="margin-top:6px"' : ''}>☰ ${menuTitles.join(' · ') || '（无底部菜单）'}</div>
@@ -258,23 +260,26 @@ function render() {
         </section>
         <section class="card" style="margin-top:16px">
           <h4 class="card-title">键盘与文字处理</h4>
+          <div class="field-hint" style="margin-bottom:12px">控制用户能不能直接打字，以及已绑定用户在没有客服会话时打字怎么办。</div>
           <div class="field">
             <label class="field-label">键盘默认显示</label>
             <div class="radio-group">${radio('mc-show', 1, '开', 'setField(\'composerShown\', true)', cfg.composerShown)}${radio('mc-show', 0, '关', 'setField(\'composerShown\', false)', !cfg.composerShown)}</div>
-            <div class="field-hint">开：用户默认能直接打字；关：默认隐藏，只有开启客服、分享手机号后才显示键盘，结束后恢复</div>
+            <div class="field-hint">开：用户随时可以在输入框打字。<br>关：输入框默认隐藏，用户只能点菜单和按钮；点「开启客服」或「分享手机号」后才临时显示，结束后自动隐藏。</div>
           </div>
           ${showBound ? `<div class="field">
-            <label class="field-label">已绑定用户输入直接转客服</label>
-            <div class="radio-group">${radio('mc-bound', 1, '开', 'setField(\'boundToSupport\', true)', cfg.boundToSupport)}${radio('mc-bound', 0, '关', 'setField(\'boundToSupport\', false)', !cfg.boundToSupport)}</div>
-            <div class="field-hint">开：已绑定用户发文字即打开客服会话；关：先回复下方提示文案和快速回复，用户点击后转客服，并把之前输入的最近 10 条一并发给客服</div>
+            <label class="field-label">已绑定用户在没有客服会话时打字</label>
+            <div class="radio-group">${radio('mc-bound', 1, '直接转人工客服', 'setField(\'boundToSupport\', true)', cfg.boundToSupport)}${radio('mc-bound', 0, '先询问，用户确认后再转', 'setField(\'boundToSupport\', false)', !cfg.boundToSupport)}</div>
+            <div class="field-hint">直接转：用户一打字就开启客服会话，打的字作为第一条消息发给客服。<br>先询问：机器人先回复下面的「询问消息」，用户点击「转接按钮」才转人工，避免随手打字就占用客服。<br>未绑定的用户不受此影响，打字后按策略匹配进入未绑定对话流。</div>
           </div>` : ''}
           ${showPrompt ? `<div class="field">
-            <label class="field-label">提示文案<span class="req">*</span><span class="counter" id="mc-prompt-cnt"> ${cfg.promptText.length}/200</span></label>
+            <label class="field-label">询问消息<span class="req">*</span><span class="counter" id="mc-prompt-cnt"> ${cfg.promptText.length}/200</span></label>
             <textarea class="textarea" rows="2" oninput="setText('promptText',this.value)">${esc(cfg.promptText)}</textarea>
+            <div class="field-hint">用户打字后，机器人先回复这条消息。请写成问句，并提示用户点击下方按钮，例如：您好，需要为您转接人工客服吗？点击下方按钮即可转接。</div>
           </div>
           <div class="field">
-            <label class="field-label">快速回复文案<span class="req">*</span><span class="counter" id="mc-qrt-cnt"> ${cfg.qrTitle.length}/20</span></label>
+            <label class="field-label">转接按钮文案<span class="req">*</span><span class="counter" id="mc-qrt-cnt"> ${cfg.qrTitle.length}/20</span></label>
             <input class="input" style="max-width:320px" value="${esc(cfg.qrTitle)}" oninput="setText('qrTitle',this.value)" />
+            <div class="field-hint">显示在询问消息下方的按钮，例如：转人工客服。用户点击后开启客服会话，并把刚才输入的内容（最近 10 条）一并发给客服。可含 emoji。</div>
           </div>` : ''}
         </section>
       </div>
