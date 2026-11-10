@@ -1,6 +1,6 @@
 /* IM Bot 用户分层 v0.4 — 内存 + sessionStorage mock */
 
-const STORE_KEY = 'im-bot-layering-v22-ms';
+const STORE_KEY = 'im-bot-layering-v23-ms';
 
 const PRODUCT_LINES = [
   { id: 'digiplus', name: 'digiplus' },
@@ -95,6 +95,7 @@ function makeBtn(id, text, event, extra = {}) {
     eventType: extra.eventType || '',
     endImage: extra.endImage || '',
     endText: extra.endText || '',
+    endAction: extra.endAction || null,
     shareAfter: extra.shareAfter || '',
     style: extra.style || 'primary',
     image: extra.image || '',
@@ -408,7 +409,7 @@ const SEED = {
           quickReplies: [
             makeBtn('mqr_1', '查看活动', 'Page', { pageId: 'ms_offer', sort: 1 }),
             makeBtn('mqr_2', '我要充值', 'Flow', { flowId: 'flow_ms_vip', sort: 2 }),
-            makeBtn('mqr_3', '联系客服', 'Event', { eventType: 'Support', endText: '结束会话', sort: 3 })
+            makeBtn('mqr_3', '联系客服', 'Event', { eventType: 'Support', sort: 3 })
           ],
           moreCards: [
             { id: 'mc_1', title: '充值送好礼', subtitle: '首充最高送 100%', image: 'https://cdn.example.com/offer.jpg',
@@ -618,6 +619,44 @@ function eventLabel(v) {
   return BUTTON_EVENTS.find(e => e.value === v)?.label || v || '-';
 }
 
+/* Messenger 事件：开启客服 / 关闭客服 / 分享手机号（无 wifi code） */
+const MS_EVENTS = [
+  { value: 'Support', label: '开启客服' },
+  { value: 'SupportEnd', label: '关闭客服' },
+  { value: 'SharePhone', label: '分享手机号' }
+];
+const MS_END_TYPES = [
+  { value: 'Page', label: '页面' }, { value: 'Flow', label: '对话流' },
+  { value: 'Event', label: '事件' }, { value: 'Url', label: 'URL' }
+];
+function msEventLabel(v) { return MS_EVENTS.find(e => e.value === v)?.label || builtinEventLabel(v); }
+function newEndAction() { return { type: 'Page', flowId: '', pageId: '', eventType: '', url: '' }; }
+function endActionError(ea) {
+  if (!ea) return '请配置关闭后动作';
+  if (ea.type === 'Page' && (!ea.flowId || !ea.pageId)) return '请选择关闭后动作的对话流和页面';
+  if (ea.type === 'Flow' && !ea.flowId) return '请选择关闭后动作的对话流';
+  if (ea.type === 'Event' && !ea.eventType) return '请选择关闭后动作的事件';
+  if (ea.type === 'Url' && !/^https:\/\/[^\s]+$/.test((ea.url || '').trim())) return '关闭后动作：请输入合法的 https 链接';
+  return '';
+}
+/* fn：点击回调前缀，如 "onEnd(-1,"，调用形式 fn 'type', value) */
+function endActionHtml(ea, fn, flows) {
+  ea = ea || newEndAction();
+  const pages = ea.flowId ? (flowById(ea.flowId)?.pages || []) : [];
+  const flowSel = `<select class="select" onchange="${fn}'flowId',this.value)"><option value="">选择对话流</option>${flows.map(f => optionHtml(f.id, f.name, ea.flowId)).join('')}</select>`;
+  let tgt = '';
+  if (ea.type === 'Page') tgt = flowSel + `<select class="select" onchange="${fn}'pageId',this.value)"><option value="">选择页面</option>${pages.map(p => optionHtml(p.id, p.name, ea.pageId)).join('')}</select>`;
+  else if (ea.type === 'Flow') tgt = flowSel;
+  else if (ea.type === 'Event') tgt = `<select class="select" onchange="${fn}'eventType',this.value)"><option value="">选择事件</option>${optionHtml('SharePhone', '分享手机号', ea.eventType)}</select>`;
+  else tgt = `<input class="input" placeholder="https://" value="${esc(ea.url || '')}" oninput="${fn}'url',this.value,true)" />`;
+  return `<select class="select" style="max-width:110px" onchange="${fn}'type',this.value)">${MS_END_TYPES.map(t => optionHtml(t.value, t.label, ea.type)).join('')}</select>${tgt}`;
+}
+function setEndField(ea, k, v) {
+  ea[k] = v;
+  if (k === 'type') { ea.flowId = ''; ea.pageId = ''; ea.eventType = ''; ea.url = ''; }
+  if (k === 'flowId') ea.pageId = '';
+}
+
 function builtinEventLabel(v) {
   return BUILTIN_EVENTS.find(e => e.value === v)?.label || v || '-';
 }
@@ -806,15 +845,16 @@ function menuOptions(pl, botId, selected, platform) {
 function msCfgKey(pl, botId) { return `${pl}::${botId}`; }
 function defaultMsCfg() {
   return {
-    composerHidden: true,
+    composerShown: true,
     boundToSupport: false,
     promptText: '需要联系客服吗？点击下方按钮转人工。',
     qrTitle: '联系客服',
     endText: '结束会话',
+    endAction: { type: 'Page', flowId: 'flow_ms_vip', pageId: 'ms_home', eventType: '', url: '' },
     items: [
-      { id: 'mi_1', title: '首页', action: 'Page', flowId: 'flow_ms_vip', pageId: 'ms_home', eventType: '', url: '' },
-      { id: 'mi_2', title: '联系客服', action: 'Event', flowId: '', pageId: '', eventType: 'Support', url: '' },
-      { id: 'mi_3', title: '我的账户', action: 'Url', flowId: '', pageId: '', eventType: '', url: 'https://bp.com/account' }
+      { id: 'mi_1', title: '首页', action: 'Page', flowId: 'flow_ms_vip', pageId: 'ms_home', eventType: '', url: '', endAction: null },
+      { id: 'mi_2', title: '联系客服', action: 'Event', flowId: '', pageId: '', eventType: 'Support', url: '', endAction: null },
+      { id: 'mi_3', title: '我的账户', action: 'Url', flowId: '', pageId: '', eventType: '', url: 'https://bp.com/account', endAction: null }
     ]
   };
 }

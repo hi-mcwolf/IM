@@ -86,7 +86,7 @@ function jumpTargetLabel(btn) {
     return f ? f.name : (btn.flowId || '对话流');
   }
   if (btn.event === 'Event') {
-    const ev = builtinEventLabel(btn.eventType) || '事件';
+    const ev = evLabel(btn.eventType) || '事件';
     if (btn.eventType === 'SharePhone' && btn.shareAfter) {
       return `${ev} → ${btn.shareAfter === 'Flow' ? jumpTargetLabel({ event: 'Flow', flowId: btn.flowId }) : jumpTargetLabel({ event: 'Page', pageId: btn.pageId })}`;
     }
@@ -156,6 +156,15 @@ function resolvePreviewMenu(page) {
 let simMode = '';
 
 function isMs() { return draft?.platform === 'messenger'; }
+function evLabel(v) { return isMs() ? msEventLabel(v) : builtinEventLabel(v); }
+function msFlows() { return DB.flows.filter(f => f.platform === 'messenger' && f.productLineId === draft.productLineId && f.botId === draft.botId); }
+function onBtEnd(k, v, keep) {
+  syncBtnDraftFromForm();
+  if (!btnDraft.endAction) btnDraft.endAction = newEndAction();
+  setEndField(btnDraft.endAction, k, v);
+  btnDirty = true;
+  if (!keep) rerenderBtnParams();
+}
 function previewCaption() { return isMs() ? 'Messenger 预览' : 'Viber 预览'; }
 function cardBtnLimit() { return isMs() ? MS_LIMITS.cardButtons : 2; }
 function menuBtnLimit() { return isMs() ? MS_LIMITS.menuItems : 6; }
@@ -190,7 +199,7 @@ function messengerPreviewHtml(page, menu) {
   const cfg = getMsCfg(draft.productLineId, draft.botId);
   const menuItems = cfg.items.map(i => esc(i.title || '未命名'));
   const menuTitles = simMode === 'support' ? [`<b class="ms-end">${esc(cfg.endText || '结束会话')}</b>`] : menuItems;
-  const composerOn = !!simMode || !cfg.composerHidden;
+  const composerOn = !!simMode || cfg.composerShown;
   const qrs = simMode === 'support' ? [] : ((page && page.quickReplies) || []);
   const simQr = simMode === 'phone' ? '<button class="ms-qr ms-qr-sys" type="button"><span class="ms-qr-ico">☎</span>分享手机号</button>' : '';
   const qrHtml = (simQr || qrs.length) ? `<div class="ms-qrs">${simQr}${qrs.map(b => `<button class="ms-qr" type="button" ${b.event === 'Page' && b.pageId ? `onclick="previewGoPage('${esc(b.pageId)}')"` : ''}>${b.image ? `<span class="ms-qr-ico"><img src="${esc(b.image)}" alt="" onerror="this.style.display='none'">图</span>` : ''}${esc(b.text || '按钮')}</button>`).join('')}</div>` : '';
@@ -200,7 +209,7 @@ function messengerPreviewHtml(page, menu) {
   ] : [];
   const state = simMode === 'phone' ? '键盘已显示（用户点了分享手机号，可直接回复手机号）'
     : simMode === 'support' ? '键盘已显示（客服会话中，菜单只有「结束会话」）'
-    : (cfg.composerHidden ? '键盘已隐藏（未绑定 / 默认状态）' : '键盘已显示（Bot 配置：键盘默认隐藏=关）');
+    : (cfg.composerShown ? '键盘已显示（Bot 配置：键盘默认显示=开）' : '键盘已隐藏（默认状态）');
   return `
     <div class="ms-sim"><label>模拟用户状态：<select onchange="setSim(this.value)"><option value="">默认（键盘隐藏）</option><option value="phone"${simMode === 'phone' ? ' selected' : ''}>点了分享手机号</option><option value="support"${simMode === 'support' ? ' selected' : ''}>客服会话中</option></select></label></div>
     <div class="viber-chat ms-chat">
@@ -1086,7 +1095,7 @@ function renderQrRows() {
   if (!list.length) return '<div class="table-empty" style="padding:12px">暂无快速回复</div>';
   return list.map((b, idx) => `
     <div class="btn-row">
-      <div class="grow">${esc(b.text || '未命名')}${b.image ? '（含图标）' : ''} · ${esc(eventLabel(b.event))}${b.event === 'Event' ? ' / ' + esc(builtinEventLabel(b.eventType)) : ''}</div>
+      <div class="grow">${esc(b.text || '未命名')}${b.image ? '（含图标）' : ''} · ${esc(eventLabel(b.event))}${b.event === 'Event' ? ' / ' + esc(evLabel(b.eventType)) : ''}</div>
       <button class="link-btn" type="button" onclick="openButtonEdit('qr', ${idx})">编辑</button>
       <button class="link-btn link-btn-danger" type="button" onclick="deleteQr(${idx})">删除</button>
     </div>`).join('');
@@ -1226,7 +1235,7 @@ function renderMenuRows() {
     const show = isMs() ? `${b.text || '未命名'}` : (b.image ? '图片' : (b.text || '未命名'));
     return `<div class="btn-row" data-id="${esc(b.id)}">
       <span class="drag-handle" title="拖动排序"><i data-lucide="grip-vertical"></i></span>
-      <div class="grow">${esc(show)} · ${esc(eventLabel(b.event))}${b.event === 'Event' ? ' / ' + esc(builtinEventLabel(b.eventType)) : ''}${b.needBind ? ' · 需绑定' : ''}</div>
+      <div class="grow">${esc(show)} · ${esc(eventLabel(b.event))}${b.event === 'Event' ? ' / ' + esc(evLabel(b.eventType)) : ''}${b.needBind ? ' · 需绑定' : ''}</div>
       <button class="link-btn" type="button" onclick="openButtonEdit('menu', ${idx})">编辑</button>
       <button class="link-btn link-btn-danger" type="button" onclick="deleteMenuButton(${idx})">删除</button>
     </div>`;
@@ -1549,9 +1558,9 @@ function renderEventParams(ev) {
       <label class="field-label">事件<span class="req">*</span></label>
       <select class="select" id="bt-builtin" onchange="onBuiltinChange()">
         <option value="">请选择事件</option>
-        ${BUILTIN_EVENTS.filter(e => !(isMs() && e.value === 'WifiCode')).map(e => optionHtml(e.value, e.label, b.eventType)).join('')}
+        ${(isMs() ? MS_EVENTS : BUILTIN_EVENTS).map(e => optionHtml(e.value, e.label, b.eventType)).join('')}
       </select>
-    </div>${b.eventType === 'SharePhone' ? renderShareAfter(b) : ''}${b.eventType === 'Support' && !isMs() ? renderEndSupportImage(b) : ''}`;
+    </div>${b.eventType === 'SharePhone' ? renderShareAfter(b) : ''}${b.eventType === 'Support' && !isMs() ? renderEndSupportImage(b) : ''}${b.eventType === 'SupportEnd' && isMs() ? renderEndAction(b) : ''}`;
   }
   if (ev === 'Home') {
     return `<div class="field" style="margin:0">
@@ -1564,6 +1573,15 @@ function renderEventParams(ev) {
     </div>`;
   }
   return '';
+}
+
+function renderEndAction(b) {
+  const ea = b.endAction || newEndAction();
+  return `<div class="field">
+      <label class="field-label">关闭后动作<span class="req">*</span></label>
+      <div class="mc-target" style="flex-wrap:wrap">${endActionHtml(ea, "onBtEnd(", msFlows())}</div>
+      <div class="field-hint">用户点击后先关闭客服会话并恢复菜单和键盘，再执行该动作；必填</div>
+    </div>`;
 }
 
 function renderEndSupportImage(b) {
@@ -1676,6 +1694,7 @@ function readButtonForm() {
     eventType: ev === 'Event' ? (btnDraft.eventType || '') : '',
     endImage: ev === 'Event' && btnDraft.eventType === 'Support' && !isMs() ? (btnDraft.endImage || '') : '',
     shareAfter: ev === 'Event' && btnDraft.eventType === 'SharePhone' ? (btnDraft.shareAfter || '') : '',
+    endAction: ev === 'Event' && btnDraft.eventType === 'SupportEnd' ? (btnDraft.endAction || null) : null,
     menuId: ev === 'Home' ? (btnDraft.menuId || '') : '',
     needBind: !!btnDraft.needBind,
     style: (btnCtx.source === 'card')
@@ -1710,6 +1729,10 @@ function validateButtonAction(b) {
   if (b.event === 'Event' && !b.eventType) {
     showToast('请选择事件', 'err');
     return false;
+  }
+  if (b.event === 'Event' && b.eventType === 'SupportEnd') {
+    const err = endActionError(b.endAction);
+    if (err) { showToast(err, 'err'); return false; }
   }
   if (b.event === 'Event' && b.eventType === 'SharePhone') {
     if (!b.shareAfter) {

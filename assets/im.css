@@ -599,3 +599,9 @@ html, body { height: 100%; }
 .mc-target .select, .mc-target .input { flex: 1; min-width: 0; }
 .mc-ops { display: flex; gap: 4px; margin-top: 6px; white-space: nowrap; }
 .mc-cnt { margin: 2px 0 0; }
+.mc-evbox { display: flex; flex-direction: column; gap: 6px; }
+.mc-end-row { display: flex; gap: 6px; align-items: center; }
+.mc-end-lab { font-size: 12px; color: var(--text-3); white-space: nowrap; align-self: center; }
+.mc-end-grid { display: grid; grid-template-columns: 260px 1fr; gap: 12px; align-items: start; }
+.mc-end-row .select, .mc-end-row .input { flex: 1; min-width: 0; }
+.mc-end-grid .mc-target { align-items: center; }

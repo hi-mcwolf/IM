@@ -35,7 +35,7 @@ function validate(c) {
   const errs = [];
   const L = MS_LIMITS;
   if (c.items.length > L.menuItems) errs.push(`菜单最多 ${L.menuItems} 项`);
-  if (c.composerHidden && c.items.length < 1) errs.push('键盘默认隐藏为开时，菜单至少 1 项（平台要求）');
+  if (!c.composerShown && c.items.length < 1) errs.push('键盘默认显示为关（默认隐藏）时，菜单至少 1 项（平台要求）');
   c.items.forEach((it, i) => {
     const n = `第 ${i + 1} 项`;
     if (!it.title.trim()) errs.push(`${n}：请填写菜单文案`);
@@ -43,11 +43,13 @@ function validate(c) {
     if (it.action === 'Page' && (!it.flowId || !it.pageId)) errs.push(`${n}：请选择对话流和页面`);
     if (it.action === 'Flow' && !it.flowId) errs.push(`${n}：请选择对话流`);
     if (it.action === 'Event' && !it.eventType) errs.push(`${n}：请选择事件`);
+    if (it.action === 'Event' && it.eventType === 'SupportEnd') { const e = endActionError(it.endAction); if (e) errs.push(`${n}：${e}`); }
     if (it.action === 'Url' && !/^https:\/\/[^\s]+$/.test(it.url.trim())) errs.push(`${n}：请输入合法的 https 链接`);
   });
-  if (!c.endText.trim()) errs.push('请填写结束会话文案');
-  else if (c.endText.length > L.menuTitle) errs.push(`结束会话文案最多 ${L.menuTitle} 字符`);
-  if (!c.composerHidden && !c.boundToSupport) {
+  if (!c.endText.trim()) errs.push('请填写关闭客服文案');
+  else if (c.endText.length > L.menuTitle) errs.push(`关闭客服文案最多 ${L.menuTitle} 字符`);
+  { const e = endActionError(c.endAction); if (e) errs.push(e); }
+  if (c.composerShown && !c.boundToSupport) {
     if (!c.promptText.trim()) errs.push('请填写提示文案');
     else if (c.promptText.length > 200) errs.push('提示文案最多 200 字符');
     if (!c.qrTitle.trim()) errs.push('请填写快速回复文案');
@@ -70,7 +72,8 @@ function setText(k, v) { cfg[k] = v; touch(); updateCounters(); }
 function setItem(i, k, v, rerender) {
   const it = cfg.items[i];
   it[k] = v;
-  if (k === 'action') { it.flowId = ''; it.pageId = ''; it.eventType = ''; it.url = ''; }
+  if (k === 'action') { it.flowId = ''; it.pageId = ''; it.eventType = ''; it.url = ''; it.endAction = null; }
+  if (k === 'eventType') it.endAction = v === 'SupportEnd' ? newEndAction() : null;
   if (k === 'flowId') it.pageId = '';
   dirty = true;
   if (rerender) render(); else touch();
@@ -78,7 +81,7 @@ function setItem(i, k, v, rerender) {
 
 function addItem() {
   if (cfg.items.length >= MS_LIMITS.menuItems) { showToast(`最多 ${MS_LIMITS.menuItems} 项`, 'err'); return; }
-  cfg.items.push({ id: nextId('mi'), title: '', action: 'Event', flowId: '', pageId: '', eventType: '', url: '' });
+  cfg.items.push({ id: nextId('mi'), title: '', action: 'Event', flowId: '', pageId: '', eventType: '', url: '', endAction: null });
   dirty = true;
   render();
 }
@@ -91,6 +94,14 @@ function moveItem(i, d) {
   [cfg.items[i], cfg.items[j]] = [cfg.items[j], cfg.items[i]];
   dirty = true;
   render();
+}
+
+function onEnd(idx, k, v, keep) {
+  const target = idx < 0 ? cfg : cfg.items[idx];
+  if (!target.endAction) target.endAction = newEndAction();
+  setEndField(target.endAction, k, v);
+  dirty = true;
+  if (keep) touch(); else render();
 }
 
 function setSim(v) { sim = v; renderPreview(); }
@@ -138,11 +149,10 @@ function targetHtml(it, i) {
       <select class="select" onchange="setItem(${i},'pageId',this.value)"><option value="">选择页面</option>${pages.map(p => optionHtml(p.id, p.name, it.pageId)).join('')}</select>`;
   }
   if (it.action === 'Flow') return `<select class="select" onchange="setItem(${i},'flowId',this.value)"><option value="">选择对话流</option>${flows.map(f => optionHtml(f.id, f.name, it.flowId)).join('')}</select>`;
-  if (it.action === 'Event') return `<select class="select" onchange="setItem(${i},'eventType',this.value)"><option value="">选择事件</option>${MS_MENU_EVENTS.map(e => optionHtml(e.value, e.label, it.eventType)).join('')}</select>`;
+  if (it.action === 'Event') return `<div class="mc-evbox"><select class="select" onchange="setItem(${i},'eventType',this.value,true)"><option value="">选择事件</option>${MS_EVENTS.map(e => optionHtml(e.value, e.label, it.eventType)).join('')}</select>${it.eventType === 'SupportEnd' ? `<div class="mc-end-row"><span class="mc-end-lab">关闭后</span>${endActionHtml(it.endAction, 'onEnd(' + i + ',', flowsOfBot())}</div>` : ''}</div>`;
   return `<input class="input" placeholder="https://" value="${esc(it.url)}" oninput="setItem(${i},'url',this.value)" />`;
 }
 
-const MS_MENU_EVENTS = [{ value: 'Support', label: '调起客服' }, { value: 'SharePhone', label: '分享手机号' }];
 const MS_MENU_ACTIONS = [{ value: 'Page', label: '页面' }, { value: 'Flow', label: '对话流' }, { value: 'Event', label: '事件' }, { value: 'Url', label: 'URL' }];
 
 function itemRows() {
@@ -164,7 +174,7 @@ function itemRows() {
 function updateCounters() {
   cfg.items.forEach((it, i) => { const e = document.getElementById(`mc-cnt-${i}`); if (e) e.textContent = `${it.title.length}/${MS_LIMITS.menuTitle}`; });
   const set = (id, t) => { const e = document.getElementById(id); if (e) e.textContent = t; };
-  set('mc-end-cnt', ` ${cfg.endText.length}/${MS_LIMITS.menuTitle}`);
+  set('mc-end-cnt', `${cfg.endText.length}/${MS_LIMITS.menuTitle}`);
   set('mc-prompt-cnt', ` ${cfg.promptText.length}/200`);
   set('mc-qrt-cnt', ` ${cfg.qrTitle.length}/20`);
 }
@@ -181,10 +191,10 @@ function renderPreview() {
   const host = document.getElementById('mc-preview');
   if (!host) return;
   const menuTitles = sim === 'support' ? [`<b class="ms-end">${esc(cfg.endText || '结束会话')}</b>`] : cfg.items.map(i => esc(i.title || '未命名'));
-  const composerOn = !cfg.composerHidden || !!sim;
+  const composerOn = cfg.composerShown || !!sim;
   const state = sim === 'phone' ? '键盘已显示（用户点了分享手机号，可直接回复手机号）'
     : sim === 'support' ? '键盘已显示（客服会话中，菜单只有结束会话）'
-    : (cfg.composerHidden ? '键盘已隐藏（默认状态）' : '键盘已显示（键盘默认隐藏=关）');
+    : (cfg.composerShown ? '键盘已显示（键盘默认显示=开）' : '键盘已隐藏（默认状态）');
   const bot = (DB.bots || []).find(b => b.id === filters.bot);
   host.innerHTML = `
     <div class="ms-sim"><label>模拟用户状态：<select onchange="setSim(this.value)"><option value="">默认</option><option value="phone"${sim === 'phone' ? ' selected' : ''}>点了分享手机号</option><option value="support"${sim === 'support' ? ' selected' : ''}>客服会话中</option></select></label></div>
@@ -207,7 +217,7 @@ function radio(name, val, label, onchange, checked) {
 function render() {
   const bots = botsByScope(filters.pl, MS_PLATFORM);
   const pub = cfg ? getMsCfgPub(filters.pl, filters.bot) : null;
-  const showBound = cfg && !cfg.composerHidden;
+  const showBound = cfg && cfg.composerShown;
   const showPrompt = showBound && !cfg.boundToSupport;
   document.getElementById('content').innerHTML = `
     <div class="page-header">
@@ -238,17 +248,20 @@ function render() {
           <div class="mc-list">${itemRows()}</div>
           <button class="btn btn-outline" type="button" onclick="addItem()" ${cfg.items.length >= MS_LIMITS.menuItems ? 'disabled' : ''}>添加菜单项</button>
           <div class="field" style="margin-top:16px">
-            <label class="field-label">结束会话文案<span class="req">*</span><span class="counter" id="mc-end-cnt"> ${cfg.endText.length}/${MS_LIMITS.menuTitle}</span></label>
-            <input class="input" style="max-width:320px" value="${esc(cfg.endText)}" oninput="setText('endText',this.value)" />
-            <div class="field-hint">客服会话中，底部菜单只显示这一项；用户点击后结束会话，恢复菜单并重新下发进入客服前的页面</div>
+            <label class="field-label">客服会话中的菜单项（关闭客服）</label>
+            <div class="mc-end-grid">
+              <div><input class="input" placeholder="关闭客服文案，最多 30 字符" value="${esc(cfg.endText)}" oninput="setText('endText',this.value)" /><div class="counter mc-cnt" id="mc-end-cnt">${cfg.endText.length}/${MS_LIMITS.menuTitle}</div></div>
+              <div class="mc-target"><span class="mc-end-lab">关闭后</span>${endActionHtml(cfg.endAction, 'onEnd(-1,', flowsOfBot())}</div>
+            </div>
+            <div class="field-hint">客服会话中，底部菜单只显示这一项；用户点击后关闭客服会话、恢复菜单和键盘，再执行关闭后动作（必填：页面 / 对话流 / 事件 / URL）</div>
           </div>
         </section>
         <section class="card" style="margin-top:16px">
           <h4 class="card-title">键盘与文字处理</h4>
           <div class="field">
-            <label class="field-label">键盘默认隐藏</label>
-            <div class="radio-group">${radio('mc-hide', 1, '开', 'setField(\'composerHidden\', true)', cfg.composerHidden)}${radio('mc-hide', 0, '关', 'setField(\'composerHidden\', false)', !cfg.composerHidden)}</div>
-            <div class="field-hint">开：用户默认只能点菜单和按钮，分享手机号、调起客服时才显示键盘；关：键盘始终显示</div>
+            <label class="field-label">键盘默认显示</label>
+            <div class="radio-group">${radio('mc-show', 1, '开', 'setField(\'composerShown\', true)', cfg.composerShown)}${radio('mc-show', 0, '关', 'setField(\'composerShown\', false)', !cfg.composerShown)}</div>
+            <div class="field-hint">开：用户默认能直接打字；关：默认隐藏，只有开启客服、分享手机号后才显示键盘，结束后恢复</div>
           </div>
           ${showBound ? `<div class="field">
             <label class="field-label">已绑定用户输入直接转客服</label>
