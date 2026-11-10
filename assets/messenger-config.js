@@ -106,19 +106,11 @@ function onEnd(idx, k, v, keep) {
 
 function setSim(v) { sim = v; renderPreview(); }
 
-function saveDraft() {
-  saveMsCfg(filters.pl, filters.bot, cfg);
-  dirty = false;
-  showToast('已保存');
-  render();
-}
-
 async function resetCfg() {
   const pub = getMsCfgPub(filters.pl, filters.bot);
   const ok = await confirmModal({ title: '确认重置？', message: pub ? '将恢复为已发布版本，当前修改会丢失' : '尚未发布过，将恢复为默认配置，当前修改会丢失', confirmText: '确认重置', danger: false });
   if (!ok) return;
-  cfg = pub ? (() => { const c = clone(pub); delete c.publishedAt; return c; })() : defaultMsCfg();
-  saveMsCfg(filters.pl, filters.bot, cfg);
+  cfg = getMsCfg(filters.pl, filters.bot);
   dirty = false;
   showToast('已重置');
   render();
@@ -132,7 +124,6 @@ async function publishCfg() {
   const btn = document.getElementById('ms-publish');
   btn.disabled = true; btn.textContent = '同步中…';
   setTimeout(() => {
-    saveMsCfg(filters.pl, filters.bot, cfg);
     publishMsCfg(filters.pl, filters.bot, cfg);
     dirty = false;
     showToast('已同步到 Messenger');
@@ -229,7 +220,6 @@ function render() {
       </div>
       <div class="page-header-actions">
         <button class="btn btn-outline" type="button" onclick="resetCfg()" ${cfg ? '' : 'disabled'}>重置</button>
-        <button class="btn btn-outline" type="button" onclick="saveDraft()" ${cfg ? '' : 'disabled'}>保存草稿</button>
         <button class="btn btn-primary" type="button" id="ms-publish" onclick="publishCfg()" ${cfg ? '' : 'disabled'}>发布到 Messenger</button>
       </div>
     </div>
@@ -237,7 +227,7 @@ function render() {
       <div class="filter-row">
         <div class="filter-item"><span class="filter-label">产品线</span><select class="select" id="f-pl" onchange="onPl()">${productLineOptions(filters.pl)}</select></div>
         <div class="filter-item"><span class="filter-label">Bot</span><select class="select" id="f-bot" onchange="onBot()">${botOptions(filters.pl, filters.bot, MS_PLATFORM)}</select></div>
-        <div class="filter-item"><span class="filter-label">状态</span>${pub ? `<span class="tag tag-success">已发布 ${esc(pub.publishedAt || '')}</span>${dirty ? '<span class="tag" style="margin-left:6px">有未保存修改</span>' : ''}` : '<span class="tag">未发布</span>'}</div>
+        <div class="filter-item"><span class="filter-label">状态</span>${pub ? `<span class="tag tag-success">已发布 ${esc(pub.publishedAt || '')}</span>${dirty ? '<span class="tag" style="margin-left:6px">有未发布修改</span>' : ''}` : '<span class="tag">未发布</span>'}</div>
       </div>
     </section>
     ${!cfg ? '<section class="card"><div class="table-empty">该产品线下没有开通 Messenger 的 Bot</div></section>' : `

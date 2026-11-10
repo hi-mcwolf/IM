@@ -1,6 +1,6 @@
 /* IM Bot 用户分层 v0.4 — 内存 + sessionStorage mock */
 
-const STORE_KEY = 'im-bot-layering-v24-ms';
+const STORE_KEY = 'im-bot-layering-v25-ms';
 
 const PRODUCT_LINES = [
   { id: 'digiplus', name: 'digiplus' },
@@ -841,7 +841,7 @@ function menuOptions(pl, botId, selected, platform) {
   return menusByScope(pl, botId, platform).map(m => optionHtml(m.id, `${m.name} (${m.id})`, selected)).join('');
 }
 
-/* Messenger Bot 配置（PRD 6.3）：底部菜单 + 键盘与文字处理，按 产品线+Bot；草稿 DB.msCfgs，已发布 DB.msCfgsPub */
+/* Messenger Bot 配置（PRD 6.3）：底部菜单 + 键盘与文字处理，按 产品线+Bot；无草稿，已发布配置存 DB.msCfgsPub */
 function msCfgKey(pl, botId) { return `${pl}::${botId}`; }
 function defaultMsCfg() {
   return {
@@ -858,15 +858,11 @@ function defaultMsCfg() {
     ]
   };
 }
+/* 无草稿：编辑内容只在页面内存中，发布后才生效；对话流预览等读取已发布配置，未发布过则用默认 */
 function getMsCfg(pl, botId) {
-  if (!DB.msCfgs) DB.msCfgs = {};
-  const c = DB.msCfgs[msCfgKey(pl, botId)];
-  return c ? clone(c) : defaultMsCfg();
-}
-function saveMsCfg(pl, botId, cfg) {
-  if (!DB.msCfgs) DB.msCfgs = {};
-  DB.msCfgs[msCfgKey(pl, botId)] = clone(cfg);
-  saveStore();
+  const pub = getMsCfgPub(pl, botId);
+  if (pub) { const c = clone(pub); delete c.publishedAt; return c; }
+  return defaultMsCfg();
 }
 function getMsCfgPub(pl, botId) {
   return (DB.msCfgsPub || {})[msCfgKey(pl, botId)] || null;
