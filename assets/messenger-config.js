@@ -267,9 +267,10 @@ function render() {
             <div class="field-hint">用户打字后，机器人先回复这条消息。请写成问句，并提示用户点击下方按钮，例如：您好，需要为您转接人工客服吗？点击下方按钮即可转接。</div>
           </div>
           <div class="field">
-            <label class="field-label">转接按钮文案<span class="req">*</span><span class="counter" id="mc-qrt-cnt"> ${cfg.qrTitle.length}/20</span></label>
+            <label class="field-label">转接按钮文案（快速回复）<span class="req">*</span><span class="counter" id="mc-qrt-cnt"> ${cfg.qrTitle.length}/20</span></label>
             <input class="input" style="max-width:320px" value="${esc(cfg.qrTitle)}" oninput="setText('qrTitle',this.value)" />
             <div class="field-hint">显示在询问消息下方的按钮，例如：转人工客服。用户点击后开启客服会话，并把刚才输入的内容（最近 10 条）一并发给客服。可含 emoji。</div>
+            <div class="ms-issue warn" style="margin-top:6px;line-height:1.7">这个按钮是 Messenger 的「快速回复」，和卡片上的按钮不同：<br>① 用户点击后按钮立即消失，按钮上的字会作为一条用户消息出现在聊天里（用户会看到自己“发送”了「${esc(cfg.qrTitle || '转人工客服')}」）；<br>② 用户不点、继续打字时，按钮也会消失，系统会再次发送询问消息和按钮；<br>③ 按钮文案最多 20 字符，只能是文字（可含 emoji）。</div>
           </div>` : ''}
         </section>
       </div>
