@@ -1,6 +1,6 @@
 /* IM Bot 用户分层 v0.4 — 内存 + sessionStorage mock */
 
-const STORE_KEY = 'im-bot-layering-v25-ms';
+const STORE_KEY = 'im-bot-layering-v26-ms';
 
 const PRODUCT_LINES = [
   { id: 'digiplus', name: 'digiplus' },
@@ -622,7 +622,6 @@ function eventLabel(v) {
 /* Messenger 事件：开启客服 / 关闭客服 / 分享手机号（无 wifi code） */
 const MS_EVENTS = [
   { value: 'Support', label: '开启客服' },
-  { value: 'SupportEnd', label: '关闭客服' },
   { value: 'SharePhone', label: '分享手机号' }
 ];
 const MS_END_TYPES = [

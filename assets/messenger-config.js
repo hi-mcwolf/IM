@@ -43,11 +43,10 @@ function validate(c) {
     if (it.action === 'Page' && (!it.flowId || !it.pageId)) errs.push(`${n}：请选择对话流和页面`);
     if (it.action === 'Flow' && !it.flowId) errs.push(`${n}：请选择对话流`);
     if (it.action === 'Event' && !it.eventType) errs.push(`${n}：请选择事件`);
-    if (it.action === 'Event' && it.eventType === 'SupportEnd') { const e = endActionError(it.endAction); if (e) errs.push(`${n}：${e}`); }
     if (it.action === 'Url' && !/^https:\/\/[^\s]+$/.test(it.url.trim())) errs.push(`${n}：请输入合法的 https 链接`);
   });
-  if (!c.endText.trim()) errs.push('请填写关闭客服文案');
-  else if (c.endText.length > L.menuTitle) errs.push(`关闭客服文案最多 ${L.menuTitle} 字符`);
+  if (!c.endText.trim()) errs.push('请填写结束会话文案');
+  else if (c.endText.length > L.menuTitle) errs.push(`结束会话文案最多 ${L.menuTitle} 字符`);
   { const e = endActionError(c.endAction); if (e) errs.push(e); }
   if (c.composerShown && !c.boundToSupport) {
     if (!c.promptText.trim()) errs.push('请填写询问消息');
@@ -72,8 +71,7 @@ function setText(k, v) { cfg[k] = v; touch(); updateCounters(); }
 function setItem(i, k, v, rerender) {
   const it = cfg.items[i];
   it[k] = v;
-  if (k === 'action') { it.flowId = ''; it.pageId = ''; it.eventType = ''; it.url = ''; it.endAction = null; }
-  if (k === 'eventType') it.endAction = v === 'SupportEnd' ? newEndAction() : null;
+  if (k === 'action') { it.flowId = ''; it.pageId = ''; it.eventType = ''; it.url = ''; }
   if (k === 'flowId') it.pageId = '';
   dirty = true;
   if (rerender) render(); else touch();
@@ -81,7 +79,7 @@ function setItem(i, k, v, rerender) {
 
 function addItem() {
   if (cfg.items.length >= MS_LIMITS.menuItems) { showToast(`最多 ${MS_LIMITS.menuItems} 项`, 'err'); return; }
-  cfg.items.push({ id: nextId('mi'), title: '', action: 'Event', flowId: '', pageId: '', eventType: '', url: '', endAction: null });
+  cfg.items.push({ id: nextId('mi'), title: '', action: 'Event', flowId: '', pageId: '', eventType: '', url: '' });
   dirty = true;
   render();
 }
@@ -140,7 +138,7 @@ function targetHtml(it, i) {
       <select class="select" onchange="setItem(${i},'pageId',this.value)"><option value="">选择页面</option>${pages.map(p => optionHtml(p.id, p.name, it.pageId)).join('')}</select>`;
   }
   if (it.action === 'Flow') return `<select class="select" onchange="setItem(${i},'flowId',this.value)"><option value="">选择对话流</option>${flows.map(f => optionHtml(f.id, f.name, it.flowId)).join('')}</select>`;
-  if (it.action === 'Event') return `<div class="mc-evbox"><select class="select" onchange="setItem(${i},'eventType',this.value,true)"><option value="">选择事件</option>${MS_EVENTS.map(e => optionHtml(e.value, e.label, it.eventType)).join('')}</select>${it.eventType === 'SupportEnd' ? `<div class="mc-end-row"><span class="mc-end-lab">关闭后</span>${endActionHtml(it.endAction, 'onEnd(' + i + ',', flowsOfBot())}</div>` : ''}</div>`;
+  if (it.action === 'Event') return `<div class="mc-evbox"><select class="select" onchange="setItem(${i},'eventType',this.value,true)"><option value="">选择事件</option>${MS_EVENTS.map(e => optionHtml(e.value, e.label, it.eventType)).join('')}</select></div>`;
   return `<input class="input" placeholder="https://" value="${esc(it.url)}" oninput="setItem(${i},'url',this.value)" />`;
 }
 
@@ -240,12 +238,12 @@ function render() {
           <div class="mc-list">${itemRows()}</div>
           <button class="btn btn-outline" type="button" onclick="addItem()" ${cfg.items.length >= MS_LIMITS.menuItems ? 'disabled' : ''}>添加菜单项</button>
           <div class="field" style="margin-top:16px">
-            <label class="field-label">客服会话中的菜单项（关闭客服）</label>
+            <label class="field-label">客服会话中的菜单</label>
             <div class="mc-end-grid">
-              <div><input class="input" placeholder="关闭客服文案，最多 30 字符" value="${esc(cfg.endText)}" oninput="setText('endText',this.value)" /><div class="counter mc-cnt" id="mc-end-cnt">${cfg.endText.length}/${MS_LIMITS.menuTitle}</div></div>
-              <div class="mc-target"><span class="mc-end-lab">关闭后</span>${endActionHtml(cfg.endAction, 'onEnd(-1,', flowsOfBot())}</div>
+              <div><input class="input" placeholder="结束会话文案，最多 30 字符" value="${esc(cfg.endText)}" oninput="setText('endText',this.value)" /><div class="counter mc-cnt" id="mc-end-cnt">${cfg.endText.length}/${MS_LIMITS.menuTitle}</div></div>
+              <div class="mc-target"><span class="mc-end-lab">结束后</span>${endActionHtml(cfg.endAction, 'onEnd(-1,', flowsOfBot())}</div>
             </div>
-            <div class="field-hint">客服会话中，底部菜单只显示这一项；用户点击后关闭客服会话、恢复菜单和键盘，再执行关闭后动作（必填：页面 / 对话流 / 事件 / URL）</div>
+            <div class="field-hint">仅在用户处于客服会话时显示，且只有这一项；会话结束后恢复上面的底部菜单。用户点击后关闭客服会话、恢复菜单和键盘，再执行「结束后」动作（必填：页面 / 对话流 / 事件 / URL）。它不是主菜单里的菜单项。</div>
           </div>
         </section>
         <section class="card" style="margin-top:16px">

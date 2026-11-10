@@ -158,13 +158,6 @@ let simMode = '';
 function isMs() { return draft?.platform === 'messenger'; }
 function evLabel(v) { return isMs() ? msEventLabel(v) : builtinEventLabel(v); }
 function msFlows() { return DB.flows.filter(f => f.platform === 'messenger' && f.productLineId === draft.productLineId && f.botId === draft.botId); }
-function onBtEnd(k, v, keep) {
-  syncBtnDraftFromForm();
-  if (!btnDraft.endAction) btnDraft.endAction = newEndAction();
-  setEndField(btnDraft.endAction, k, v);
-  btnDirty = true;
-  if (!keep) rerenderBtnParams();
-}
 function previewCaption() { return isMs() ? 'Messenger 预览' : 'Viber 预览'; }
 function cardBtnLimit() { return isMs() ? MS_LIMITS.cardButtons : 2; }
 function menuBtnLimit() { return isMs() ? MS_LIMITS.menuItems : 6; }
@@ -1560,7 +1553,7 @@ function renderEventParams(ev) {
         <option value="">请选择事件</option>
         ${(isMs() ? MS_EVENTS : BUILTIN_EVENTS).map(e => optionHtml(e.value, e.label, b.eventType)).join('')}
       </select>
-    </div>${b.eventType === 'SharePhone' ? renderShareAfter(b) : ''}${b.eventType === 'Support' && !isMs() ? renderEndSupportImage(b) : ''}${b.eventType === 'SupportEnd' && isMs() ? renderEndAction(b) : ''}`;
+    </div>${b.eventType === 'SharePhone' ? renderShareAfter(b) : ''}${b.eventType === 'Support' && !isMs() ? renderEndSupportImage(b) : ''}`;
   }
   if (ev === 'Home') {
     return `<div class="field" style="margin:0">
@@ -1573,15 +1566,6 @@ function renderEventParams(ev) {
     </div>`;
   }
   return '';
-}
-
-function renderEndAction(b) {
-  const ea = b.endAction || newEndAction();
-  return `<div class="field">
-      <label class="field-label">关闭后动作<span class="req">*</span></label>
-      <div class="mc-target" style="flex-wrap:wrap">${endActionHtml(ea, "onBtEnd(", msFlows())}</div>
-      <div class="field-hint">用户点击后先关闭客服会话并恢复菜单和键盘，再执行该动作；必填</div>
-    </div>`;
 }
 
 function renderEndSupportImage(b) {
@@ -1694,7 +1678,6 @@ function readButtonForm() {
     eventType: ev === 'Event' ? (btnDraft.eventType || '') : '',
     endImage: ev === 'Event' && btnDraft.eventType === 'Support' && !isMs() ? (btnDraft.endImage || '') : '',
     shareAfter: ev === 'Event' && btnDraft.eventType === 'SharePhone' ? (btnDraft.shareAfter || '') : '',
-    endAction: ev === 'Event' && btnDraft.eventType === 'SupportEnd' ? (btnDraft.endAction || null) : null,
     menuId: ev === 'Home' ? (btnDraft.menuId || '') : '',
     needBind: !!btnDraft.needBind,
     style: (btnCtx.source === 'card')
@@ -1729,10 +1712,6 @@ function validateButtonAction(b) {
   if (b.event === 'Event' && !b.eventType) {
     showToast('请选择事件', 'err');
     return false;
-  }
-  if (b.event === 'Event' && b.eventType === 'SupportEnd') {
-    const err = endActionError(b.endAction);
-    if (err) { showToast(err, 'err'); return false; }
   }
   if (b.event === 'Event' && b.eventType === 'SharePhone') {
     if (!b.shareAfter) {
