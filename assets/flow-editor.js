@@ -187,10 +187,9 @@ function msBtn(b) {
 
 function messengerPreviewHtml(page, menu) {
   const botName = botDisplayName();
-  const kb = menu || resolvePreviewMenu(page);
-  const menuItems = (kb?.buttons || []).slice().sort((a, b) => (a.sort || 0) - (b.sort || 0)).map(b => esc(b.text || '未命名'));
-  const menuTitles = simMode === 'support' ? ['<b class="ms-end">结束会话</b>'] : menuItems;
   const cfg = getMsCfg(draft.productLineId, draft.botId);
+  const menuItems = cfg.items.map(i => esc(i.title || '未命名'));
+  const menuTitles = simMode === 'support' ? [`<b class="ms-end">${esc(cfg.endText || '结束会话')}</b>`] : menuItems;
   const composerOn = !!simMode || !cfg.composerHidden;
   const qrs = simMode === 'support' ? [] : ((page && page.quickReplies) || []);
   const simQr = simMode === 'phone' ? '<button class="ms-qr ms-qr-sys" type="button"><span class="ms-qr-ico">☎</span>分享手机号</button>' : '';
@@ -347,14 +346,6 @@ function msIssues() {
       if ((b.text || '').length > L.btnText) out.push({ level: 'err', text: `${nm}：快速回复「${b.text}」文案超过 ${L.btnText} 字符` });
       if (b.event === 'Url') out.push({ level: 'err', text: `${nm}：快速回复「${b.text}」不支持 URL，请改用卡片按钮或底部菜单` });
     });
-  });
-  const menuIds = new Set([draft.mainMenuId, ...sortedPages(draft).map(p => p.mainMenuOverrideId)].filter(x => x && x !== 'none'));
-  menuIds.forEach(id => {
-    const m = menuById(id);
-    if (!m) return;
-    const n = (m.buttons || []).length;
-    if (n > L.menuItems) out.push({ level: 'err', text: `底部菜单「${m.name}」：最多 ${L.menuItems} 项（当前 ${n}）` });
-    (m.buttons || []).forEach(b => { if ((b.text || '').length > L.menuTitle) out.push({ level: 'err', text: `底部菜单「${m.name}」：「${b.text}」文案超过 ${L.menuTitle} 字符` }); });
   });
   return out;
 }
@@ -727,7 +718,7 @@ function renderEditor() {
         </table>
       </div>
     </section>`;
-  const pane = !isNew && editorTab === 'pages' ? pagesPane : (!isNew && editorTab === 'menus' ? menusPane : basicPane);
+  const pane = !isNew && editorTab === 'pages' ? pagesPane : (!isNew && editorTab === 'menus' && !isMs() ? menusPane : basicPane);
   document.getElementById('content').innerHTML = `
     <div class="flow-editor-head">
       <div>
@@ -749,7 +740,7 @@ function renderEditor() {
         <div class="tabs">
           <button class="tab${editorTab === 'basic' || isNew ? ' active' : ''}" type="button" onclick="switchEditorTab('basic')">基本信息</button>
           ${isNew ? '' : `<button class="tab${editorTab === 'pages' ? ' active' : ''}" type="button" onclick="switchEditorTab('pages')">页面列表</button>
-          <button class="tab${editorTab === 'menus' ? ' active' : ''}" type="button" onclick="switchEditorTab('menus')">底部菜单</button>`}
+          ${isMs() ? '' : `<button class="tab${editorTab === 'menus' ? ' active' : ''}" type="button" onclick="switchEditorTab('menus')">底部菜单</button>`}`}
         </div>
         ${pane}
       </div>
@@ -929,10 +920,10 @@ function renderPageDrawer() {
       <label class="field-label">快速回复 Quick Replies（≤${MS_LIMITS.quickReplies}，文案 ≤${MS_LIMITS.btnText}，可选小图标）</label>
       <div class="btn-list" id="pg-qrs">${renderQrRows()}</div>
       <button class="btn btn-outline" type="button" ${(p.quickReplies || []).length >= MS_LIMITS.quickReplies ? 'disabled' : ''} onclick="addQr()">添加快速回复</button>
-      <div class="field-hint">点击一个后整组消失；不支持 URL（需要链接请用卡片按钮或底部菜单）</div>
+      <div class="field-hint">点击一个后整组消失；不支持 URL（需要链接请用卡片按钮；底部菜单在 Messenger Bot 配置页）</div>
     </div>` : ''}
-    <div class="field">
-      <label class="field-label">底部菜单${isMs() ? '（Persistent Menu，进入页面时覆盖给用户）' : ''}</label>
+    ${isMs() ? '' : `    <div class="field">
+      <label class="field-label">底部菜单</label>
       <select class="select" id="pg-menu" data-prev="${esc(p.mainMenuOverrideId || '')}" onfocus="this.dataset.prev=this.value" onchange="onPgMenuChange(this)">
         <option value="">使用对话流默认底部菜单</option>
         <option value="none"${p.mainMenuOverrideId === 'none' ? ' selected' : ''}>不使用底部菜单</option>
@@ -940,6 +931,7 @@ function renderPageDrawer() {
         <option value="__new__">+ 新建底部菜单…</option>
       </select>
     </div>
+`}
     <div class="field">
       <label class="field-label">状态<span class="req">*</span></label>
       <div class="radio-group">
@@ -1337,7 +1329,7 @@ function actionFieldsHtml(b) {
     <div class="field">
       <label class="field-label">点击后操作<span class="req">*</span></label>
       <select class="select" id="bt-event" onchange="onBtnEventChange()">
-        ${BUTTON_EVENTS.filter(e => !(btnCtx.source === 'qr' && (e.value === 'Url' || e.value === 'Home'))).map(e => optionHtml(e.value, e.label, b.event)).join('')}
+        ${BUTTON_EVENTS.filter(e => !(isMs() && e.value === 'Home') && !(btnCtx.source === 'qr' && e.value === 'Url')).map(e => optionHtml(e.value, e.label, b.event)).join('')}
       </select>
     </div>
     <div class="event-params" id="bt-params">${renderEventParams(b.event)}</div>`;
@@ -1557,9 +1549,9 @@ function renderEventParams(ev) {
       <label class="field-label">事件<span class="req">*</span></label>
       <select class="select" id="bt-builtin" onchange="onBuiltinChange()">
         <option value="">请选择事件</option>
-        ${BUILTIN_EVENTS.map(e => optionHtml(e.value, e.label, b.eventType)).join('')}
+        ${BUILTIN_EVENTS.filter(e => !(isMs() && e.value === 'WifiCode')).map(e => optionHtml(e.value, e.label, b.eventType)).join('')}
       </select>
-    </div>${b.eventType === 'SharePhone' ? renderShareAfter(b) : ''}${b.eventType === 'Support' ? (isMs() ? renderEndSessionText(b) : renderEndSupportImage(b)) : ''}`;
+    </div>${b.eventType === 'SharePhone' ? renderShareAfter(b) : ''}${b.eventType === 'Support' && !isMs() ? renderEndSupportImage(b) : ''}`;
   }
   if (ev === 'Home') {
     return `<div class="field" style="margin:0">
@@ -1572,14 +1564,6 @@ function renderEventParams(ev) {
     </div>`;
   }
   return '';
-}
-
-function renderEndSessionText(b) {
-  return `<div class="field">
-      <label class="field-label">结束会话文案</label>
-      <input class="input" id="bt-end-text" maxlength="${MS_LIMITS.menuTitle}" placeholder="结束会话" value="${esc(b.endText || '结束会话')}" />
-      <div class="field-hint">客服会话中，底部菜单只显示这一项；用户点击后结束会话，恢复所属对话流的菜单并重新下发进入客服前的页面</div>
-    </div>`;
 }
 
 function renderEndSupportImage(b) {
@@ -1668,7 +1652,6 @@ function syncBtnDraftFromForm() {
   if (bind) btnDraft.needBind = bind === 'yes';
   const style = document.querySelector('input[name="bt-style"]:checked')?.value;
   if (style) btnDraft.style = style;
-  if (document.getElementById('bt-end-text')) btnDraft.endText = document.getElementById('bt-end-text').value.trim();
 }
 
 function readButtonForm() {
@@ -1692,7 +1675,6 @@ function readButtonForm() {
       : '',
     eventType: ev === 'Event' ? (btnDraft.eventType || '') : '',
     endImage: ev === 'Event' && btnDraft.eventType === 'Support' && !isMs() ? (btnDraft.endImage || '') : '',
-    endText: ev === 'Event' && btnDraft.eventType === 'Support' && isMs() ? (btnDraft.endText || '结束会话') : '',
     shareAfter: ev === 'Event' && btnDraft.eventType === 'SharePhone' ? (btnDraft.shareAfter || '') : '',
     menuId: ev === 'Home' ? (btnDraft.menuId || '') : '',
     needBind: !!btnDraft.needBind,

@@ -589,3 +589,13 @@ html, body { height: 100%; }
 .ms-end { color: #E5484D; }
 .ms-sim select { margin-left: 4px; }
 #ms-cfg-card .modal-title { margin-bottom: 16px; }
+
+/* Messenger Bot 配置页 */
+.mc-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; margin-top: 16px; }
+.mc-side { position: sticky; top: 0; }
+.mc-item { display: grid; grid-template-columns: 24px 1.1fr 100px 1.6fr 140px; gap: 8px; align-items: start; padding: 8px 0; border-bottom: 1px dashed var(--line); }
+.mc-item-no { margin-top: 8px; color: var(--text-3); font-size: 12px; text-align: center; }
+.mc-target { display: flex; gap: 6px; }
+.mc-target .select, .mc-target .input { flex: 1; min-width: 0; }
+.mc-ops { display: flex; gap: 4px; margin-top: 6px; white-space: nowrap; }
+.mc-cnt { margin: 2px 0 0; }

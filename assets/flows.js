@@ -128,7 +128,7 @@ function render() {
             <tr>
               <th>对话流 ID</th>
               <th>名称</th>
-              <th>默认主菜单</th>
+              <th>${filters.platform === 'messenger' ? '底部菜单' : '默认主菜单'}</th>
               <th>页面数</th>
               <th>状态</th>
               <th class="col-ops">操作</th>
@@ -141,7 +141,7 @@ function render() {
               return `<tr>
                 <td>${esc(f.id)}</td>
                 <td>${esc(f.name)}</td>
-                <td>${esc(menu ? menu.name : '-')}</td>
+                <td>${esc(filters.platform === 'messenger' ? 'Bot 级配置' : (menu ? menu.name : '-'))}</td>
                 <td>${(f.pages || []).length}</td>
                 <td>${statusTag(f.status)}</td>
                 <td class="col-ops">
