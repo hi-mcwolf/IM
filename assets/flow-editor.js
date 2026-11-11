@@ -118,7 +118,7 @@ function pageMeta(p) {
   const n = (p.cardButtons || []).length;
   const menu = p.mainMenuOverrideId === 'none' ? null : menuById(p.mainMenuOverrideId || draft.mainMenuId);
   const parts = [n ? `${n} 个卡片按钮` : '无卡片按钮'];
-  if (isMs()) parts.unshift(`${1 + (p.moreCards || []).length} 张卡片`);
+  if (isMs()) parts.unshift(p.msType === 'text' ? '纯文本' : `${1 + (p.moreCards || []).length} 张卡片`);
   if (isMs() && (p.quickReplies || []).length) parts.push(`${p.quickReplies.length} 个快速回复`);
   if (p.image) parts.push('含图');
   if (p.mainMenuOverrideId === 'none') parts.push('不使用底部菜单');
@@ -196,7 +196,9 @@ function messengerPreviewHtml(page, menu) {
   const qrs = simMode === 'support' ? [] : ((page && page.quickReplies) || []);
   const simQr = simMode === 'phone' ? '<button class="ms-qr ms-qr-sys" type="button"><span class="ms-qr-ico">☎</span>分享手机号</button>' : '';
   const qrHtml = (simQr || qrs.length) ? `<div class="ms-qrs">${simQr}${qrs.map(b => `<button class="ms-qr" type="button" ${b.event === 'Page' && b.pageId ? `onclick="previewGoPage('${esc(b.pageId)}')"` : ''}>${b.image ? `<span class="ms-qr-ico"><img src="${esc(b.image)}" alt="" onerror="this.style.display='none'">图</span>` : ''}${esc(b.text || '按钮')}</button>`).join('')}</div>` : '';
-  const cards = page ? [
+  const isText = page && page.msType === 'text';
+  const textBtns = isText ? (page.cardButtons || []).slice().sort((a, b) => (a.sort || 0) - (b.sort || 0)) : [];
+  const cards = page && !isText ? [
     { title: interpolatePreview(page.text), subtitle: interpolatePreview(page.subtitle), image: page.image, buttons: page.cardButtons },
     ...(page.moreCards || []).map(c => ({ title: interpolatePreview(c.title), subtitle: interpolatePreview(c.subtitle), image: c.image, buttons: c.buttons }))
   ] : [];
@@ -211,7 +213,7 @@ function messengerPreviewHtml(page, menu) {
         <div class="meta"><div class="name">${esc(botName)}</div><div class="sub">Messenger · ${esc(page ? (page.name || page.id || '未命名页面') : '未选择页面')}</div></div>
       </div>
       <div class="viber-chat-body">
-        ${page ? `<div class="ms-carousel">${cards.map(c => msCardHtml(c.title, c.subtitle, c.image, c.buttons)).join('')}</div>` : '<div class="viber-empty">选择或添加页面后在此预览 Messenger 效果</div>'}
+        ${isText ? `<div class="ms-textmsg"><div class="ms-textbubble">${esc(interpolatePreview(page.text)) || '（暂无内容）'}</div>${textBtns.length ? `<div class="ms-card-btns">${textBtns.map(b => msBtn(b)).join('')}</div>` : ''}</div>` : (page ? `<div class="ms-carousel">${cards.map(c => msCardHtml(c.title, c.subtitle, c.image, c.buttons)).join('')}</div>` : '<div class="viber-empty">选择或添加页面后在此预览 Messenger 效果</div>')}
       </div>
       ${qrHtml}
       <div class="ms-bottom ${composerOn ? 'on' : 'off'}">
@@ -329,6 +331,13 @@ function msIssues() {
   };
   sortedPages(draft).forEach(p => {
     const nm = p.name || p.id;
+    if (p.msType === 'text') {
+      const len = (p.text || '').length, nb = (p.cardButtons || []).length;
+      if (len > L.textMsg) out.push({ level: 'err', text: `${nm}：纯文本超过 ${L.textMsg} 字符` });
+      else if (nb && len > L.textWithBtn) out.push({ level: 'err', text: `${nm}：纯文本带按钮时最多 ${L.textWithBtn} 字符（当前 ${len}）` });
+      chkBtns(nm, p.cardButtons);
+      return;
+    }
     const total = 1 + (p.moreCards || []).length;
     if (total > L.cards) out.push({ level: 'err', text: `${nm}：卡片最多 ${L.cards} 张（当前 ${total}）` });
     if ((p.text || '').length > L.cardTitle) out.push({ level: 'err', text: `${nm}：卡片标题超过 ${L.cardTitle} 字符` });
@@ -958,10 +967,40 @@ function renderPageDrawer() {
   refreshIcons();
 }
 
+function setPageType(v) {
+  syncPageForm();
+  pageDraft.msType = v;
+  pageDirty = true;
+  renderPageDrawer();
+}
+
+function msTextFieldsHtml(p) {
+  return `
+    <div class="field">
+      <label class="field-label">文本内容<span class="req">*</span><span class="counter" id="cnt-pg-text"></span></label>
+      <textarea class="textarea" id="pg-text" rows="6" placeholder="支持 {nickname} 等占位符">${esc(p.text || '')}</textarea>
+      <div class="field-error" id="err-pg-text"></div>
+      <div class="field-hint">不带按钮时最多 ${MS_LIMITS.textMsg} 字符；带按钮时最多 ${MS_LIMITS.textWithBtn} 字符（Messenger 的带按钮文本消息上限）</div>
+    </div>
+    <div class="field">
+      <label class="field-label">按钮（≤${MS_LIMITS.cardButtons}，文案 ≤${MS_LIMITS.btnText} / 点击后操作）</label>
+      <div class="btn-list" id="pg-cards">${renderCardRows(0)}</div>
+      <button class="btn btn-outline" type="button" ${(p.cardButtons || []).length >= MS_LIMITS.cardButtons ? 'disabled' : ''} onclick="addCardButton(0)">添加按钮</button>
+    </div>`;
+}
+
 function msCardFieldsHtml(p) {
+  const typeSel = `<div class="field">
+      <label class="field-label">消息类型<span class="req">*</span></label>
+      <div class="radio-group">
+        <label><input type="radio" name="pg-type" ${p.msType !== 'text' ? 'checked' : ''} onchange="setPageType('card')"> 卡片（图文，可多张轮播）</label>
+        <label><input type="radio" name="pg-type" ${p.msType === 'text' ? 'checked' : ''} onchange="setPageType('text')"> 纯文本</label>
+      </div>
+    </div>`;
+  if (p.msType === 'text') return typeSel + msTextFieldsHtml(p);
   const more = p.moreCards || [];
   const total = 1 + more.length;
-  return `
+  return typeSel + `
     <div class="field">
       <label class="field-label">卡片 1 · 头图</label>
       ${uploadFieldHtml('pg-image', p.image)}
@@ -1036,6 +1075,14 @@ function updatePageErrors() {
     if (errId) fieldError(errId, over ? msg : '');
     if (over) bad = true;
   };
+  if (pageDraft.msType === 'text') {
+    const nb = (pageDraft.cardButtons || []).length;
+    const max = nb ? L.textWithBtn : L.textMsg;
+    chk(pageDraft.text, max, 'cnt-pg-text', 'err-pg-text', nb ? `带按钮的纯文本最多 ${L.textWithBtn} 字符` : `纯文本最多 ${L.textMsg} 字符`);
+    const btn = document.getElementById('pageSaveBtn');
+    if (btn) btn.disabled = bad;
+    return bad;
+  }
   chk(pageDraft.text, L.cardTitle, 'cnt-pg-text', 'err-pg-text', `标题最多 ${L.cardTitle} 字符`);
   chk(pageDraft.subtitle, L.cardSubtitle, 'cnt-pg-subtitle', 'err-pg-subtitle', `副标题最多 ${L.cardSubtitle} 字符`);
   (pageDraft.moreCards || []).forEach((c, i) => {
@@ -1071,7 +1118,7 @@ function syncPageForm() {
   pageDraft.name = (document.getElementById('pg-name')?.value || '').trim();
   pageDraft.pageType = pageDraft.pageType || '首页';
   pageDraft.text = document.getElementById('pg-text')?.value || '';
-  if (isMs()) {
+  if (isMs() && pageDraft.msType !== 'text') {
     pageDraft.subtitle = document.getElementById('pg-subtitle')?.value || '';
     document.querySelectorAll('[data-mc]').forEach(el => {
       const c = (pageDraft.moreCards || [])[Number(el.dataset.i)];

@@ -95,9 +95,8 @@ function moveItem(i, d) {
 }
 
 function onEnd(idx, k, v, keep) {
-  const target = idx < 0 ? cfg : cfg.items[idx];
-  if (!target.endAction) target.endAction = newEndAction();
-  setEndField(target.endAction, k, v);
+  if (!cfg.endAction) cfg.endAction = newEndAction();
+  setEndField(cfg.endAction, k, v);
   dirty = true;
   if (keep) touch(); else render();
 }
@@ -241,9 +240,9 @@ function render() {
             <label class="field-label">客服会话中的菜单</label>
             <div class="mc-end-grid">
               <div><input class="input" placeholder="结束会话文案，最多 30 字符" value="${esc(cfg.endText)}" oninput="setText('endText',this.value)" /><div class="counter mc-cnt" id="mc-end-cnt">${cfg.endText.length}/${MS_LIMITS.menuTitle}</div></div>
-              <div class="mc-target"><span class="mc-end-lab">结束后</span>${endActionHtml(cfg.endAction, 'onEnd(-1,', flowsOfBot())}</div>
+              <div class="mc-target"><span class="mc-end-lab">结束后进入对话流</span>${endActionHtml(cfg.endAction, 'onEnd(-1,', flowsOfBot())}</div>
             </div>
-            <div class="field-hint">仅在用户处于客服会话时显示，且只有这一项；会话结束后恢复上面的底部菜单。用户点击后关闭客服会话、恢复菜单和键盘，再执行「结束后」动作（必填：页面 / 对话流 / 事件 / URL）。它不是主菜单里的菜单项。</div>
+            <div class="field-hint">仅在用户处于客服会话时显示，且只有这一项；会话结束后恢复上面的底部菜单。用户点击后关闭客服会话、恢复菜单和键盘，再进入下面选择的对话流（必填，只能选对话流）。它不是主菜单里的菜单项。</div>
           </div>
         </section>
         <section class="card" style="margin-top:16px">

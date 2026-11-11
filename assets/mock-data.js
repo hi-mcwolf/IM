@@ -1,6 +1,6 @@
 /* IM Bot 用户分层 v0.4 — 内存 + sessionStorage mock */
 
-const STORE_KEY = 'im-bot-layering-v26-ms';
+const STORE_KEY = 'im-bot-layering-v27-ms';
 
 const PRODUCT_LINES = [
   { id: 'digiplus', name: 'digiplus' },
@@ -18,7 +18,7 @@ const PLATFORM_BOT_KEYS = { viber: 'vb', telegram: 'tg', messenger: 'ms' };
 /* Messenger 渠道能力约束（PRD 4.6） */
 const MS_LIMITS = {
   cards: 10, cardTitle: 80, cardSubtitle: 80, cardButtons: 3,
-  btnText: 20, quickReplies: 13, menuItems: 20, menuTitle: 30
+  btnText: 20, quickReplies: 13, menuItems: 20, menuTitle: 30, textMsg: 1999, textWithBtn: 640
 };
 
 const PROTOS_TAGS = [
@@ -113,6 +113,7 @@ function makePage(id, name, pageType, extra = {}) {
     image: extra.image || '',
     text: extra.text || '',
     subtitle: extra.subtitle || '',
+    msType: extra.msType || 'card',
     moreCards: extra.moreCards || [],
     quickReplies: extra.quickReplies || [],
     cardButtons: extra.cardButtons || [],
@@ -418,6 +419,15 @@ const SEED = {
               buttons: [makeBtn('mcb_5', '查看详情', 'Page', { pageId: 'ms_offer', sort: 1 })] }
           ]
         }),
+        makePage('ms_notice', '温馨提示（纯文本）', '过渡', {
+          order: 2,
+          msType: 'text',
+          text: '您好 {nickname}，本周 VIP 专属活动已上线。点击下方按钮查看活动详情，或联系客服了解更多。',
+          cardButtons: [
+            makeBtn('mtb_1', '查看活动', 'Page', { pageId: 'ms_offer', sort: 1 }),
+            makeBtn('mtb_2', '联系客服', 'Event', { eventType: 'Support', sort: 2 })
+          ]
+        }),
         makePage('ms_offer', '活动详情', '列表', {
           order: 1,
           image: 'https://cdn.example.com/offer.jpg',
@@ -624,37 +634,18 @@ const MS_EVENTS = [
   { value: 'Support', label: '开启客服' },
   { value: 'SharePhone', label: '分享手机号' }
 ];
-const MS_END_TYPES = [
-  { value: 'Page', label: '页面' }, { value: 'Flow', label: '对话流' },
-  { value: 'Event', label: '事件' }, { value: 'Url', label: 'URL' }
-];
 function msEventLabel(v) { return MS_EVENTS.find(e => e.value === v)?.label || builtinEventLabel(v); }
-function newEndAction() { return { type: 'Page', flowId: '', pageId: '', eventType: '', url: '' }; }
+function newEndAction() { return { type: 'Flow', flowId: '' }; }
 function endActionError(ea) {
-  if (!ea) return '请配置关闭后动作';
-  if (ea.type === 'Page' && (!ea.flowId || !ea.pageId)) return '请选择关闭后动作的对话流和页面';
-  if (ea.type === 'Flow' && !ea.flowId) return '请选择关闭后动作的对话流';
-  if (ea.type === 'Event' && !ea.eventType) return '请选择关闭后动作的事件';
-  if (ea.type === 'Url' && !/^https:\/\/[^\s]+$/.test((ea.url || '').trim())) return '关闭后动作：请输入合法的 https 链接';
+  if (!ea || !ea.flowId) return '请选择结束后进入的对话流';
   return '';
 }
-/* fn：点击回调前缀，如 "onEnd(-1,"，调用形式 fn 'type', value) */
+/* 结束会话后只能进入一个对话流；fn：回调前缀，如 "onEnd(-1,"，调用形式 fn 'flowId', value) */
 function endActionHtml(ea, fn, flows) {
   ea = ea || newEndAction();
-  const pages = ea.flowId ? (flowById(ea.flowId)?.pages || []) : [];
-  const flowSel = `<select class="select" onchange="${fn}'flowId',this.value)"><option value="">选择对话流</option>${flows.map(f => optionHtml(f.id, f.name, ea.flowId)).join('')}</select>`;
-  let tgt = '';
-  if (ea.type === 'Page') tgt = flowSel + `<select class="select" onchange="${fn}'pageId',this.value)"><option value="">选择页面</option>${pages.map(p => optionHtml(p.id, p.name, ea.pageId)).join('')}</select>`;
-  else if (ea.type === 'Flow') tgt = flowSel;
-  else if (ea.type === 'Event') tgt = `<select class="select" onchange="${fn}'eventType',this.value)"><option value="">选择事件</option>${optionHtml('SharePhone', '分享手机号', ea.eventType)}</select>`;
-  else tgt = `<input class="input" placeholder="https://" value="${esc(ea.url || '')}" oninput="${fn}'url',this.value,true)" />`;
-  return `<select class="select" style="max-width:110px" onchange="${fn}'type',this.value)">${MS_END_TYPES.map(t => optionHtml(t.value, t.label, ea.type)).join('')}</select>${tgt}`;
+  return `<select class="select" onchange="${fn}'flowId',this.value)"><option value="">选择对话流</option>${flows.map(f => optionHtml(f.id, f.name, ea.flowId)).join('')}</select>`;
 }
-function setEndField(ea, k, v) {
-  ea[k] = v;
-  if (k === 'type') { ea.flowId = ''; ea.pageId = ''; ea.eventType = ''; ea.url = ''; }
-  if (k === 'flowId') ea.pageId = '';
-}
+function setEndField(ea, k, v) { ea[k] = v; }
 
 function builtinEventLabel(v) {
   return BUILTIN_EVENTS.find(e => e.value === v)?.label || v || '-';
@@ -849,7 +840,7 @@ function defaultMsCfg() {
     promptText: '您好，需要为您转接人工客服吗？点击下方按钮即可转接。',
     qrTitle: '转人工客服',
     endText: '结束会话',
-    endAction: { type: 'Page', flowId: 'flow_ms_vip', pageId: 'ms_home', eventType: '', url: '' },
+    endAction: { type: 'Flow', flowId: 'flow_ms_vip' },
     items: [
       { id: 'mi_1', title: '首页', action: 'Page', flowId: 'flow_ms_vip', pageId: 'ms_home', eventType: '', url: '', endAction: null },
       { id: 'mi_2', title: '联系客服', action: 'Event', flowId: '', pageId: '', eventType: 'Support', url: '', endAction: null },
